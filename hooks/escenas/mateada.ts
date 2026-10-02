@@ -1,0 +1,155 @@
+// The mateada scene: the session's figures as things on a checked tablecloth
+// for a mate: a thermos of hot water for the context, the mate for the prompt
+// cache, a plate of medialunas for the five-hour limit, and a pack of yerba for
+// the week. Each has its number underneath in the 3x5 pixel font.
+//
+// The mate's steam fades by itself over the cache's hour, so the band need not
+// be redrawn to keep it current; once the cache expires the yerba is washed out.
+
+import type { FigureScene, Figures } from './index'
+import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
+
+// Objects stand on the tablecloth, which takes rows 8 and 9.
+const CLOTH_Y = 8
+
+const CLOTH = '#B5483E'
+const CREAM = '#E8E6DC'
+const SHADOW = '#8C8A84'
+const STEEL = '#C8C8C8'
+const STEEL_DARK = '#9A9A9A'
+const THERMOS = '#4F7B5A'
+const THERMOS_DARK = '#3B5E45'
+const WATER = '#8FD3F0'
+const GAUGE = '#2B3A40'
+const GOURD = '#8B5A2B'
+const GOURD_DARK = '#6B4220'
+const GOURD_LIGHT = '#B07A45'
+const YERBA = '#7FA65A'
+const WASHED = '#9A9A8A'
+const PASTRY = '#D99A4E'
+const PASTRY_DARK = '#B5763A'
+const PACK = '#6B8E4E'
+const PACK_DARK = '#557341'
+
+// A kettle ready to refill the thermos: round, its handle arched over the lid
+// and its spout rising to the left, steaming.
+const kettle = (x: number) => `
+  <g fill="${STEEL_DARK}">${px(x + 3, 1, 3, 1)}${px(x + 2, 2)}${px(x + 6, 2)}${px(x + 3, 7, 3, 1)}</g>
+  <g fill="${STEEL}">${px(x, 3)}${px(x + 3, 3, 3, 1)}${px(x + 1, 4, 6, 1)}${px(x + 2, 5, 5, 2)}</g>
+  <g fill="${CREAM}" opacity="0.6"><g class="kettle-steam">${px(x, 1)}</g></g>`
+
+// How far the thermos steps right to make room for the kettle.
+const ASIDE = 2
+
+// Context: a thermos with a strip of water down its side that drops as the
+// context fills. At a quarter or less, a kettle waits beside it to refill it,
+// and the thermos steps aside for it.
+const thermos = (left: number | null, x: number) => {
+  const rows = left === null ? 0 : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * 5))
+  const isLow = left !== null && left <= 25
+  const at = isLow ? x + ASIDE : x
+  return `
+    <g fill="${STEEL}">${px(at + 7, -2)}${px(at + 6, -1, 3, 1)}${px(at + 5, 0, 5, 1)}</g>
+    <g fill="${THERMOS}">${px(at + 5, 1, 5, 7)}</g>
+    <g fill="${THERMOS_DARK}">${px(at + 9, 1, 1, 7)}${px(at + 10, 2)}${px(at + 10, 5)}${px(at + 11, 2, 1, 4)}</g>
+    <g fill="${GAUGE}">${px(at + 7, 2, 1, 5)}</g>
+    <g fill="${WATER}">${rows > 0 ? px(at + 7, 7 - rows, 1, rows) : ''}</g>
+    ${isLow ? kettle(x) : ''}
+    ${percentText(left, x)}`
+}
+
+// Cache: the mate and its bombilla. It steams in a loop that fades by itself
+// over the cache's hour; once the cache has expired the yerba is washed out.
+const mate = (left: number | null, ttl: number, x: number) => {
+  const isWashed = left !== null && left <= 0
+  const gourd = `
+    <g fill="${isWashed ? WASHED : YERBA}">${px(x + 6, 1, 4, 1)}${px(x + 7, 0, 2, 1)}</g>
+    <g fill="${STEEL}">${px(x + 9, 1)}${px(x + 10, 0)}${px(x + 11, -1)}${px(x + 12, -2)}</g>
+    <g fill="${STEEL_DARK}">${px(x + 5, 2, 6, 1)}</g>
+    <g fill="${GOURD}">${px(x + 4, 3, 8, 1)}${px(x + 3, 4, 10, 2)}${px(x + 4, 6, 8, 1)}${px(x + 5, 7, 6, 1)}</g>
+    <g fill="${GOURD_DARK}">${px(x + 10, 3, 2, 1)}${px(x + 11, 4, 2, 2)}${px(x + 10, 6, 2, 1)}${px(x + 9, 7, 2, 1)}</g>
+    <g fill="${GOURD_LIGHT}">${px(x + 5, 4)}</g>`
+  if (left === null || isWashed) {
+    return `${gourd}${pixelText(left === null ? '--' : '0m', x)}`
+  }
+  return `${gourd}
+    <g class="warm" style="animation-duration: ${ttl}s; animation-delay: -${ttl - left}s">
+      <g fill="${CREAM}" opacity="0.6">
+        <g class="steam1">${px(x + 6, -1)}${px(x + 5, -2)}</g>
+        <g class="steam2">${px(x + 8, -1)}${px(x + 9, -2)}</g>
+      </g>
+    </g>
+    ${countdown(left, x)}`
+}
+
+// One medialuna, four pixels across and three tall: an arch whose tips curl down.
+const medialuna = (x: number, y: number) => `
+  <g fill="${PASTRY}">${px(x + 1, y, 2, 1)}${px(x, y + 1, 4, 1)}</g>
+  <g fill="${PASTRY_DARK}">${px(x + 2, y + 1)}${px(x, y + 2)}${px(x + 3, y + 2)}</g>`
+
+// Where each medialuna sits on the plate, the last one eaten first.
+const PILE: [number, number][] = [[2, 3], [6, 3], [10, 3], [6, 0]]
+
+// Five-hour limit: a plate with a medialuna for every quarter of the window
+// still free; the eaten ones leave crumbs.
+const plate = (used: number | null, x: number) => {
+  const left = used === null ? null : 100 - used
+  const count = left === null ? PILE.length : Math.min(PILE.length, Math.max(0, Math.ceil(left / 25)))
+  const crumbs = count < 3 ? `<g fill="${PASTRY_DARK}">${px(x + 11, 5)}${px(x + 13, 5)}${count < 2 ? px(x + 7, 5) : ''}${count < 1 ? px(x + 3, 5) : ''}</g>` : ''
+  return `
+    <g fill="${CREAM}">${px(x + 1, 6, 14, 1)}</g>
+    <g fill="${SHADOW}">${px(x + 3, 7, 10, 1)}</g>
+    ${crumbs}
+    ${PILE.slice(0, count).map(([dx, y]) => medialuna(x + dx, y)).join('')}
+    ${percentText(left, x)}`
+}
+
+// Weekly limit: a pack of yerba that gets flatter, from the top down, as the
+// week's limit is used.
+const pack = (used: number | null, x: number) => {
+  const left = used === null ? null : 100 - used
+  const rows = left === null ? 8 : Math.max(1, Math.round((left / 100) * 8))
+  const top = CLOTH_Y - rows
+  // The label sits low on the pack, so it goes last as the pack flattens.
+  const label = [4, 5].filter(y => y > top)
+  return `
+    <g fill="${PACK}">${px(x + 5, top, 6, rows)}</g>
+    <g fill="${PACK_DARK}">${px(x + 5, top, 6, 1)}${px(x + 10, top, 1, rows)}</g>
+    <g fill="${CREAM}">${label.map(y => px(x + 5, y, 5, 1)).join('')}</g>
+    <g fill="${CLOTH}">${label.length === 2 ? px(x + 7, 4) : ''}</g>
+    ${percentText(left, x)}`
+}
+
+// A gingham strip: cells two pixels wide, the rows offset by one cell.
+const tablecloth = () =>
+  [0, 1]
+    .map(row =>
+      Array.from({ length: WIDTH / 2 }, (_, i) => `<g fill="${(i + row) % 2 === 0 ? CLOTH : CREAM}">${px(i * 2, CLOTH_Y + row, 2, 1)}</g>`).join(''),
+    )
+    .join('')
+
+const mateadaSvg = (f: Figures) =>
+  sceneSvg(
+    `${COUNTDOWN_CSS}
+    .steam1 { animation: steam 2s steps(4) infinite; }
+    .steam2 { animation: steam 2s steps(4) -1s infinite; }
+    .kettle-steam { animation: steam 2s steps(4) -0.5s infinite; }
+    @keyframes steam { 0% { transform: translate(0, 2px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(0, -1px); opacity: 0; } }
+    .warm { animation-name: cool; animation-timing-function: linear; animation-fill-mode: forwards; }
+    @keyframes cool { from { opacity: 1; } to { opacity: 0; } }`,
+    `
+  ${tablecloth()}
+  ${thermos(f.contextLeft, 0)}
+  ${mate(f.cacheLeft, f.cacheTtl, SLOT)}
+  ${plate(f.fiveHour, SLOT * 2)}
+  ${pack(f.week, SLOT * 3)}`,
+  )
+
+export const mateada: FigureScene = {
+  name: 'mateada',
+  label: 'Mateada',
+  width: WIDTH,
+  height: HEIGHT,
+  scale: SCALE,
+  svg: mateadaSvg,
+}

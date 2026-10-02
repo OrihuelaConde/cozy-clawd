@@ -3,6 +3,7 @@
 // last is kept in the plugin's store under `escena`.
 
 import { estante } from './estante'
+import { mateada } from './mateada'
 
 // The figures every scene shows.
 export type Figures = {
@@ -29,7 +30,7 @@ export type FigureScene = {
   svg: (f: Figures) => string
 }
 
-export const FIGURE_SCENES: readonly FigureScene[] = [estante]
+export const FIGURE_SCENES: readonly FigureScene[] = [estante, mateada]
 
 export const DEFAULT_FIGURE_SCENE = estante
 

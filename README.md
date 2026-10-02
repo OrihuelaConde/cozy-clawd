@@ -75,6 +75,7 @@ The band switches to the new scene at once, and later sessions start with it.
 | Scene | What it shows |
 | --- | --- |
 | `estante` | A shelf with a mug of tea, a candle, a cookie jar, and a moon. |
+| `mateada` | A checked tablecloth set for mate. A thermos's strip of water shows the context left, and at 25% or less a steaming kettle waits beside it. The mate's steam fades over the prompt cache's hour, and the yerba washes out when the cache expires. A plate holds a medialuna for every quarter of the five-hour limit left, and a pack of yerba flattens as you use the weekly limit. |
 
 ## Development
 
@@ -86,6 +87,7 @@ The mod is a Claude Code plugin of function hooks:
 | `hooks/escenas/index.ts` | The scenes the session figures can be drawn as, and the figures in words. |
 | `hooks/escenas/pixels.ts` | What the figure scenes share: their layout, the pixel font of the numbers, and the cache's countdown. |
 | `hooks/escenas/estante.ts` | The `estante` scene: a shelf of objects. |
+| `hooks/escenas/mateada.ts` | The `mateada` scene: a tablecloth set for mate. |
 | `types/index.d.ts` | The contract for the values the mod keeps in the session's state. |
 | `hooks/cozy-clawd.test.tsx` | Tests that run against the engine. |
 | `tools/preview.mjs` | A script that renders Clawd's scenes and a few states of each figure scene to an HTML page. |

@@ -59,3 +59,14 @@ test('/clawd-escena names the scenes and turns down one that does not exist', as
   const same = await $.command.run(typed('estante'))
   expect(same.text).toMatch(/ya es estante/)
 })
+
+test('a new session starts with the scene picked last', async ($, on) => {
+  mock.store(on, { escena: 'mateada' })
+  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 200_000, tokens: 0, percent: 0 }, rateLimits: [] } }))
+  on('command.register', ($, e) => ({ value: { command: e.name } }))
+  on('session.start', ($, e) => ({ cwd: e.cwd }))
+  await $.session.start({ cwd: '/', surface: null, isInteractive: false })
+
+  const listed = await $.command.run({ command: 'clawd-escena', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  expect(listed.text).toMatch(/Escena: mateada\. Hay: estante, mateada/)
+})
