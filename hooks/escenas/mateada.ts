@@ -174,5 +174,5 @@ export const mateada: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: mateadaSvg,
-  cue: f => (f.cacheLeft !== null && f.cacheLeft <= 0 ? 'reach' : null),
+  cue: f => (f.cacheLeft !== null && f.cacheLeft <= 0 ? { act: 'reach', label: 'El mate se enfrió' } : null),
 }

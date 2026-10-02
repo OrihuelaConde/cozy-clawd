@@ -226,5 +226,5 @@ export const balcon: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: balconSvg,
-  cue: f => (f.contextLeft !== null && f.contextLeft <= 25 ? 'watch' : null),
+  cue: f => (f.contextLeft !== null && f.contextLeft <= 25 ? { act: 'watch', label: 'La regadera se está secando' } : null),
 }

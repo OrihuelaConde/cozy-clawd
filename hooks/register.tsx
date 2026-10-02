@@ -3,7 +3,7 @@ import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import type { ClawdMode, Stats } from '../types'
 import { DEFAULT_FIGURE_SCENE, FIGURE_SCENES, figureSceneNamed, figuresAlt } from './escenas/index'
-import type { Cue, Figures } from './escenas/index'
+import type { Act, Figures } from './escenas/index'
 
 const PANE = 'clawd'
 const mode = atom({ plugin: 'cozy-clawd', key: 'mode' } as const, 'idle')
@@ -480,12 +480,13 @@ const stretch = (name: string, from: number) =>
   `.${name} { animation: ${name} 3.2s steps(1) infinite; }
   @keyframes ${name} { 0%, ${from - 0.1}% { opacity: 0; } ${from}%, 79.9% { opacity: 1; } 80%, 100% { opacity: 0; } }`
 
-// What Clawd does instead of sleeping when the scene on the right calls for it.
-const cueScenes: Record<Cue, Scene> = {
-  // The mate went cold: Clawd looks over at it and stretches an arm out toward
-  // it, its claw grabbing at the air, then pulls back and tries again.
+// What Clawd does instead of sleeping when the scene on the right calls for
+// it; the scene says what for, and the band says that instead of the label.
+const cueScenes: Record<Act, Scene> = {
+  // Clawd looks over at the scene and stretches an arm out toward it, its claw
+  // grabbing at the air, then pulls back and tries again: for the cold mate.
   reach: {
-    label: 'El mate se enfrió',
+    label: 'Estirando el brazo',
     extra: `
       <g fill="${BODY}">
         <g class="r1">${px(17, 2)}</g><g class="r2">${px(18, 2)}</g><g class="r3">${px(19, 2)}</g>
@@ -501,9 +502,9 @@ const cueScenes: Record<Cue, Scene> = {
       @keyframes grab { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
       ${BLINK}`,
   },
-  // The moon set: Clawd stretches its arms up in a big yawn, then nods off.
+  // Clawd stretches its arms up in a big yawn, then nods off: the moon set.
   yawn: {
-    label: 'Se puso la luna',
+    label: 'Bostezando',
     eyes: `<g class="drowsy">${px(5, 1.5, 1, 0.5)}${px(12, 1.5, 1, 0.5)}</g><g class="shut">${CLOSED_EYES}</g>`,
     extra: `
       <g class="mouth" fill="${EYE}"><g class="gape">${px(8, 2, 2, 1)}</g><g class="ajar">${px(8, 2.5, 2, 0.5)}</g></g>
@@ -522,10 +523,10 @@ const cueScenes: Record<Cue, Scene> = {
       @keyframes gape { 0%, 19.9% { opacity: 0; } 20%, 39.9% { opacity: 1; } 40%, 100% { opacity: 0; } }
       @keyframes doze { 0%, 59.9% { opacity: 0; transform: translate(0, 0.5px); } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(1px, -0.5px); } }`,
   },
-  // The watering can is running dry: Clawd keeps an anxious eye on it, a drop
-  // of sweat running down its side.
+  // Clawd keeps an anxious eye on the scene, a drop of sweat running down its
+  // side: the watering can is running dry.
   watch: {
-    label: 'La regadera se está secando',
+    label: 'Preocupado',
     extra: `<g class="sweat" fill="${SKY}">${px(15, 0, 1, 0.5)}</g>`,
     css: `
       .eyes { transform: translate(1px, 0); }
@@ -864,8 +865,8 @@ export const register: Register = on => {
     const figureScene = figureSceneNamed(await read($, escena))
     // Idle, Clawd sleeps, unless the scene on the right calls for something else.
     const cue = isIdle ? (figureScene.cue?.(figures) ?? null) : null
-    const idleScene = cue === null ? scenes.idle : cueScenes[cue]
-    const { scene, label } = isIdle ? { scene: idleScene, label: idleScene.label } : sceneFor(drawnMode, await read($, tool))
+    const idle = cue === null ? { scene: scenes.idle, label: scenes.idle.label } : { scene: cueScenes[cue.act], label: cue.label }
+    const { scene, label } = isIdle ? idle : sceneFor(drawnMode, await read($, tool))
     const isOngoing = !isIdle && drawnMode !== 'compacted'
 
     return (

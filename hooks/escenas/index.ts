@@ -23,10 +23,13 @@ export type Figures = {
   isCompacting: boolean
 }
 
-// What Clawd does about the scene while it has nothing else to do, instead of
-// sleeping: reach for the cold mate, yawn at the moon that set, watch the
-// watering can run dry.
-export type Cue = 'reach' | 'yawn' | 'watch'
+// What Clawd can do about the scene while it has nothing else to do, instead
+// of sleeping: stretch an arm out toward it, yawn, or keep a worried eye on it.
+export type Act = 'reach' | 'yawn' | 'watch'
+
+// What Clawd does about the scene, and what the band says of it: reach for
+// the cold mate, yawn at the moon that set, watch the watering can run dry.
+export type Cue = { act: Act; label: string }
 
 export type FigureScene = {
   // What /clawd-escena takes and the plugin's store keeps.

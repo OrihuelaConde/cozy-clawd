@@ -226,5 +226,5 @@ export const ventana: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: ventanaSvg,
-  cue: f => (f.cacheLeft !== null && f.cacheLeft <= 0 ? 'yawn' : null),
+  cue: f => (f.cacheLeft !== null && f.cacheLeft <= 0 ? { act: 'yawn', label: 'Se puso la luna' } : null),
 }
