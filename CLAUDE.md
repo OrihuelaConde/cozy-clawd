@@ -1,6 +1,6 @@
 # cozy-clawd
 
-A Claude Code mod (a plugin of function hooks) that draws a pixel-art band above the prompt in the desktop app: Clawd's scenes on the left, the shelf of session figures on the right. See `README.md` for what it shows and how it's laid out.
+A Claude Code mod (a plugin of function hooks) that draws a pixel-art band above the prompt in the desktop app: Clawd's scenes on the left, a scene of session figures on the right (the shelf, or another the person picks). See `README.md` for what it shows and how it's laid out.
 
 ## Working on the mod
 
@@ -15,7 +15,8 @@ A Claude Code mod (a plugin of function hooks) that draws a pixel-art band above
 - **Plain images only.** `isInteractive` draws the SVG in a sandboxed frame with a white backdrop. CSS `@keyframes` run in plain images.
 - **The engine hands a response over in a burst.** Text and tool-call chunks often arrive within milliseconds of each other, so every mode stays on screen at least `MIN_MS`.
 - **`$` travels only to top-level functions.** The engine scans the module: a helper that receives `$` is a top-level `function` or a `const` bound to one, never a closure inside `register`.
-- **Pixel units.** A sprite pixel is 1 unit wide and 2 tall (`scale(1 2)`), like a terminal quarter-block; props use half-unit heights for square pixels. The shelf uses square pixels.
+- **Pixel units.** A sprite pixel is 1 unit wide and 2 tall (`scale(1 2)`), like a terminal quarter-block; props use half-unit heights for square pixels. The figure scenes use square pixels.
+- **Plugin options are out of reach in the desktop.** There `$.config.list()` returns only the engine's own rows (seen on 2.1.287), so `$.config.set` can't change a `userConfig` field. The scene choice lives in `$.store` instead.
 - **The desktop draws its own busy indicator.** A `ui.render` hook on `Spinner` never ran in the desktop app (seen on 2.1.286), so Clawd lives in the band (`AbovePrompt`) and the `/clawd` pane (`Pane`), which do render there.
 
 ## Commits

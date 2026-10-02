@@ -2,8 +2,8 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import type { ClawdMode, Stats } from '../types'
-import { shelfAlt, shelfSvg, SHELF_H, SHELF_SCALE, SHELF_W } from './shelf'
-import type { ShelfFigures } from './shelf'
+import { DEFAULT_FIGURE_SCENE, FIGURE_SCENES, figureSceneNamed, figuresAlt } from './escenas/index'
+import type { Figures } from './escenas/index'
 
 const PANE = 'clawd'
 const mode = atom({ plugin: 'cozy-clawd', key: 'mode' } as const, 'idle')
@@ -11,6 +11,7 @@ const tool = atom({ plugin: 'cozy-clawd', key: 'tool' } as const, null)
 const stats = atom({ plugin: 'cozy-clawd', key: 'stats' } as const, { contextLeft: null, fiveHour: null, week: null, cacheAt: null })
 const isConfirming = atom({ plugin: 'cozy-clawd', key: 'isConfirming' } as const, false)
 const redraws = atom({ plugin: 'cozy-clawd', key: 'redraws' } as const, 0)
+const escena = atom({ plugin: 'cozy-clawd', key: 'escena' } as const, DEFAULT_FIGURE_SCENE.name)
 
 const BODY = '#D97757'
 const EYE = '#1F1E1D'
@@ -576,8 +577,25 @@ async function compactNow($: EngineInterface, isWorking: boolean) {
   await $.session.compact()
 }
 
-// What the shelf shows: the figures, and the cache's seconds left right now.
-const shelfFigures = (s: Stats, now: number): ShelfFigures => ({
+// Switches the scene the band draws on its right: in the session's state,
+// which draws the band again, and in the plugin's store, which the next
+// session starts from. Not a userConfig field: the desktop app lists no plugin
+// rows in /config, so $.config.set cannot reach one there.
+async function chooseFigureScene($: EngineInterface, name: string) {
+  await update($, escena, () => name)
+  await $.store.set('escena', name)
+}
+
+// The scene the last pick left in the store, for a new session.
+async function loadFigureScene($: EngineInterface) {
+  const stored = await $.store.get('escena')
+  if (typeof stored === 'string') {
+    await update($, escena, () => figureSceneNamed(stored).name)
+  }
+}
+
+// What the scene on the right shows: the figures, and the cache's seconds left right now.
+const figuresOf = (s: Stats, now: number): Figures => ({
   contextLeft: s.contextLeft,
   fiveHour: s.fiveHour,
   week: s.week,
@@ -588,7 +606,9 @@ const shelfFigures = (s: Stats, now: number): ShelfFigures => ({
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'clawd', description: 'Open the pane where Clawd shows what Claude is doing' })
+    await $.command.register({ name: 'clawd-escena', description: 'Elegí la escena de la derecha de la franja', argumentHint: '[escena]' })
     current = { mode: await read($, mode), tool: await read($, tool) }
+    await loadFigureScene($)
     await refreshStats($)
 
     return next(e)
@@ -598,6 +618,24 @@ export const register: Register = on => {
     await $.ui.open({ id: PANE, title: 'Clawd' })
 
     return { text: 'Clawd pane opened.' }
+  })
+
+  on('command.run', { command: 'clawd-escena' }, async ($, e) => {
+    const names = FIGURE_SCENES.map(s => s.name).join(', ')
+    const shown = figureSceneNamed(await read($, escena)).name
+    const name = e.args.trim().toLowerCase()
+    if (name === '') {
+      return { text: `Escena: ${shown}. Hay: ${names}.` }
+    }
+    if (!FIGURE_SCENES.some(s => s.name === name)) {
+      return { text: `No hay una escena "${name}". Hay: ${names}.` }
+    }
+    if (name === shown) {
+      return { text: `La escena ya es ${name}.` }
+    }
+    await chooseFigureScene($, name)
+
+    return { text: `Escena: ${name}.` }
   })
 
   // Each model request of the main turn: working until pieces arrive, then
@@ -674,7 +712,7 @@ export const register: Register = on => {
   })
 
   // The band above the prompt, always there: Clawd and what it is doing on the
-  // left, the shelf of the session's figures and the compact button on the
+  // left, the scene of the session's figures and the compact button on the
   // right. Drawn as plain images (no isInteractive): the sandboxed frame paints
   // a white backdrop. Redrawing reloads the images and restarts their
   // animations, so the band reads only values that change on a new mode, a new
@@ -689,10 +727,11 @@ export const register: Register = on => {
     // A turn that ended without telling (an interruption) leaves no stale mode.
     const isIdle = !e.props.isWorking && drawnMode !== 'compacting'
     const { scene, label } = isIdle ? { scene: scenes.idle, label: 'Durmiendo' } : sceneFor(drawnMode, await read($, tool))
-    const figures = shelfFigures(await read($, stats), await $.clock.now())
+    const figures = figuresOf(await read($, stats), await $.clock.now())
     const isLow = figures.contextLeft !== null && figures.contextLeft <= COMPACT_AT
     await read($, redraws)
     const isAsking = await read($, isConfirming)
+    const figureScene = figureSceneNamed(await read($, escena))
 
     return (
       <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap={2}>
@@ -710,7 +749,12 @@ export const register: Register = on => {
           ) : (
             isLow && <Button key="compact" label="Compactar" onPress={() => update($, isConfirming, () => true)} />
           )}
-          <Svg source={shelfSvg(figures)} alt={shelfAlt(figures)} width={SHELF_W * SHELF_SCALE} height={SHELF_H * SHELF_SCALE} />
+          <Svg
+            source={figureScene.svg(figures)}
+            alt={figuresAlt(figures)}
+            width={figureScene.width * figureScene.scale}
+            height={figureScene.height * figureScene.scale}
+          />
         </Box>
       </Box>
     )

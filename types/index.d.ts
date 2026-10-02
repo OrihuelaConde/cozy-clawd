@@ -29,6 +29,8 @@ declare module 'claude-code' {
       isConfirming: boolean
       // Bumped when the cache expires: a write that redraws the band.
       redraws: number
+      // The name of the scene the band draws on its right.
+      escena: string
     }
   }
 }

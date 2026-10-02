@@ -1,12 +1,23 @@
-// Renders every scene of the mod and a few states of the shelf as plain
+// Renders every scene of Clawd and a few states of each figure scene as plain
 // images, the way the desktop app draws a non-interactive Svg, on the app's
 // dark background. Writes .preview/index.html; serve that folder to look at it.
 //
 // Run from the repository root: node tools/preview.mjs
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { registerHooks } from 'node:module'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
+
+// The hooks modules import each other without an extension, as the engine
+// resolves them; Node needs the `.ts` spelled out.
+registerHooks({
+  resolve(specifier, context, nextResolve) {
+    const isBare = specifier.startsWith('.') && !/\.[cm]?[jt]sx?$/.test(specifier)
+    const isFromTs = context.parentURL !== undefined && new URL(context.parentURL).pathname.endsWith('.ts')
+    return nextResolve(isBare && isFromTs ? `${specifier}.ts` : specifier, context)
+  },
+})
 
 const root = process.cwd()
 const outDir = join(root, '.preview')
@@ -19,7 +30,7 @@ const body = code.slice(code.indexOf('const BODY'), code.indexOf('// Each mode s
 const scenesFile = join(outDir, 'scenes.gen.ts')
 writeFileSync(scenesFile, `type ClawdMode = string\n${body}\nexport { scenes, toolScenes, svgFor, SCALE, VIEW_W, VIEW_H }\n`)
 const { scenes, toolScenes, svgFor, SCALE, VIEW_W, VIEW_H } = await import(pathToFileURL(scenesFile).href + '?t=' + Date.now())
-const { shelfSvg, shelfAlt, SHELF_W, SHELF_H, SHELF_SCALE } = await import(pathToFileURL(join(root, 'hooks', 'shelf.ts')).href + '?t=' + Date.now())
+const { FIGURE_SCENES, figuresAlt } = await import(pathToFileURL(join(root, 'hooks', 'escenas', 'index.ts')).href + '?t=' + Date.now())
 
 const uri = svg => 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64')
 
@@ -38,14 +49,19 @@ const shelfCases = [
   ['No readings yet', { contextLeft: null, fiveHour: null, week: null, cacheLeft: null, cacheTtl: 3600 }],
   ['Cache about to expire', { contextLeft: 100, fiveHour: 0, week: 0, cacheLeft: 125, cacheTtl: 3600 }],
 ]
-const shelfRows = shelfCases
-  .map(([name, f]) => `
+const figureSections = FIGURE_SCENES.map(scene => {
+  const w = scene.width * scene.scale
+  const h = scene.height * scene.scale
+  const rows = shelfCases
+    .map(([name, f]) => `
   <div class="row">
-    <img src="${uri(shelfSvg(f))}" width="${SHELF_W * SHELF_SCALE}" height="${SHELF_H * SHELF_SCALE}" title="${shelfAlt(f)}">
+    <img src="${uri(scene.svg(f))}" width="${w}" height="${h}" title="${figuresAlt(f)}">
     <small>${name}</small>
-    <img src="${uri(shelfSvg(f))}" width="${SHELF_W * SHELF_SCALE * 2.5}" height="${SHELF_H * SHELF_SCALE * 2.5}">
+    <img src="${uri(scene.svg(f))}" width="${w * 2.5}" height="${h * 2.5}">
   </div>`)
-  .join('')
+    .join('')
+  return `\n<h2>Figures: ${scene.label} (${scene.name})</h2>${rows}`
+}).join('')
 
 writeFileSync(join(outDir, 'index.html'), `<!doctype html><meta charset="utf-8"><title>cozy-clawd preview</title>
 <style>
@@ -56,6 +72,6 @@ writeFileSync(join(outDir, 'index.html'), `<!doctype html><meta charset="utf-8">
   img { image-rendering: pixelated; }
 </style>
 <h2>Scenes</h2>${sceneRows}
-<h2>Shelf</h2>${shelfRows}`)
+${figureSections}`)
 
 console.log(`Wrote ${join(outDir, 'index.html')}`)

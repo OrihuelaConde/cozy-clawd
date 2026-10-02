@@ -45,3 +45,17 @@ test('the compact button shows at 25% free, asks before compacting, and No backs
   expect(await band.find({ key: 'compact' })).toBeDefined()
   await band.unmount()
 })
+
+test('/clawd-escena names the scenes and turns down one that does not exist', async $ => {
+  const typed = (args: string) =>
+    ({ command: 'clawd-escena', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } }) as const
+
+  const listed = await $.command.run(typed(''))
+  expect(listed.text).toMatch(/Escena: estante\. Hay: estante/)
+
+  const unknown = await $.command.run(typed('Playa'))
+  expect(unknown.text).toMatch(/No hay una escena "playa"/)
+
+  const same = await $.command.run(typed('estante'))
+  expect(same.text).toMatch(/ya es estante/)
+})

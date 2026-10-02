@@ -1,0 +1,81 @@
+// What the figure scenes share: the layout of four slots, one per figure, with
+// its number underneath; the 3x5 pixel font of the numbers; and the cache's
+// minutes, which count down by themselves. Square pixels, three CSS pixels each.
+
+// CSS pixels per scene pixel.
+export const SCALE = 3
+// Each figure has a slot this wide; a scene is four slots across.
+export const SLOT = 16
+export const WIDTH = SLOT * 4
+// Two rows above y 0, for flames and steam, then sixteen rows: objects stand
+// on whatever the scene puts at y 9 or so, and the numbers sit at y 11 to 15.
+export const TOP = -2
+export const HEIGHT = 18
+export const DIGITS_Y = 11
+
+export const INK = '#B0AEA5'
+
+export const px = (x: number, y: number, w = 1, h = 1) => `<rect x="${x}" y="${y}" width="${w}" height="${h}"/>`
+
+const DASH = ['000', '000', '111', '000', '000']
+
+// A 3x5 pixel font for the numbers: each glyph is five rows of three bits.
+const FONT: Record<string, string[]> = {
+  '0': ['111', '101', '101', '101', '111'],
+  '1': ['010', '110', '010', '010', '111'],
+  '2': ['111', '001', '111', '100', '111'],
+  '3': ['111', '001', '111', '001', '111'],
+  '4': ['101', '101', '111', '001', '001'],
+  '5': ['111', '100', '111', '001', '111'],
+  '6': ['111', '100', '111', '101', '111'],
+  '7': ['111', '001', '001', '010', '010'],
+  '8': ['111', '101', '111', '101', '111'],
+  '9': ['111', '101', '111', '001', '111'],
+  '%': ['101', '001', '010', '100', '101'],
+  'm': ['000', '110', '111', '101', '101'],
+  '-': DASH,
+}
+
+export const glyph = (ch: string, x: number, y: number) =>
+  (FONT[ch] ?? DASH)
+    .map((row, r) => [...row].map((bit, c) => (bit === '1' ? px(x + c, y + r) : '')).join(''))
+    .join('')
+
+// Text in the pixel font, centered in a slot: four pixels per character.
+export const pixelText = (text: string, slotX: number) => {
+  const width = text.length * 4 - 1
+  const x0 = slotX + Math.floor((SLOT - width) / 2)
+  return `<g fill="${INK}">${[...text].map((ch, i) => glyph(ch, x0 + i * 4, DIGITS_Y)).join('')}</g>`
+}
+
+// A figure's percent, or dashes before the first reading.
+export const percentText = (n: number | null, slotX: number) => pixelText(n === null ? '--' : `${Math.round(n)}%`, slotX)
+
+// The cache's minutes counting down by themselves: each digit is a window over
+// a strip of glyphs, 9 down to 0, rolled one glyph per step by an animation
+// whose negative delay starts it at the minutes left. The digits stop at 00.
+// Needs COUNTDOWN_CSS in the scene's style.
+export const countdown = (left: number, slotX: number) => {
+  const x0 = slotX + Math.floor((SLOT - 11) / 2)
+  const digit = (x: number, count: number, step: number) => {
+    const period = count * step
+    const delay = (((period - left - 0.001) % period) + period) % period
+    const strip = Array.from({ length: count }, (_, i) => glyph(String(count - 1 - i), x, DIGITS_Y + i * 6)).join('')
+    return `<svg x="${x}" y="${DIGITS_Y}" width="3" height="5" viewBox="${x} ${DIGITS_Y} 3 5" overflow="hidden">
+      <g style="animation: roll${count} ${period}s steps(${count}) -${delay.toFixed(3)}s infinite">${strip}</g></svg>`
+  }
+  return `<g fill="${INK}">
+    ${digit(x0, 6, 600)}${digit(x0 + 4, 10, 60)}${glyph('m', x0 + 8, DIGITS_Y)}
+  </g>`
+}
+
+export const COUNTDOWN_CSS = `
+    @keyframes roll10 { from { transform: translateY(0); } to { transform: translateY(-60px); } }
+    @keyframes roll6 { from { transform: translateY(0); } to { transform: translateY(-36px); } }`
+
+// The scene's image: its pixels below a style; `g` transforms work in scene pixels.
+export const sceneSvg = (css: string, body: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 ${TOP} ${WIDTH} ${HEIGHT}" shape-rendering="crispEdges">
+  <style>
+    g { transform-box: view-box; }${css}
+  </style>${body}
+</svg>`

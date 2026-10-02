@@ -1,6 +1,6 @@
 # cozy-clawd
 
-A Claude Code mod that turns the space above the prompt into a cozy pixel-art band. On the left, Clawd acts out what Claude is doing. On the right, a small shelf shows the session's context, prompt cache, and usage limits.
+A Claude Code mod that turns the space above the prompt into a cozy pixel-art band. On the left, Clawd acts out what Claude is doing. On the right, a small scene shows the session's context, prompt cache, and usage limits.
 
 cozy-clawd is an unofficial fan project. It isn't affiliated with or endorsed by Anthropic.
 
@@ -23,12 +23,13 @@ cozy-clawd is an unofficial fan project. It isn't affiliated with or endorsed by
   | Compacting the conversation | Loose sheets are pressed into a golden block. |
   | Any other tool | Clawd hammers away. |
 
-- **A shelf of session figures.** Each figure is an object with its number underneath in a pixel font:
+- **A scene of session figures.** Each figure is an object with its number underneath in a pixel font. In the `estante` scene, the default, the objects stand on a shelf:
   - A mug of tea shows the context window left. It stops steaming at 25% or less.
   - A candle burns down over the one-hour prompt cache and goes out when the cache expires.
   - A cookie jar shows what's left of the five-hour usage limit.
   - A moon wanes as you use the weekly limit.
-- **A compact button.** When 25% or less of the context is free, a **Compactar** button appears next to the shelf. It asks for confirmation before it compacts the conversation.
+- **Scenes to choose from.** The `/clawd-escena` command switches the scene. For more information, see [Choose a scene](#choose-a-scene).
+- **A compact button.** When 25% or less of the context is free, a **Compactar** button appears next to the scene. It asks for confirmation before it compacts the conversation.
 
 The band draws in the Code tab of the Claude desktop app. In the terminal, the mod leaves Claude Code's own spinner as it is; the `/clawd` pane shows the current state as text.
 
@@ -59,6 +60,22 @@ claude --plugin-dir PATH_TO_COZY_CLAWD
 
 Replace `PATH_TO_COZY_CLAWD` with the folder where you cloned the repository.
 
+## Choose a scene
+
+The figures on the right of the band are drawn as a scene. To choose the scene, run the `/clawd-escena` command with the scene's name:
+
+```text
+/clawd-escena SCENE_NAME
+```
+
+Replace `SCENE_NAME` with a name from the following table. Run `/clawd-escena` with no name to see the current scene and the ones available.
+
+The band switches to the new scene at once, and later sessions start with it.
+
+| Scene | What it shows |
+| --- | --- |
+| `estante` | A shelf with a mug of tea, a candle, a cookie jar, and a moon. |
+
 ## Development
 
 The mod is a Claude Code plugin of function hooks:
@@ -66,10 +83,12 @@ The mod is a Claude Code plugin of function hooks:
 | Path | Contents |
 | --- | --- |
 | `hooks/register.tsx` | The hooks module: Clawd's scenes, how the mod follows the turn, and the band. |
-| `hooks/shelf.ts` | The shelf of session figures and its pixel font. |
+| `hooks/escenas/index.ts` | The scenes the session figures can be drawn as, and the figures in words. |
+| `hooks/escenas/pixels.ts` | What the figure scenes share: their layout, the pixel font of the numbers, and the cache's countdown. |
+| `hooks/escenas/estante.ts` | The `estante` scene: a shelf of objects. |
 | `types/index.d.ts` | The contract for the values the mod keeps in the session's state. |
 | `hooks/cozy-clawd.test.tsx` | Tests that run against the engine. |
-| `tools/preview.mjs` | A script that renders every scene and shelf state to an HTML page. |
+| `tools/preview.mjs` | A script that renders Clawd's scenes and a few states of each figure scene to an HTML page. |
 
 To check the mod the way the engine reads it, run the following commands from the repository root:
 
@@ -81,7 +100,7 @@ claude plugin validate .
 claude plugin test .
 ```
 
-To see every scene and shelf state without running a session, generate the preview page and serve the `.preview` folder:
+To see Clawd's scenes and each figure scene without running a session, generate the preview page and serve the `.preview` folder:
 
 ```bash
 node tools/preview.mjs
