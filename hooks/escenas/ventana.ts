@@ -221,10 +221,13 @@ const ventanaSvg = (f: Figures) =>
 
 export const ventana: FigureScene = {
   name: 'ventana',
-  label: 'Ventana de noche',
+  label: { es: 'Ventana de noche', en: 'Night window' },
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
   svg: ventanaSvg,
-  cue: f => (f.cacheLeft !== null && f.cacheLeft <= 0 ? { act: 'yawn', label: 'Se puso la luna' } : null),
+  cue: f =>
+    f.cacheLeft !== null && f.cacheLeft <= 0
+      ? { act: 'yawn', label: { es: 'Se puso la luna', en: 'The moon has set' } }
+      : null,
 }

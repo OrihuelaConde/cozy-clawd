@@ -42,7 +42,7 @@ const sceneRows = [
   .map(([name, scene]) => `
   <div class="row">
     <img src="${uri(svgFor(scene))}" width="${VIEW_W * SCALE}" height="${VIEW_H * 2 * SCALE}">
-    <b>${scene.label}…</b><small>${name}</small>
+    <b>${scene.label.es} / ${scene.label.en}…</b><small>${name}</small>
     <img src="${uri(svgFor(scene))}" width="${VIEW_W * SCALE * 3}" height="${VIEW_H * 2 * SCALE * 3}">
   </div>`)
   .join('')
@@ -60,12 +60,12 @@ const figureSections = FIGURE_SCENES.map(scene => {
   const rows = shelfCases
     .map(([name, f]) => `
   <div class="row">
-    <img src="${uri(scene.svg(f))}" width="${w}" height="${h}" title="${figuresAlt(f)}">
+    <img src="${uri(scene.svg(f))}" width="${w}" height="${h}" title="${figuresAlt(f, 'en')}">
     <small>${name}</small>
     <img src="${uri(scene.svg(f))}" width="${w * 2.5}" height="${h * 2.5}">
   </div>`)
     .join('')
-  return `\n<h2>Figures: ${scene.label} (${scene.name})</h2>${rows}`
+  return `\n<h2>Figures: ${scene.label.en} (${scene.name})</h2>${rows}`
 }).join('')
 
 writeFileSync(join(outDir, 'index.html'), `<!doctype html><meta charset="utf-8"><title>cozy-clawd preview</title>

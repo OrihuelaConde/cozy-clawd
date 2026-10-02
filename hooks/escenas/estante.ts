@@ -135,7 +135,7 @@ const shelfSvg = (f: Figures) =>
 
 export const estante: FigureScene = {
   name: 'estante',
-  label: 'Estante',
+  label: { es: 'Estante', en: 'Shelf' },
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,

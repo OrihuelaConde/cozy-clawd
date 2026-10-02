@@ -221,10 +221,13 @@ const balconSvg = (f: Figures) =>
 
 export const balcon: FigureScene = {
   name: 'balcon',
-  label: 'Balcón',
+  label: { es: 'Balcón', en: 'Balcony' },
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
   svg: balconSvg,
-  cue: f => (f.contextLeft !== null && f.contextLeft <= 25 ? { act: 'watch', label: 'La regadera se está secando' } : null),
+  cue: f =>
+    f.contextLeft !== null && f.contextLeft <= 25
+      ? { act: 'watch', label: { es: 'La regadera se está secando', en: 'The watering can is drying up' } }
+      : null,
 }

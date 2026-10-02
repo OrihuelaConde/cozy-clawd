@@ -169,10 +169,13 @@ const mateadaSvg = (f: Figures) =>
 
 export const mateada: FigureScene = {
   name: 'mateada',
-  label: 'Mateada',
+  label: { es: 'Mateada', en: 'Mate' },
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
   svg: mateadaSvg,
-  cue: f => (f.cacheLeft !== null && f.cacheLeft <= 0 ? { act: 'reach', label: 'El mate se enfrió' } : null),
+  cue: f =>
+    f.cacheLeft !== null && f.cacheLeft <= 0
+      ? { act: 'reach', label: { es: 'El mate se enfrió', en: 'The mate went cold' } }
+      : null,
 }

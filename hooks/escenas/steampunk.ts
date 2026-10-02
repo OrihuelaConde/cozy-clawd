@@ -201,15 +201,15 @@ const steampunkSvg = (f: Figures) =>
 
 export const steampunk: FigureScene = {
   name: 'steampunk',
-  label: 'Steampunk',
+  label: { es: 'Steampunk', en: 'Steampunk' },
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
   svg: steampunkSvg,
   cue: f =>
     f.cacheLeft !== null && f.cacheLeft <= 0
-      ? { act: 'reach', label: 'Hay que darle cuerda al reloj' }
+      ? { act: 'reach', label: { es: 'Hay que darle cuerda al reloj', en: 'The watch needs winding' } }
       : f.contextLeft !== null && f.contextLeft <= 25
-        ? { act: 'watch', label: 'Baja la presión de la caldera' }
+        ? { act: 'watch', label: { es: 'Baja la presión de la caldera', en: 'The boiler is losing pressure' } }
         : null,
 }

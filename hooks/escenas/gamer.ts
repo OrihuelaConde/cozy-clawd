@@ -171,15 +171,15 @@ const gamerSvg = (f: Figures) =>
 
 export const gamer: FigureScene = {
   name: 'gamer',
-  label: 'Gamer',
+  label: { es: 'Gamer', en: 'Gamer' },
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
   svg: gamerSvg,
   cue: f =>
     f.cacheLeft !== null && f.cacheLeft <= 0
-      ? { act: 'reach', label: 'Insertá otra ficha' }
+      ? { act: 'reach', label: { es: 'Insertá otra ficha', en: 'Insert another coin' } }
       : f.contextLeft !== null && f.contextLeft <= 25
-        ? { act: 'watch', label: 'Queda poca vida' }
+        ? { act: 'watch', label: { es: 'Queda poca vida', en: 'Low on health' } }
         : null,
 }

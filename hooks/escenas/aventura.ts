@@ -164,15 +164,15 @@ const aventuraSvg = (f: Figures) =>
 
 export const aventura: FigureScene = {
   name: 'aventura',
-  label: 'Aventura',
+  label: { es: 'Aventura', en: 'Adventure' },
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
   svg: aventuraSvg,
   cue: f =>
     f.cacheLeft !== null && f.cacheLeft <= 0
-      ? { act: 'reach', label: 'Hay que dar vuelta el reloj de arena' }
+      ? { act: 'reach', label: { es: 'Hay que dar vuelta el reloj de arena', en: 'Time to turn the hourglass' } }
       : f.contextLeft !== null && f.contextLeft <= 25
-        ? { act: 'watch', label: 'Se acaba el maná' }
+        ? { act: 'watch', label: { es: 'Se acaba el maná', en: 'The mana is running out' } }
         : null,
 }

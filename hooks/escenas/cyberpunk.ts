@@ -172,15 +172,15 @@ const cyberpunkSvg = (f: Figures) =>
 
 export const cyberpunk: FigureScene = {
   name: 'cyberpunk',
-  label: 'Cyberpunk',
+  label: { es: 'Cyberpunk', en: 'Cyberpunk' },
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
   svg: cyberpunkSvg,
   cue: f =>
     f.cacheLeft !== null && f.cacheLeft <= 0
-      ? { act: 'yawn', label: 'Se apagó el neón' }
+      ? { act: 'yawn', label: { es: 'Se apagó el neón', en: 'The neon went out' } }
       : f.contextLeft !== null && f.contextLeft <= 25
-        ? { act: 'watch', label: 'Queda poca batería' }
+        ? { act: 'watch', label: { es: 'Queda poca batería', en: 'Low on battery' } }
         : null,
 }

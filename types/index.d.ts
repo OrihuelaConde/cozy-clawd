@@ -20,6 +20,13 @@ export type Stats = {
   cacheAt: number | null
 }
 
+// The languages the mod speaks.
+export type Lang = 'es' | 'en'
+
+// The language the person picked in the /clawd pane, or `auto` to follow the
+// one Claude Code shows them.
+export type LangChoice = 'auto' | Lang
+
 declare module 'claude-code' {
   interface PluginState {
     'cozy-clawd': {
@@ -32,6 +39,8 @@ declare module 'claude-code' {
       redraws: number
       // The name of the scene the band draws on its right.
       escena: string
+      // The language the band, the pane and the commands speak.
+      idioma: LangChoice
     }
   }
 }

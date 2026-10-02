@@ -4,6 +4,8 @@ import type { EngineInterface, Register, Timer } from 'claude-code'
 import type { ClawdMode, Stats } from '../types'
 import { DEFAULT_FIGURE_SCENE, FIGURE_SCENES, figureSceneNamed, figuresAlt } from './escenas/index'
 import type { Act, Figures } from './escenas/index'
+import { DEFAULT_LANG, LANG_NAMES, LANGS, langOf } from './idioma'
+import type { Lang, LangChoice, Words } from './idioma'
 
 const PANE = 'clawd'
 const mode = atom({ plugin: 'cozy-clawd', key: 'mode' } as const, 'idle')
@@ -12,6 +14,7 @@ const stats = atom({ plugin: 'cozy-clawd', key: 'stats' } as const, { contextLef
 const isConfirming = atom({ plugin: 'cozy-clawd', key: 'isConfirming' } as const, false)
 const redraws = atom({ plugin: 'cozy-clawd', key: 'redraws' } as const, 0)
 const escena = atom({ plugin: 'cozy-clawd', key: 'escena' } as const, DEFAULT_FIGURE_SCENE.name)
+const idioma = atom({ plugin: 'cozy-clawd', key: 'idioma' } as const, 'auto')
 
 const BODY = '#D97757'
 const EYE = '#1F1E1D'
@@ -53,14 +56,14 @@ const CLOSED_EYES = px(5, 1.6, 1, 0.4) + px(12, 1.6, 1, 0.4)
 const zee = (x: number, y: number) =>
   px(x, y, 3, 0.5) + px(x + 2, y + 0.5, 1, 0.5) + px(x + 1, y + 1, 1, 0.5) + px(x, y + 1.5, 1, 0.5) + px(x, y + 2, 3, 0.5)
 
-type Scene = { label: string; eyes?: string; extra: string; css: string }
+type Scene = { label: Words; eyes?: string; extra: string; css: string }
 
 const BLINK = `
   @keyframes blink { 0%, 92% { opacity: 1; } 93%, 100% { opacity: 0; } }`
 
 // Hammering in three frames: raised, swinging, struck with sparks.
 const toolUse: Scene = {
-  label: 'Trabajando',
+  label: { es: 'Trabajando', en: 'Working' },
   extra: `
     <g class="up">
       <g fill="${HANDLE}">${px(17, -1, 1, 3)}</g>
@@ -91,7 +94,7 @@ const toolUse: Scene = {
 const scenes: Record<ClawdMode, Scene> = {
   // Nothing running (the pane only): asleep, breathing slowly, z's drifting up.
   idle: {
-    label: 'Durmiendo',
+    label: { es: 'Durmiendo', en: 'Sleeping' },
     eyes: CLOSED_EYES,
     extra: `
       <g fill="${DOT}">
@@ -109,7 +112,7 @@ const scenes: Record<ClawdMode, Scene> = {
   // this covers waiting and generating alike. Clawd stacks blocks one by one,
   // lifting an arm to place each; the finished stack sparkles and clears.
   requesting: {
-    label: 'Trabajando en la respuesta',
+    label: { es: 'Trabajando en la respuesta', en: 'Working on the answer' },
     extra: `
       <g class="b1" fill="${SPARK}">${px(18, 4, 2, 1)}</g>
       <g class="b2" fill="${SKY}">${px(20, 4, 2, 1)}</g>
@@ -137,7 +140,7 @@ const scenes: Record<ClawdMode, Scene> = {
   // Nothing to do yet: a ladybug flies past overhead and Clawd follows it.
   // Kept for an idle "waiting" state; nothing sets this mode yet.
   waiting: {
-    label: 'Esperando',
+    label: { es: 'Esperando', en: 'Waiting' },
     eyes: `<g class="follow">${OPEN_EYES}</g>`,
     extra: `
       <g class="bug">
@@ -171,7 +174,7 @@ const scenes: Record<ClawdMode, Scene> = {
   // Compacting the conversation: three loose sheets are pressed together,
   // Clawd's arm pushing down, until they are one small golden block.
   compacting: {
-    label: 'Compactando la conversación',
+    label: { es: 'Compactando la conversación', en: 'Compacting the conversation' },
     extra: `
       <g class="sheets" fill="${WING}">
         <g class="s1">${px(18, 1.5, 4, 0.5)}</g>
@@ -195,7 +198,7 @@ const scenes: Record<ClawdMode, Scene> = {
   },
   // A compaction just finished: Clawd hops twice for joy, arms up, among sparkles.
   compacted: {
-    label: '¡Conversación compactada!',
+    label: { es: '¡Conversación compactada!', en: 'Conversation compacted!' },
     eyes: px(5, 1, 1, 0.5) + px(12, 1, 1, 0.5),
     extra: `
       <g fill="${SPARK}">
@@ -215,7 +218,7 @@ const scenes: Record<ClawdMode, Scene> = {
   },
   // Thinking: two thought dots, then a light bulb that switches on.
   thinking: {
-    label: 'Pensando',
+    label: { es: 'Pensando', en: 'Thinking' },
     extra: `
       <g fill="${DOT}">
         <g class="d1">${px(16, 0, 1, 0.5)}</g>
@@ -247,11 +250,11 @@ const scenes: Record<ClawdMode, Scene> = {
       ${BLINK}`,
   },
   // The model is writing a tool call's arguments: already swinging.
-  'tool-input': { ...toolUse, label: 'Preparando una herramienta' },
-  'tool-use': { ...toolUse, label: 'Usando una herramienta' },
+  'tool-input': { ...toolUse, label: { es: 'Preparando una herramienta', en: 'Preparing a tool' } },
+  'tool-use': { ...toolUse, label: { es: 'Usando una herramienta', en: 'Using a tool' } },
   // Writing the answer: walks in place while lines of text appear beside it.
   responding: {
-    label: 'Escribiendo',
+    label: { es: 'Escribiendo', en: 'Writing' },
     extra: `
       <g fill="${DOT}">
         <g class="l1">${px(19, 0, 4, 0.5)}</g>
@@ -308,7 +311,7 @@ const toolScenes: Record<ToolKind, Scene> = {
   // Reading or searching: the page of the editing scene, already written, and a
   // magnifying glass that sweeps down and up over it while Clawd watches.
   look: {
-    label: 'Leyendo',
+    label: { es: 'Leyendo', en: 'Reading' },
     extra: `
       ${PAPER}
       <g fill="${DOT}">${px(20, 1.5, 3, 0.5)}${px(20, 2.5, 2, 0.5)}${px(20, 3.5, 3, 0.5)}</g>
@@ -331,7 +334,7 @@ const toolScenes: Record<ToolKind, Scene> = {
   },
   // Editing or writing a file: a pencil writes line after line on a page.
   write: {
-    label: 'Editando',
+    label: { es: 'Editando', en: 'Editing' },
     extra: `
       ${PAPER}
       <g fill="${EYE}">
@@ -360,7 +363,7 @@ const toolScenes: Record<ToolKind, Scene> = {
   // Running a command: Clawd types at a monitor where green code rains down,
   // each column at its own pace: a bright head and a trail that fades.
   shell: {
-    label: 'Ejecutando un comando',
+    label: { es: 'Ejecutando un comando', en: 'Running a command' },
     extra: `
       <defs><clipPath id="screen">${px(19, 0.5, 4, 2)}</clipPath></defs>
       <g fill="${STEEL}">${px(18, 0, 6, 3)}${px(20, 3, 2, 1.5)}${px(19, 4.5, 4, 0.5)}</g>
@@ -388,7 +391,7 @@ const toolScenes: Record<ToolKind, Scene> = {
   },
   // On the web: a desk globe as tall as Clawd turns on its stand.
   web: {
-    label: 'Navegando',
+    label: { es: 'Navegando', en: 'Browsing' },
     extra: `
       <defs><clipPath id="globe">${GLOBE}</clipPath></defs>
       <g fill="${SKY}">${GLOBE}</g>
@@ -407,7 +410,7 @@ const toolScenes: Record<ToolKind, Scene> = {
   },
   // Launching a subagent: a small Clawd runs off while the big one waves.
   agent: {
-    label: 'Lanzando un subagente',
+    label: { es: 'Lanzando un subagente', en: 'Launching a subagent' },
     extra: `
       <g transform="translate(17 3)"><g class="mini">
         <g fill="${BODY}">${px(0, 0, 5, 1.5)}</g>
@@ -437,23 +440,23 @@ const toolScenes: Record<ToolKind, Scene> = {
 }
 
 // Each tool by name: its family and what the band says while it runs.
-const TOOLS: Record<string, [ToolKind, string]> = {
-  Read: ['look', 'Leyendo un archivo'],
-  Grep: ['look', 'Buscando en el código'],
-  Glob: ['look', 'Buscando archivos'],
-  LS: ['look', 'Mirando una carpeta'],
-  Edit: ['write', 'Editando un archivo'],
-  MultiEdit: ['write', 'Editando un archivo'],
-  NotebookEdit: ['write', 'Editando un notebook'],
-  Write: ['write', 'Escribiendo un archivo'],
-  Bash: ['shell', 'Ejecutando un comando'],
-  PowerShell: ['shell', 'Ejecutando un comando'],
-  WebFetch: ['web', 'Leyendo una página web'],
-  WebSearch: ['web', 'Buscando en la web'],
-  Agent: ['agent', 'Lanzando un subagente'],
-  Task: ['agent', 'Lanzando un subagente'],
-  AskUserQuestion: ['wait', 'Esperando tu respuesta'],
-  ExitPlanMode: ['wait', 'Esperando que apruebes el plan'],
+const TOOLS: Record<string, [ToolKind, Words]> = {
+  Read: ['look', { es: 'Leyendo un archivo', en: 'Reading a file' }],
+  Grep: ['look', { es: 'Buscando en el código', en: 'Searching the code' }],
+  Glob: ['look', { es: 'Buscando archivos', en: 'Finding files' }],
+  LS: ['look', { es: 'Mirando una carpeta', en: 'Looking at a folder' }],
+  Edit: ['write', { es: 'Editando un archivo', en: 'Editing a file' }],
+  MultiEdit: ['write', { es: 'Editando un archivo', en: 'Editing a file' }],
+  NotebookEdit: ['write', { es: 'Editando un notebook', en: 'Editing a notebook' }],
+  Write: ['write', { es: 'Escribiendo un archivo', en: 'Writing a file' }],
+  Bash: ['shell', { es: 'Ejecutando un comando', en: 'Running a command' }],
+  PowerShell: ['shell', { es: 'Ejecutando un comando', en: 'Running a command' }],
+  WebFetch: ['web', { es: 'Leyendo una página web', en: 'Reading a web page' }],
+  WebSearch: ['web', { es: 'Buscando en la web', en: 'Searching the web' }],
+  Agent: ['agent', { es: 'Lanzando un subagente', en: 'Launching a subagent' }],
+  Task: ['agent', { es: 'Lanzando un subagente', en: 'Launching a subagent' }],
+  AskUserQuestion: ['wait', { es: 'Esperando tu respuesta', en: 'Waiting for your answer' }],
+  ExitPlanMode: ['wait', { es: 'Esperando que apruebes el plan', en: 'Waiting for you to approve the plan' }],
 }
 
 // An MCP tool's own name, without the `mcp__<server>__` prefix.
@@ -464,10 +467,16 @@ const shortName = (tool: string) => (tool.startsWith('mcp__') ? tool.split('__')
 // asked for) or anything else, a tool waiting for the person's approval.
 const sceneFor = (m: ClawdMode, tool: string | null) => {
   if (m === 'waiting') {
-    return { scene: scenes.waiting, label: tool === 'answer' ? 'Esperando tu respuesta' : 'Esperando tu aprobación' }
+    return {
+      scene: scenes.waiting,
+      label:
+        tool === 'answer'
+          ? { es: 'Esperando tu respuesta', en: 'Waiting for your answer' }
+          : { es: 'Esperando tu aprobación', en: 'Waiting for your approval' },
+    }
   }
   if ((m === 'tool-use' || m === 'tool-input') && tool !== null) {
-    const [kind, label] = TOOLS[tool] ?? ['other', `Usando ${shortName(tool)}`]
+    const [kind, label] = TOOLS[tool] ?? ['other', { es: `Usando ${shortName(tool)}`, en: `Using ${shortName(tool)}` }]
     return { scene: toolScenes[kind], label }
   }
   const scene = scenes[m] ?? scenes.requesting
@@ -486,7 +495,7 @@ const cueScenes: Record<Act, Scene> = {
   // Clawd looks over at the scene and stretches an arm out toward it, its claw
   // grabbing at the air, then pulls back and tries again: for the cold mate.
   reach: {
-    label: 'Estirando el brazo',
+    label: { es: 'Estirando el brazo', en: 'Reaching out' },
     extra: `
       <g fill="${BODY}">
         <g class="r1">${px(17, 2)}</g><g class="r2">${px(18, 2)}</g><g class="r3">${px(19, 2)}</g>
@@ -504,7 +513,7 @@ const cueScenes: Record<Act, Scene> = {
   },
   // Clawd stretches its arms up in a big yawn, then nods off: the moon set.
   yawn: {
-    label: 'Bostezando',
+    label: { es: 'Bostezando', en: 'Yawning' },
     eyes: `<g class="drowsy">${px(5, 1.5, 1, 0.5)}${px(12, 1.5, 1, 0.5)}</g><g class="shut">${CLOSED_EYES}</g>`,
     extra: `
       <g class="mouth" fill="${EYE}"><g class="gape">${px(8, 2, 2, 1)}</g><g class="ajar">${px(8, 2.5, 2, 0.5)}</g></g>
@@ -526,7 +535,7 @@ const cueScenes: Record<Act, Scene> = {
   // Clawd keeps an anxious eye on the scene, a drop of sweat running down its
   // side: the watering can is running dry.
   watch: {
-    label: 'Preocupado',
+    label: { es: 'Preocupado', en: 'Worried' },
     extra: `<g class="sweat" fill="${SKY}">${px(15, 0, 1, 0.5)}</g>`,
     css: `
       .eyes { transform: translate(1px, 0); }
@@ -571,6 +580,57 @@ const COMPACT_AT = 25
 // How long the prompt cache keeps a conversation after its last request:
 // Claude Code's requests use the one-hour cache.
 const CACHE_TTL_MIN = 60
+
+// What the commands, the band's button and the pane say, in each language.
+const TEXTS = {
+  es: {
+    clawdCommand: 'Abrí el panel para elegir la escena y el idioma de la franja',
+    sceneCommand: 'Elegí la escena de la derecha de la franja',
+    sceneHint: '[escena]',
+    paneTitle: 'Escenas',
+    paneOpened: 'Panel de escenas abierto.',
+    sceneIs: (name: string) => `Escena: ${name}.`,
+    available: (names: string) => `Hay: ${names}.`,
+    noScene: (name: string) => `No hay una escena "${name}".`,
+    alreadyScene: (name: string) => `La escena ya es ${name}.`,
+    waitToCompact: 'Clawd: esperá a que termine el turno para compactar.',
+    compactAsk: '¿Compactar?',
+    yes: 'Sí',
+    no: 'No',
+    compact: 'Compactar',
+    scene: 'Escena',
+    pickScene: 'Elegí la escena de la derecha de la franja.',
+    inUse: 'en uso',
+    use: 'Usar',
+    language: 'Idioma',
+    auto: (name: string) => `Automático (${name})`,
+  },
+  en: {
+    clawdCommand: "Open the panel to pick the band's scene and language",
+    sceneCommand: "Pick the scene on the band's right",
+    sceneHint: '[scene]',
+    paneTitle: 'Scenes',
+    paneOpened: 'Scenes panel opened.',
+    sceneIs: (name: string) => `Scene: ${name}.`,
+    available: (names: string) => `Available: ${names}.`,
+    noScene: (name: string) => `There is no scene "${name}".`,
+    alreadyScene: (name: string) => `The scene is already ${name}.`,
+    waitToCompact: 'Clawd: wait for the turn to end before compacting.',
+    compactAsk: 'Compact?',
+    yes: 'Yes',
+    no: 'No',
+    compact: 'Compact',
+    scene: 'Scene',
+    pickScene: "Pick the scene on the band's right.",
+    inUse: 'in use',
+    use: 'Use',
+    language: 'Language',
+    auto: (name: string) => `Automatic (${name})`,
+  },
+} satisfies Record<Lang, unknown>
+
+// The picks of the pane's language row, in its order.
+const LANG_CHOICES: readonly LangChoice[] = ['auto', ...LANGS]
 
 type Shown = { mode: ClawdMode; tool: string | null }
 
@@ -675,7 +735,7 @@ async function endCelebration($: EngineInterface) {
 async function compactNow($: EngineInterface, isWorking: boolean) {
   await update($, isConfirming, () => false)
   if (isWorking) {
-    $.ui.toast('Clawd: esperá a que termine el turno para compactar.')
+    $.ui.toast(TEXTS[await langNow($)].waitToCompact)
     return
   }
   await $.session.compact()
@@ -703,6 +763,65 @@ async function loadFigureScene($: EngineInterface) {
   }
 }
 
+// The language Claude Code shows the person, as far as a plugin can see it;
+// worked out once a session, and again when the Language row changes.
+let detected: Lang | null = null
+
+// Claude Code hands a plugin neither the app's language nor its translated
+// texts. The Language row of /config (the language Claude answers in) says
+// it when the person set one; then the locale variables, in the order a
+// program reads them; English when none names a language the mod speaks. A
+// read the host does not answer counts as unset.
+async function detectLang($: EngineInterface): Promise<Lang> {
+  const rows = await $.config.list().catch(() => [])
+  const locales = [
+    rows.find(row => row.key === 'language')?.value,
+    await $.env.get('LC_ALL').catch(() => undefined),
+    await $.env.get('LC_MESSAGES').catch(() => undefined),
+    await $.env.get('LANG').catch(() => undefined),
+  ]
+
+  return locales.map(langOf).find(lang => lang !== null) ?? DEFAULT_LANG
+}
+
+async function detectedLang($: EngineInterface) {
+  detected ??= await detectLang($)
+  return detected
+}
+
+// The language the band, the pane and the commands speak: the person's pick
+// in the pane, or the one detected.
+async function langNow($: EngineInterface): Promise<Lang> {
+  const choice = await read($, idioma)
+  return choice === 'auto' ? await detectedLang($) : choice
+}
+
+// Declares the commands, their menu lines in the language spoken now; again
+// when it changes.
+async function registerCommands($: EngineInterface) {
+  const t = TEXTS[await langNow($)]
+  await $.command.register({ name: 'clawd', description: t.clawdCommand })
+  await $.command.register({ name: 'clawd-escena', description: t.sceneCommand, argumentHint: t.sceneHint })
+}
+
+// Switches the language as the person picked it in the pane: in the
+// session's state, which draws the band and the pane again, and in the
+// plugin's store, which the next session starts from.
+async function chooseLang($: EngineInterface, choice: LangChoice) {
+  await update($, idioma, () => choice)
+  await $.store.set('idioma', choice)
+  await registerCommands($)
+}
+
+// The language the last pick left in the store, for a new session.
+async function loadLang($: EngineInterface) {
+  const stored = await $.store.get('idioma').catch(() => undefined)
+  const choice = LANG_CHOICES.find(c => c === stored)
+  if (choice !== undefined) {
+    await update($, idioma, () => choice)
+  }
+}
+
 // What the scene on the right shows: the figures, the cache's seconds left
 // right now, and whether the conversation is being compacted.
 const figuresOf = (s: Stats, now: number, isCompacting = false): Figures => ({
@@ -716,8 +835,9 @@ const figuresOf = (s: Stats, now: number, isCompacting = false): Figures => ({
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'clawd', description: 'Abrí el panel para elegir la escena de la franja' })
-    await $.command.register({ name: 'clawd-escena', description: 'Elegí la escena de la derecha de la franja', argumentHint: '[escena]' })
+    detected = null
+    await loadLang($)
+    await registerCommands($)
     current = { mode: await read($, mode), tool: await read($, tool) }
     await loadFigureScene($)
     await refreshStats($)
@@ -725,8 +845,9 @@ export const register: Register = on => {
     return next(e)
   })
 
-  // The first click on Usar, in a pane without the keyboard, arrives as a focus
-  // move and no press (see isPaneFocused), so it picks the scene here. Tab and
+  // The first click on Usar or a language, in a pane without the keyboard,
+  // arrives as a focus move and no press (see isPaneFocused), so it picks the
+  // scene or the language here. Tab and
   // the arrows move the ring only in a pane that holds the keyboard.
   on('ui.focus', { requestId: PANE }, async ($, e, next) => {
     const wasFocused = isPaneFocused
@@ -734,36 +855,57 @@ export const register: Register = on => {
     if (result.deny === undefined) {
       isPaneFocused = true
     }
+    if (wasFocused || e.origin.kind !== 'person') {
+      return result
+    }
     const name = e.element?.startsWith('usar-') ? e.element.slice('usar-'.length) : undefined
-    if (!wasFocused && e.origin.kind === 'person' && name !== undefined && FIGURE_SCENES.some(s => s.name === name)) {
+    if (name !== undefined && FIGURE_SCENES.some(s => s.name === name)) {
       await chooseFigureScene($, name)
+    }
+    const choice = LANG_CHOICES.find(c => e.element === `idioma-${c}`)
+    if (choice !== undefined) {
+      await chooseLang($, choice)
     }
 
     return result
   })
 
   on('command.run', { command: 'clawd' }, async $ => {
-    await $.ui.open({ id: PANE, title: 'Escenas' })
+    const t = TEXTS[await langNow($)]
+    await $.ui.open({ id: PANE, title: t.paneTitle })
 
-    return { text: 'Panel de escenas abierto.' }
+    return { text: t.paneOpened }
   })
 
   on('command.run', { command: 'clawd-escena' }, async ($, e) => {
+    const t = TEXTS[await langNow($)]
     const names = FIGURE_SCENES.map(s => s.name).join(', ')
     const shown = figureSceneNamed(await read($, escena)).name
     const name = e.args.trim().toLowerCase()
     if (name === '') {
-      return { text: `Escena: ${shown}. Hay: ${names}.` }
+      return { text: `${t.sceneIs(shown)} ${t.available(names)}` }
     }
     if (!FIGURE_SCENES.some(s => s.name === name)) {
-      return { text: `No hay una escena "${name}". Hay: ${names}.` }
+      return { text: `${t.noScene(name)} ${t.available(names)}` }
     }
     if (name === shown) {
-      return { text: `La escena ya es ${name}.` }
+      return { text: t.alreadyScene(name) }
     }
     await chooseFigureScene($, name)
 
-    return { text: `Escena: ${name}.` }
+    return { text: t.sceneIs(name) }
+  })
+
+  // The Language row of /config changed: the language detected may have too.
+  on('config.set', { key: 'language' }, async ($, e, next) => {
+    const result = await next(e)
+    if (result.deny === undefined) {
+      detected = null
+      await redrawBand($)
+      await registerCommands($)
+    }
+
+    return result
   })
 
   // Each model request of the main turn: working until pieces arrive, then
@@ -855,6 +997,8 @@ export const register: Register = on => {
     }
 
     const { Box, Button, Markdown, Svg, Text } = $.ui.resolve(e)
+    const lang = await langNow($)
+    const t = TEXTS[lang]
     const drawnMode = await read($, mode)
     // A turn that ended without telling (an interruption) leaves no stale mode.
     const isIdle = !e.props.isWorking && drawnMode !== 'compacting' && drawnMode !== 'compacted'
@@ -872,22 +1016,22 @@ export const register: Register = on => {
     return (
       <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap={2}>
         <Box flexDirection="row" alignItems="center" gap={1}>
-          <Svg source={svgFor(scene)} alt={`Clawd: ${label}`} width={VIEW_W * SCALE} height={VIEW_H * 2 * SCALE} />
-          <Markdown text={`### ${label}${isOngoing ? '…' : ''}`} dimColor />
+          <Svg source={svgFor(scene)} alt={`Clawd: ${label[lang]}`} width={VIEW_W * SCALE} height={VIEW_H * 2 * SCALE} />
+          <Markdown text={`### ${label[lang]}${isOngoing ? '…' : ''}`} dimColor />
         </Box>
         <Box flexDirection="row" alignItems="center" gap={1}>
           {isAsking ? (
             <Box flexDirection="row" alignItems="center" gap={1}>
-              <Text dimColor>¿Compactar?</Text>
-              <Button key="compact-yes" label="Sí" variant="primary" onPress={() => compactNow($, e.props.isWorking)} />
-              <Button key="compact-no" label="No" onPress={() => update($, isConfirming, () => false)} />
+              <Text dimColor>{t.compactAsk}</Text>
+              <Button key="compact-yes" label={t.yes} variant="primary" onPress={() => compactNow($, e.props.isWorking)} />
+              <Button key="compact-no" label={t.no} onPress={() => update($, isConfirming, () => false)} />
             </Box>
           ) : (
-            isLow && <Button key="compact" label="Compactar" onPress={() => update($, isConfirming, () => true)} />
+            isLow && <Button key="compact" label={t.compact} onPress={() => update($, isConfirming, () => true)} />
           )}
           <Svg
             source={figureScene.svg(figures)}
-            alt={figuresAlt(figures)}
+            alt={figuresAlt(figures, lang)}
             width={figureScene.width * figureScene.scale}
             height={figureScene.height * figureScene.scale}
           />
@@ -902,20 +1046,33 @@ export const register: Register = on => {
   // doing in words and a picker of the scenes.
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     isPaneFocused = e.props.isFocused
+    await read($, redraws)
+    const lang = await langNow($)
+    const t = TEXTS[lang]
+    const choice = await read($, idioma)
+    const auto = LANG_NAMES[await detectedLang($)]
+    const choiceName = (c: LangChoice) => (c === 'auto' ? t.auto(auto) : LANG_NAMES[c])
+    const shown = figureSceneNamed(await read($, escena)).name
     if (e.surface === 'terminal') {
       const { Box, Select, Text } = $.ui.resolve(e)
       const { scene, label } = sceneFor(await read($, mode), await read($, tool))
-      const shown = figureSceneNamed(await read($, escena)).name
 
       return (
         <Box flexDirection="column">
-          <Text>{scene === scenes.idle || scene === scenes.compacted ? label : `${label}…`}</Text>
+          <Text>{scene === scenes.idle || scene === scenes.compacted ? label[lang] : `${label[lang]}…`}</Text>
           <Select
             key="escena"
-            label="Escena"
-            options={FIGURE_SCENES.map(s => ({ value: s.name, label: s.label }))}
+            label={t.scene}
+            options={FIGURE_SCENES.map(s => ({ value: s.name, label: s.label[lang] }))}
             value={shown}
             onSelect={name => chooseFigureScene($, name)}
+          />
+          <Select
+            key="idioma"
+            label={t.language}
+            options={LANG_CHOICES.map(c => ({ value: c, label: choiceName(c) }))}
+            value={choice}
+            onSelect={value => chooseLang($, LANG_CHOICES.find(c => c === value) ?? 'auto')}
           />
         </Box>
       )
@@ -923,11 +1080,22 @@ export const register: Register = on => {
 
     const { Box, Button, Svg, Text } = $.ui.resolve(e)
     const figures = figuresOf(await read($, stats), await $.clock.now())
-    const shown = figureSceneNamed(await read($, escena)).name
 
     return (
       <Box flexDirection="column" gap={1} paddingY={1}>
-        <Text dimColor>Elegí la escena de la derecha de la franja.</Text>
+        <Box flexDirection="row" alignItems="center" gap={1}>
+          <Text dimColor>{t.language}:</Text>
+          {LANG_CHOICES.map(c =>
+            c === choice ? (
+              <Text key={`idioma-${c}`} bold>
+                {choiceName(c)}
+              </Text>
+            ) : (
+              <Button key={`idioma-${c}`} label={choiceName(c)} onPress={() => chooseLang($, c)} />
+            ),
+          )}
+        </Box>
+        <Text dimColor>{t.pickScene}</Text>
         {FIGURE_SCENES.map(s => {
           const isInUse = s.name === shown
 
@@ -942,13 +1110,13 @@ export const register: Register = on => {
               borderColor={isInUse ? BODY : undefined}
               borderDimColor={!isInUse}
             >
-              <Svg source={s.svg(figures)} alt={`${s.label}: ${figuresAlt(figures)}`} width={s.width * s.scale} height={s.height * s.scale} />
+              <Svg source={s.svg(figures)} alt={`${s.label[lang]}: ${figuresAlt(figures, lang)}`} width={s.width * s.scale} height={s.height * s.scale} />
               <Box flexDirection="row" alignItems="center" gap={1}>
-                <Text bold>{s.label}</Text>
+                <Text bold>{s.label[lang]}</Text>
                 {isInUse ? (
-                  <Text dimColor>en uso</Text>
+                  <Text dimColor>{t.inUse}</Text>
                 ) : (
-                  <Button key={`usar-${s.name}`} label="Usar" onPress={() => chooseFigureScene($, s.name)} />
+                  <Button key={`usar-${s.name}`} label={t.use} onPress={() => chooseFigureScene($, s.name)} />
                 )}
               </Box>
             </Box>

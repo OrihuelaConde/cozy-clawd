@@ -10,6 +10,7 @@ import { gamer } from './gamer'
 import { mateada } from './mateada'
 import { steampunk } from './steampunk'
 import { ventana } from './ventana'
+import type { Lang, Words } from '../idioma'
 
 // The figures every scene shows.
 export type Figures = {
@@ -33,13 +34,13 @@ export type Act = 'reach' | 'yawn' | 'watch'
 
 // What Clawd does about the scene, and what the band says of it: reach for
 // the cold mate, yawn at the moon that set, watch the watering can run dry.
-export type Cue = { act: Act; label: string }
+export type Cue = { act: Act; label: Words }
 
 export type FigureScene = {
   // What /clawd-escena takes and the plugin's store keeps.
   name: string
   // The name the picker shows.
-  label: string
+  label: Words
   // The drawing's size in its own pixels, and CSS pixels per pixel.
   width: number
   height: number
@@ -58,8 +59,22 @@ export const DEFAULT_FIGURE_SCENE = estante
 export const figureSceneNamed = (name: unknown) => FIGURE_SCENES.find(s => s.name === name) ?? DEFAULT_FIGURE_SCENE
 
 // The figures in words, for a reader that cannot see the scene.
-export const figuresAlt = (f: Figures) => {
-  const pct = (n: number | null) => (n === null ? 'sin datos' : `${Math.round(n)}%`)
-  const cache = f.cacheLeft === null ? 'sin datos' : f.cacheLeft > 0 ? `${Math.ceil(f.cacheLeft / 60)} min` : 'vencida'
-  return `Contexto libre ${pct(f.contextLeft)}, caché ${cache}, límite de 5 h libre ${pct(f.fiveHour === null ? null : 100 - f.fiveHour)}, semana libre ${pct(f.week === null ? null : 100 - f.week)}`
+export const figuresAlt = (f: Figures, lang: Lang) => {
+  const words = ALT[lang]
+  const pct = (n: number | null) => (n === null ? words.none : `${Math.round(n)}%`)
+  const cache = f.cacheLeft === null ? words.none : f.cacheLeft > 0 ? `${Math.ceil(f.cacheLeft / 60)} min` : words.expired
+  return words.line(pct(f.contextLeft), cache, pct(f.fiveHour === null ? null : 100 - f.fiveHour), pct(f.week === null ? null : 100 - f.week))
+}
+
+const ALT: Record<Lang, { none: string; expired: string; line: (context: string, cache: string, fiveHour: string, week: string) => string }> = {
+  es: {
+    none: 'sin datos',
+    expired: 'vencida',
+    line: (context, cache, fiveHour, week) => `Contexto libre ${context}, caché ${cache}, límite de 5 h libre ${fiveHour}, semana libre ${week}`,
+  },
+  en: {
+    none: 'no data',
+    expired: 'expired',
+    line: (context, cache, fiveHour, week) => `Context free ${context}, cache ${cache}, 5-hour limit free ${fiveHour}, week free ${week}`,
+  },
 }
