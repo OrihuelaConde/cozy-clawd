@@ -57,9 +57,11 @@ export const percentText = (n: number | null, slotX: number) => pixelText(n === 
 // Needs COUNTDOWN_CSS in the scene's style.
 export const countdown = (left: number, slotX: number) => {
   const x0 = slotX + Math.floor((SLOT - 11) / 2)
+  // A whole hour left reads 59m: the tens digit rolls 5 down to 0.
+  const shown = Math.min(left, 3600 - 0.001)
   const digit = (x: number, count: number, step: number) => {
     const period = count * step
-    const delay = (((period - left - 0.001) % period) + period) % period
+    const delay = (((period - shown - 0.001) % period) + period) % period
     const strip = Array.from({ length: count }, (_, i) => glyph(String(count - 1 - i), x, DIGITS_Y + i * 6)).join('')
     return `<svg x="${x}" y="${DIGITS_Y}" width="3" height="5" viewBox="${x} ${DIGITS_Y} 3 5" overflow="hidden">
       <g style="animation: roll${count} ${period}s steps(${count}) -${delay.toFixed(3)}s infinite">${strip}</g></svg>`
