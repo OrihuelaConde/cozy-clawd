@@ -9,7 +9,7 @@
 // conversation is compacted it rains and the can fills up.
 
 import type { FigureScene, Figures } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
+import { COUNTDOWN_CSS, countdown, HEIGHT, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
 
 // Objects stand on the floor tiles at y 9.
 const FLOOR_Y = 9
@@ -67,7 +67,7 @@ const cloud = (x: number, isRaining: boolean) => `
 // quarter or less a rain cloud gathers over it; while the conversation is
 // compacted the cloud rains and the can fills up.
 const wateringCan = (left: number | null, x: number, isCompacting: boolean) => {
-  const rows = left === null ? 0 : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * CAN_ROWS))
+  const rows = left === null ? 0 : level(left, CAN_ROWS)
   const isLow = left !== null && left <= 25
   const water = isCompacting
     ? `<g style="${refill(CAN_ROWS - rows)}">${px(x + 6, 8 - CAN_ROWS, 5, CAN_ROWS)}</g>`
@@ -81,28 +81,31 @@ const wateringCan = (left: number | null, x: number, isCompacting: boolean) => {
     ${percentText(left, x)}`
 }
 
+// A daisy's head around (cx, cy): petals five pixels across around a
+// one-pixel heart.
+const bloom = (cx: number, cy: number, petal: string, heart: string, petalOpacity = 1) => `
+  <g fill="${petal}" opacity="${petalOpacity}">${px(cx, cy - 2)}${px(cx - 1, cy - 1, 3, 1)}${px(cx - 2, cy, 2, 1)}${px(cx + 1, cy, 2, 1)}${px(cx - 1, cy + 1, 3, 1)}${px(cx, cy + 2)}</g>
+  <g fill="${heart}">${px(cx, cy)}</g>`
+
 // The daisy in its four stages over the cache's hour: upright, nodding,
 // drooping, wilted; each a group shown for its quarter.
 const daisy = (x: number, timing: string) => `
   <g class="stage0" style="${timing}">
-    <g fill="${STEM}">${px(x + 8, 1, 1, 4)}${px(x + 7, 3)}${px(x + 9, 2)}</g>
-    <g fill="${PETAL}">${px(x + 7, -1)}${px(x + 9, -1)}${px(x + 8, -2)}${px(x + 8, 0)}</g>
-    <g fill="${HEART}">${px(x + 8, -1)}</g>
+    <g fill="${STEM}">${px(x + 8, 3, 1, 2)}${px(x + 9, 3)}${px(x + 7, 4)}</g>
+    ${bloom(x + 8, 0, PETAL, HEART)}
   </g>
   <g class="stage1" style="${timing}">
-    <g fill="${STEM}">${px(x + 8, 2, 1, 3)}${px(x + 9, 1)}${px(x + 7, 3)}</g>
-    <g fill="${PETAL}">${px(x + 9, -1)}${px(x + 11, -1)}${px(x + 10, -2)}${px(x + 10, 0)}</g>
-    <g fill="${HEART}">${px(x + 10, -1)}</g>
+    <g fill="${STEM}">${px(x + 8, 3, 1, 2)}${px(x + 9, 3)}${px(x + 7, 4)}</g>
+    ${bloom(x + 10, 0, PETAL, HEART)}
   </g>
   <g class="stage2" style="${timing}">
-    <g fill="${STEM}">${px(x + 8, 2, 1, 3)}${px(x + 9, 1)}${px(x + 10, 1)}${px(x + 7, 3)}</g>
-    <g fill="${PETAL}" opacity="0.8">${px(x + 10, 3)}${px(x + 12, 3)}${px(x + 11, 2)}${px(x + 11, 4)}</g>
-    <g fill="${HEART}">${px(x + 11, 3)}</g>
+    <g fill="${STEM}">${px(x + 8, 1, 1, 4)}${px(x + 9, 0)}${px(x + 10, 0)}${px(x + 7, 4)}</g>
+    ${bloom(x + 12, 2, PETAL, HEART, 0.8)}
   </g>
   <g class="stage3" style="${timing}">
-    <g fill="${STEM_DRY}">${px(x + 8, 2, 1, 3)}${px(x + 9, 1)}${px(x + 10, 2)}${px(x + 7, 4)}</g>
-    <g fill="${PETAL_DRY}">${px(x + 10, 4)}${px(x + 11, 3)}${px(x + 11, 5)}</g>
-    <g fill="${HEART}" opacity="0.7">${px(x + 11, 4)}</g>
+    <g fill="${STEM_DRY}">${px(x + 8, 2, 1, 3)}${px(x + 9, 1)}${px(x + 10, 1)}${px(x + 11, 2)}${px(x + 7, 4)}</g>
+    <g fill="${PETAL_DRY}">${px(x + 12, 3)}${px(x + 11, 4)}${px(x + 13, 4)}${px(x + 12, 5, 2, 1)}</g>
+    <g fill="${HEART}" opacity="0.7">${px(x + 12, 4)}</g>
   </g>`
 
 // The pot the daisy grows in.
@@ -130,26 +133,27 @@ const flowerPot = (left: number | null, ttl: number, x: number) => {
 }
 
 // Where the seeds sit in the feeder's glass, from the bottom.
-const SEED_ROWS = 4
+const SEED_ROWS = 5
 
-// Five-hour limit: a bird feeder whose glass holds the seeds left, a bluebird
-// pecking at the tray. With the seeds gone, so is the bird.
+// Five-hour limit: a bird feeder whose glass holds the seeds left, a row for
+// every fifth of the window, a bluebird pecking at the tray. With the seeds
+// gone, so is the bird.
 const feeder = (used: number | null, x: number) => {
   const left = used === null ? null : 100 - used
-  const rows = left === null ? SEED_ROWS : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * SEED_ROWS))
+  const rows = left === null ? SEED_ROWS : level(left, SEED_ROWS)
   return `
-    <g fill="${WOOD_DARK}">${px(x + 9, 5, 1, 3)}${px(x + 8, 8, 3, 1)}${px(x + 8, -2, 3, 1)}</g>
-    <g fill="${WOOD}">${px(x + 6, -1, 7, 1)}${px(x + 1, 4, 14, 1)}${px(x + 14, 3)}</g>
-    <g fill="${GLASS}">${px(x + 7, 0, 1, 4)}${px(x + 11, 0, 1, 4)}</g>
-    ${rows > 0 ? `<g fill="${SEED}">${px(x + 8, 4 - rows, 3, rows)}</g>
-    <g fill="${SEED_DARK}">${Array.from({ length: rows }, (_, i) => px(x + 8 + ((i * 2) % 3), 3 - i)).join('')}${px(x + 6, 3)}${px(x + 12, 3)}</g>
-    <g fill="${BIRD}">${px(x + 2, 2, 3, 2)}</g>
-    <g fill="${BIRD_DARK}">${px(x + 2, 2, 2, 1)}${px(x + 1, 2)}${px(x, 1)}</g>
-    <g fill="${BIRD_BELLY}">${px(x + 3, 3, 2, 1)}</g>
+    <g fill="${WOOD_DARK}">${px(x + 9, 6, 1, 2)}${px(x + 8, 8, 3, 1)}${px(x + 8, -2, 3, 1)}</g>
+    <g fill="${WOOD}">${px(x + 6, -1, 7, 1)}${px(x + 1, 5, 14, 1)}${px(x + 14, 4)}</g>
+    <g fill="${GLASS}">${px(x + 7, 0, 1, 5)}${px(x + 11, 0, 1, 5)}</g>
+    ${rows > 0 ? `<g fill="${SEED}">${px(x + 8, 5 - rows, 3, rows)}</g>
+    <g fill="${SEED_DARK}">${Array.from({ length: rows }, (_, i) => px(x + 8 + ((i * 2) % 3), 4 - i)).join('')}${px(x + 6, 4)}${px(x + 12, 4)}</g>
+    <g fill="${BIRD}">${px(x + 2, 3, 3, 2)}</g>
+    <g fill="${BIRD_DARK}">${px(x + 2, 3, 2, 1)}${px(x + 1, 3)}${px(x, 2)}</g>
+    <g fill="${BIRD_BELLY}">${px(x + 3, 4, 2, 1)}</g>
     <g class="peck">
-      <g fill="${BIRD}">${px(x + 4, 1, 2, 1)}${px(x + 5, 2)}</g>
-      <g fill="${EYE}">${px(x + 5, 1)}</g>
-      <g fill="${BEAK}">${px(x + 6, 2)}</g>
+      <g fill="${BIRD}">${px(x + 4, 2, 2, 1)}${px(x + 5, 3)}</g>
+      <g fill="${EYE}">${px(x + 5, 2)}</g>
+      <g fill="${BEAK}">${px(x + 6, 3)}</g>
     </g>` : ''}
     ${percentText(left, x)}`
 }
@@ -158,10 +162,11 @@ const feeder = (used: number | null, x: number) => {
 const HONEY_ROWS = 5
 
 // Weekly limit: a jar of honey under a checked cloth that empties as the
-// week's limit is used, a bee buzzing around it while there is honey.
+// week's limit is used, a row for every fifth of the week, a bee buzzing
+// around it while there is honey.
 const honeyJar = (used: number | null, x: number) => {
   const left = used === null ? null : 100 - used
-  const rows = left === null ? HONEY_ROWS : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * HONEY_ROWS))
+  const rows = left === null ? HONEY_ROWS : level(left, HONEY_ROWS)
   return `
     ${rows > 0 ? `<g fill="${HONEY}">${px(x + 6, 8 - rows, 5, rows)}</g><g fill="${HONEY_LIGHT}">${px(x + 7, 8 - rows, 1, rows)}</g>` : ''}
     <g fill="${GLASS}">${px(x + 5, 3, 1, 6)}${px(x + 11, 3, 1, 6)}${px(x + 6, 8, 5, 1)}</g>

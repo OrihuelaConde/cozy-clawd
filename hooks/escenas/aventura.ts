@@ -10,7 +10,7 @@
 // compacted the potion fills up again, sparkling.
 
 import type { FigureScene, Figures } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
+import { COUNTDOWN_CSS, countdown, HEIGHT, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
 
 // Objects stand on the stone floor at y 9.
 const FLOOR_Y = 9
@@ -44,7 +44,7 @@ const potionRows = (x: number, rows: number) =>
 // or less a spare vial stands by; while the conversation is compacted the
 // potion fills up again with sparkles over it.
 const potion = (left: number | null, x: number, isCompacting: boolean) => {
-  const rows = left === null ? 0 : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * POTION.length))
+  const rows = left === null ? 0 : level(left, POTION.length)
   const isLow = left !== null && left <= 25
   const mana = isCompacting
     ? `<g style="${refill(POTION.length - rows)}">${potionRows(x, POTION.length)}</g>`
@@ -93,18 +93,21 @@ const hourglass = (left: number | null, ttl: number, x: number) => {
 // The gold heaped in the chest, row by row from the rim up: [y, first x, last x].
 const HEAP: [number, number, number][] = [[4, 4, 11], [3, 5, 10], [2, 6, 9], [1, 7, 8]]
 
+// The last few coins, before the chest is empty.
+const FEW_COINS: [number, number, number] = [4, 6, 8]
+
 // Five-hour limit: an open chest whose heap of gold is the window still free,
-// a glint on it now and then.
+// down to a few coins, a glint on it now and then.
 const chest = (used: number | null, x: number) => {
   const left = used === null ? null : 100 - used
-  const rows = left === null ? HEAP.length : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * HEAP.length))
-  const heap = HEAP.slice(0, rows)
+  const steps = left === null ? HEAP.length + 1 : level(left, HEAP.length + 1)
+  const heap = steps === 0 ? [] : steps === 1 ? [FEW_COINS] : HEAP.slice(0, steps - 1)
   const top = heap[heap.length - 1]
   return `
     <g fill="${WOOD_DARK}">${px(x + 3, 1, 10, 4)}${px(x + 4, 0, 8, 1)}</g>
     <g fill="${IRON}">${px(x + 3, 2, 10, 1)}</g>
     <g fill="${GOLD}">${heap.map(([y, a, b]) => px(x + a, y, b - a + 1, 1)).join('')}</g>
-    <g fill="${GOLD_DARK}">${heap.map(([y, , b]) => px(x + b, y)).join('')}${rows > 1 ? px(x + 6, 4) + px(x + 9, 3) : ''}</g>
+    <g fill="${GOLD_DARK}">${heap.map(([y, , b]) => px(x + b, y)).join('')}${heap.length > 1 ? px(x + 6, 4) + px(x + 9, 3) : ''}</g>
     ${top ? `<g class="glint" fill="#FFFFFF">${px(x + top[1] + 1, top[0])}</g>` : ''}
     <g fill="${WOOD}">${px(x + 3, 5, 10, 4)}</g>
     <g fill="${IRON}">${px(x + 3, 5, 10, 1)}${px(x + 5, 6, 1, 3)}${px(x + 10, 6, 1, 3)}</g>

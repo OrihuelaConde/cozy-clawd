@@ -10,7 +10,7 @@
 // candle grows back to its full height.
 
 import type { FigureScene, Figures } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, refill, REFILL_CSS, rise, RISE_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
+import { COUNTDOWN_CSS, countdown, HEIGHT, level, percentText, pixelText, px, refill, REFILL_CSS, rise, RISE_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
 
 // Objects stand on the desk at y 9.
 const DESK_Y = 9
@@ -139,7 +139,7 @@ const COCOA_ROWS = 5
 // free, a marshmallow afloat; its steam thins out as the cocoa goes down.
 const cocoa = (used: number | null, x: number) => {
   const left = used === null ? null : 100 - used
-  const rows = left === null ? COCOA_ROWS : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * COCOA_ROWS))
+  const rows = left === null ? COCOA_ROWS : level(left, COCOA_ROWS)
   const top = 7 - rows
   const wisps = rows >= 4 ? 2 : rows >= 2 ? 1 : 0
   return `
@@ -161,12 +161,17 @@ const disc = (d: number) =>
     ([i, j]) => (i + 0.5 - d / 2) ** 2 + (j + 0.5 - d / 2) ** 2 <= (d / 2) ** 2 * 0.85,
   )
 
+// The ball of yarn's width when the week is untouched, and how many sizes,
+// a pixel apart, it goes through before only the needles are left.
+const YARN_D = 7
+const YARN_STEPS = 5
+
 // Weekly limit: a ball of yarn, two needles stuck in it, that shrinks as the
 // week's limit is used; its loose end trails along the desk. Once it is gone
 // the needles lie on the desk.
 const yarn = (used: number | null, x: number) => {
   const left = used === null ? null : 100 - used
-  const d = left === null ? 7 : left > 0 ? Math.max(2, Math.round((left / 100) * 7)) : 0
+  const d = left === null ? YARN_D : left > 0 ? YARN_D - YARN_STEPS + level(left, YARN_STEPS) : 0
   if (d === 0) {
     return `
       <g fill="${NEEDLE}">${px(x + 3, 8, 8, 1)}${px(x + 5, 7, 8, 1)}</g>

@@ -48,6 +48,11 @@ export const pixelText = (text: string, slotX: number) => {
   return `<g fill="${INK}">${[...text].map((ch, i) => glyph(ch, x0 + i * 4, DIGITS_Y)).join('')}</g>`
 }
 
+// How many of a figure's `n` steps the percent left fills: one as soon as
+// there is anything, all only near full. From five steps up, 100, 75, 50, 25,
+// 10 and 0 each fill a different number.
+export const level = (left: number, n: number) => (left <= 0 ? 0 : Math.min(n, Math.ceil((left / 100) * n - 1e-9)))
+
 // A figure's percent, or dashes before the first reading.
 export const percentText = (n: number | null, slotX: number) => pixelText(n === null ? '--' : `${Math.round(n)}%`, slotX)
 
