@@ -985,8 +985,9 @@ let detected: Lang | null = null
 // Claude Code hands a plugin neither the app's language nor its translated
 // texts. The Language row of /config (the language Claude answers in) says
 // it when the person set one; then the locale variables, in the order a
-// program reads them; English when none names a language the mod speaks. A
-// read the host does not answer counts as unset.
+// program reads them; then the operating system's own setting, as a desktop
+// app starts without those variables; English when none names a language
+// the mod speaks. A read the host does not answer counts as unset.
 async function detectLang($: EngineInterface): Promise<Lang> {
   const rows = await $.config.list().catch(() => [])
   const locales = [
@@ -996,7 +997,33 @@ async function detectLang($: EngineInterface): Promise<Lang> {
     await $.env.get('LANG').catch(() => undefined),
   ]
 
-  return locales.map(langOf).find(lang => lang !== null) ?? DEFAULT_LANG
+  return locales.map(langOf).find(lang => lang !== null) ?? langOf(await systemLocale($)) ?? DEFAULT_LANG
+}
+
+// Where Windows keeps the person's languages: the list in the order they set
+// it, its first the display language, then the regional format.
+const WINDOWS_LOCALES = [
+  ['HKCU\\Control Panel\\International\\User Profile', 'Languages'],
+  ['HKCU\\Control Panel\\International', 'LocaleName'],
+] as const
+
+// The language the operating system shows the person, as a code (`es-AR`):
+// on Windows read from the registry, on macOS the first of AppleLanguages;
+// null where neither answers.
+async function systemLocale($: EngineInterface): Promise<string | null> {
+  if ((await $.env.get('OS').catch(() => undefined)) === 'Windows_NT') {
+    for (const [key, value] of WINDOWS_LOCALES) {
+      const found = await $.process.run(['reg.exe', 'query', key, '/v', value]).catch(() => null)
+      const code = found?.exitCode === 0 ? /REG_\w+\s+([a-z]{2,3}\b[-\w]*)/i.exec(found.stdout)?.[1] : undefined
+      if (code) {
+        return code
+      }
+    }
+    return null
+  }
+  const found = await $.process.run(['defaults', 'read', '-g', 'AppleLanguages']).catch(() => null)
+
+  return found?.exitCode === 0 ? /[a-z]{2,3}\b[-\w]*/i.exec(found.stdout)?.[0] ?? null : null
 }
 
 async function detectedLang($: EngineInterface) {

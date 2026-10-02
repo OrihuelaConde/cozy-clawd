@@ -94,7 +94,8 @@ The mod speaks Spanish or English. Claude Code doesn't tell a mod which language
 
 1. The **Language** setting in `/config`, the language Claude answers in, when you've set it.
 2. Your system's locale variables, `LC_ALL`, `LC_MESSAGES`, and `LANG`, where they're set.
-3. English, when neither names Spanish or English.
+3. Your system's language: on Windows, the first of your preferred languages, then the regional format; on macOS, the first of your preferred languages. The desktop app usually starts without the locale variables, so this is what it goes by.
+4. English, when none of these names Spanish or English.
 
 To choose the language yourself, open the `/clawd` pane and select **Español** or **English** next to **Idioma** (Language). To go back to the automatic language, select **Automático** (Automatic). In the terminal, the pane has an **Idioma** picker instead. Later sessions start with the language you chose.
 

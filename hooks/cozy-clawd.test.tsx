@@ -245,6 +245,34 @@ test('the Language row of /config wins over the locale', async ($, on) => {
   await band.unmount()
 })
 
+test('on Windows with no locale variables, the registry\'s display language counts', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  mock.env(on, { OS: 'Windows_NT' })
+  const asked: string[][] = []
+  // reg.exe's answer, as Windows prints the person's language list.
+  on('process.run', (_$, e) => {
+    asked.push([...e.argv])
+    const stdout = '\r\nHKEY_CURRENT_USER\\Control Panel\\International\\User Profile\r\n    Languages    REG_MULTI_SZ    es-AR\\0en-US\r\n\r\n'
+    return { value: { exitCode: 0, stdout, stderr: '' } as never }
+  })
+
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
+  expect(await clawdOf(band)).toBe('Clawd: Esperando')
+  expect(asked[0]).toEqual(['reg.exe', 'query', 'HKCU\\Control Panel\\International\\User Profile', '/v', 'Languages'])
+  await band.unmount()
+})
+
+test('on macOS with no locale variables, the first of AppleLanguages counts', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  mock.env(on, {})
+  // What `defaults read -g AppleLanguages` prints.
+  on('process.run', () => ({ value: { exitCode: 0, stdout: '(\n    "es-419",\n    "en-US"\n)\n', stderr: '' } as never }))
+
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
+  expect(await clawdOf(band)).toBe('Clawd: Esperando')
+  await band.unmount()
+})
+
 test('a language picked in the pane switches the band', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.store(on)
