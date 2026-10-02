@@ -10,7 +10,7 @@ cozy-clawd is an unofficial fan project. It isn't affiliated with or endorsed by
 
   | State or tool | Scene |
   | --- | --- |
-  | Idle | Clawd sleeps, with z's drifting up, unless the scene of figures calls for something else. For more information, see [Choose a scene](#choose-a-scene). |
+  | Idle | Clawd passes the time, switching every 9 seconds between looking around, whistling, juggling, playing with a yo-yo, blowing soap bubbles, reading, and dancing. Once the prompt cache expires, Clawd sleeps with z's drifting up. The scene of figures can call for something else instead; for more information, see [Choose a scene](#choose-a-scene). |
   | Working on the answer | Clawd stacks colored blocks. |
   | Thinking | Thought dots rise to a light bulb that switches on. |
   | Writing the answer | Clawd walks in place while lines of text appear. |

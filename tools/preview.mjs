@@ -28,8 +28,8 @@ mkdirSync(outDir, { recursive: true })
 const code = readFileSync(join(root, 'hooks', 'register.tsx'), 'utf8')
 const body = code.slice(code.indexOf('const BODY'), code.indexOf('// Each mode stays on screen'))
 const scenesFile = join(outDir, 'scenes.gen.ts')
-writeFileSync(scenesFile, `type ClawdMode = string\n${body}\nexport { scenes, toolScenes, cueScenes, svgFor, SCALE, VIEW_W, VIEW_H }\n`)
-const { scenes, toolScenes, cueScenes, svgFor, SCALE, VIEW_W, VIEW_H } = await import(pathToFileURL(scenesFile).href + '?t=' + Date.now())
+writeFileSync(scenesFile, `type ClawdMode = string\n${body}\nexport { scenes, toolScenes, cueScenes, PASTIMES, pastimeScene, waitingScene, svgFor, SCALE, VIEW_W, VIEW_H }\n`)
+const { scenes, toolScenes, cueScenes, PASTIMES, pastimeScene, waitingScene, svgFor, SCALE, VIEW_W, VIEW_H } = await import(pathToFileURL(scenesFile).href + '?t=' + Date.now())
 const { FIGURE_SCENES, figuresAlt } = await import(pathToFileURL(join(root, 'hooks', 'escenas', 'index.ts')).href + '?t=' + Date.now())
 
 const uri = svg => 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64')
@@ -38,6 +38,8 @@ const sceneRows = [
   ...Object.entries(scenes),
   ...Object.entries(toolScenes).map(([kind, scene]) => [`tool:${kind}`, scene]),
   ...Object.entries(cueScenes).map(([cue, scene]) => [`cue:${cue}`, scene]),
+  ...PASTIMES.map(p => [`pastime:${p.name}`, pastimeScene(p)]),
+  ['pastimes in turn', waitingScene(0)],
 ]
   .map(([name, scene]) => `
   <div class="row">

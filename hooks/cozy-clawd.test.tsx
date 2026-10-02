@@ -25,9 +25,10 @@ test('the pane shows every scene on the desktop, the one in use marked', async (
 })
 
 test('the pane on the terminal says what Clawd does and offers pickers', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
   mock.env(on, SPANISH)
   const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
-  expect(await pane.find({ type: 'Text', text: /Durmiendo/ })).toBeDefined()
+  expect(await pane.find({ type: 'Text', text: 'Esperando' })).toBeDefined()
   expect((await pane.find({ key: 'escena' }))?.type).toBe('Select')
   expect((await pane.find({ key: 'idioma' }))?.type).toBe('Select')
   await pane.unmount()
@@ -154,7 +155,7 @@ for (const [name, cue] of [
     await answer($)
 
     const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
-    expect(await clawdOf(band)).toBe('Clawd: Durmiendo')
+    expect(await clawdOf(band)).toBe('Clawd: Esperando')
     await clock.advance(61 * 60_000)
     expect(await clawdOf(band)).toBe(`Clawd: ${cue}`)
     await band.unmount()
@@ -199,6 +200,23 @@ test('after a compaction Clawd celebrates a moment, then sleeps', async ($, on) 
   await clock.advance(2_300)
   expect(await clawdOf(band)).toBe('Clawd: ¡Conversación compactada!')
   await clock.advance(100)
+  expect(await clawdOf(band)).toBe('Clawd: Esperando')
+  await band.unmount()
+})
+
+test('idle with the cache warm Clawd passes the time by turns, and sleeps once it expires', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  mock.env(on, SPANISH)
+  on('session.usage', usageAt(30))
+  on('turn.step', answering)
+  await answer($)
+
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
+  expect(await clawdOf(band)).toBe('Clawd: Esperando')
+  const clawd = (await band.findAll({ type: 'Svg' })).find(svg => String(svg.props.alt).startsWith('Clawd: '))
+  // Every pastime is in the one image, each with its turn.
+  expect(String(clawd?.props.source)).toContain('@keyframes turn6')
+  await clock.advance(61 * 60_000)
   expect(await clawdOf(band)).toBe('Clawd: Durmiendo')
   await band.unmount()
 })
@@ -208,7 +226,7 @@ test('where the locale is English, the band and the commands speak English', asy
   mock.env(on, ENGLISH)
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
-  expect(await clawdOf(band)).toBe('Clawd: Sleeping')
+  expect(await clawdOf(band)).toBe('Clawd: Waiting')
   expect((await band.findAll({ type: 'Svg' })).some(svg => String(svg.props.alt).startsWith('Context free'))).toBe(true)
   await band.unmount()
 
@@ -223,7 +241,7 @@ test('the Language row of /config wins over the locale', async ($, on) => {
   on('config.list', () => ({ value: [{ key: 'language', label: 'Language', kind: 'text', value: 'español' }] as never }))
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
-  expect(await clawdOf(band)).toBe('Clawd: Durmiendo')
+  expect(await clawdOf(band)).toBe('Clawd: Esperando')
   await band.unmount()
 })
 
@@ -243,7 +261,7 @@ test('a language picked in the pane switches the band', async ($, on) => {
   await pane.unmount()
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
-  expect(await clawdOf(band)).toBe('Clawd: Sleeping')
+  expect(await clawdOf(band)).toBe('Clawd: Waiting')
   await band.unmount()
 })
 

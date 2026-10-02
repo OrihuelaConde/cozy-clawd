@@ -3,7 +3,7 @@ import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import type { ClawdMode, Stats } from '../types'
 import { DEFAULT_FIGURE_SCENE, FIGURE_SCENES, figureSceneNamed, figuresAlt } from './escenas/index'
-import type { Act, Figures } from './escenas/index'
+import type { Act, Figures, FigureScene } from './escenas/index'
 import { DEFAULT_LANG, LANG_NAMES, LANGS, langOf } from './idioma'
 import type { Lang, LangChoice, Words } from './idioma'
 
@@ -56,7 +56,9 @@ const CLOSED_EYES = px(5, 1.6, 1, 0.4) + px(12, 1.6, 1, 0.4)
 const zee = (x: number, y: number) =>
   px(x, y, 3, 0.5) + px(x + 2, y + 0.5, 1, 0.5) + px(x + 1, y + 1, 1, 0.5) + px(x, y + 1.5, 1, 0.5) + px(x, y + 2, 3, 0.5)
 
-type Scene = { label: Words; eyes?: string; extra: string; css: string }
+// What Clawd does in one mode. `body` stands in for the one sprite when the
+// scene draws several Clawds of its own (the pastimes, taking turns).
+type Scene = { label: Words; eyes?: string; extra: string; css: string; body?: string }
 
 const BLINK = `
   @keyframes blink { 0%, 92% { opacity: 1; } 93%, 100% { opacity: 0; } }`
@@ -92,7 +94,8 @@ const toolUse: Scene = {
 }
 
 const scenes: Record<ClawdMode, Scene> = {
-  // Nothing running (the pane only): asleep, breathing slowly, z's drifting up.
+  // Nothing to do and the prompt cache expired: asleep, breathing slowly, z's
+  // drifting up. With the cache still warm Clawd passes the time instead.
   idle: {
     label: { es: 'Durmiendo', en: 'Sleeping' },
     eyes: CLOSED_EYES,
@@ -137,8 +140,8 @@ const scenes: Record<ClawdMode, Scene> = {
       @keyframes done { 0%, 55.9% { opacity: 0; } 56%, 63.9% { opacity: 1; } 64%, 69.9% { opacity: 0; } 70%, 77.9% { opacity: 1; } 78%, 100% { opacity: 0; } }
       ${BLINK}`,
   },
-  // Nothing to do yet: a ladybug flies past overhead and Clawd follows it.
-  // Kept for an idle "waiting" state; nothing sets this mode yet.
+  // Waiting on the person (a tool to allow, a form to fill in): a ladybug
+  // flies past overhead and Clawd follows it.
   waiting: {
     label: { es: 'Esperando', en: 'Waiting' },
     eyes: `<g class="follow">${OPEN_EYES}</g>`,
@@ -548,6 +551,218 @@ const cueScenes: Record<Act, Scene> = {
   },
 }
 
+// One of the things Clawd does to pass the time between turns: its eyes, its
+// props and its motions, each rule of its css under its own class.
+type Pastime = { name: string; eyes?: string; extra: string; css: string }
+
+// A note of music: a head, a stem and a flag hanging off its top, the head's
+// left at (x, y).
+const note = (x: number, y: number) => px(x, y, 2, 0.5) + px(x + 1, y - 1.5, 1, 1.5) + px(x + 2, y - 1, 1, 0.5)
+
+// Keyframes that jump a thing from point to point, each held an equal share
+// of the cycle; the points are offsets from where it is drawn.
+const hops = (name: string, points: [number, number][]) =>
+  `@keyframes ${name} { ${points
+    .map(([x, y], i) => `${((i / points.length) * 100).toFixed(2)}% { transform: translate(${x}px, ${y}px); }`)
+    .join(' ')} 100% { transform: translate(${points[0]?.[0] ?? 0}px, ${points[0]?.[1] ?? 0}px); } }`
+
+// Where a juggled ball goes, as an offset from the left hand: up and over the
+// head to the right hand, then back low.
+const JUGGLE: [number, number][] = [
+  [0, 0], [1, -2], [2, -3.5], [5, -4.5], [8, -4.5], [11, -4.5], [13, -3.5], [14, -2], [15, 0], [12, -2.5], [7, -3], [3, -2.5],
+]
+
+// Where a soap bubble drifts from the wand's ring, up and to the right.
+const BUBBLE: [number, number][] = [[0, 0], [1, -0.5], [1, -1], [2, -1.5], [2, -2], [3, -2.5], [3, -3], [3, -3]]
+
+const PASTIMES: readonly Pastime[] = [
+  // Looks around, this way and that, tapping a foot.
+  {
+    name: 'mira',
+    eyes: `<g class="mira-look">${OPEN_EYES}</g>`,
+    extra: '',
+    css: `
+      .mira .eyes rect { animation: blink 3s steps(1) infinite; }
+      .mira .mira-look { animation: mira-look 4.5s steps(1) infinite; }
+      .mira .legs-b { animation: mira-tap 0.6s steps(1) infinite; }
+      @keyframes mira-look {
+        0%, 24.9% { transform: translate(-1px, 0); } 25%, 37.9% { transform: translate(0, 0); }
+        38%, 64.9% { transform: translate(1px, 0); } 65%, 79.9% { transform: translate(1px, -0.5px); } 80%, 100% { transform: translate(0, 0); }
+      }
+      @keyframes mira-tap { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, -0.5px); } }`,
+  },
+  // Whistles a tune, eyes half shut, notes floating off.
+  {
+    name: 'silba',
+    eyes: px(5, 1.5, 1, 0.5) + px(12, 1.5, 1, 0.5) + px(9, 2.5, 1, 0.5),
+    extra: `
+      <g class="silba-n1" fill="${SPARK}">${note(17, 1)}</g>
+      <g class="silba-n2" fill="${SKY}">${note(19, 0)}</g>`,
+    css: `
+      .silba .clawd { animation: silba-bob 1.2s steps(1) infinite; }
+      .silba-n1 { animation: silba-float 2.4s steps(4) infinite; }
+      .silba-n2 { animation: silba-float 2.4s steps(4) -1.2s infinite; }
+      @keyframes silba-bob { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, 0.5px); } }
+      @keyframes silba-float { 0% { opacity: 0; transform: translate(0, 0.5px); } 25% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(2px, -1.5px); } }`,
+  },
+  // Juggles three balls over its head, the hands taking turns.
+  {
+    name: 'malabares',
+    eyes: `<g class="mal-up">${OPEN_EYES}</g>`,
+    extra: `
+      <g class="mal-b1" fill="${SHELL}">${px(1, 1.5, 1, 0.5)}</g>
+      <g class="mal-b2" fill="${SKY}">${px(1, 1.5, 1, 0.5)}</g>
+      <g class="mal-b3" fill="${LEAF}">${px(1, 1.5, 1, 0.5)}</g>`,
+    css: `
+      .mal-up { transform: translate(0, -0.5px); }
+      .malabares .arm-l { animation: mal-pump 0.6s steps(1) infinite; }
+      .malabares .arm-r { animation: mal-pump 0.6s steps(1) -0.3s infinite; }
+      .mal-b1 { animation: mal-ball 1.8s steps(1) infinite; }
+      .mal-b2 { animation: mal-ball 1.8s steps(1) -0.6s infinite; }
+      .mal-b3 { animation: mal-ball 1.8s steps(1) -1.2s infinite; }
+      @keyframes mal-pump { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, -0.5px); } }
+      ${hops('mal-ball', JUGGLE)}`,
+  },
+  // Plays with a yo-yo: down on its string, a spin at the bottom, back up.
+  {
+    name: 'yoyo',
+    eyes: `<g class="yoyo-look">${OPEN_EYES}</g>`,
+    extra: `
+      <g class="yoyo-string" fill="${WING}">${px(17, 1.5, 1, 2.5)}</g>
+      <g class="yoyo-toy">
+        <g fill="${SHELL}">${px(16, 2, 3, 1)}</g>
+        <g class="yoyo-spin" fill="${WING}">${px(16, 2, 1, 0.5)}</g>
+        <g class="yoyo-spin2" fill="${WING}">${px(18, 2.5, 1, 0.5)}</g>
+      </g>`,
+    css: `
+      .yoyo .arm-r { transform: translate(0, -1px); }
+      .yoyo-look { animation: yoyo-look 2s steps(1) infinite; }
+      .yoyo-toy { animation: yoyo-drop 2s steps(1) infinite; }
+      .yoyo-string { animation: yoyo-reel 2s steps(1) infinite; }
+      .yoyo-spin { animation: yoyo-spin 0.3s steps(1) infinite; }
+      .yoyo-spin2 { animation: yoyo-spin 0.3s steps(1) -0.15s infinite; }
+      @keyframes yoyo-drop {
+        0%, 9.9% { transform: translate(0, 0); } 10%, 19.9% { transform: translate(0, 0.5px); } 20%, 29.9% { transform: translate(0, 1px); }
+        30%, 39.9% { transform: translate(0, 1.5px); } 40%, 59.9% { transform: translate(0, 2px); } 60%, 69.9% { transform: translate(0, 1.5px); }
+        70%, 79.9% { transform: translate(0, 1px); } 80%, 89.9% { transform: translate(0, 0.5px); } 90%, 100% { transform: translate(0, 0); }
+      }
+      @keyframes yoyo-reel {
+        0%, 9.9% { clip-path: inset(0 0 2px 0); } 10%, 19.9% { clip-path: inset(0 0 1.5px 0); } 20%, 29.9% { clip-path: inset(0 0 1px 0); }
+        30%, 39.9% { clip-path: inset(0 0 0.5px 0); } 40%, 59.9% { clip-path: inset(0 0 0 0); } 60%, 69.9% { clip-path: inset(0 0 0.5px 0); }
+        70%, 79.9% { clip-path: inset(0 0 1px 0); } 80%, 89.9% { clip-path: inset(0 0 1.5px 0); } 90%, 100% { clip-path: inset(0 0 2px 0); }
+      }
+      @keyframes yoyo-look { 0%, 29.9% { transform: translate(1px, 0); } 30%, 69.9% { transform: translate(1px, 0.5px); } 70%, 100% { transform: translate(1px, 0); } }
+      @keyframes yoyo-spin { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }`,
+  },
+  // Blows soap bubbles through a wand and watches them drift off.
+  {
+    name: 'pompas',
+    eyes: `<g class="pompas-look">${OPEN_EYES}</g>`,
+    extra: `
+      <g fill="${HANDLE}">${px(17, 2, 1, 0.5)}${px(18, 1.5, 1, 0.5)}</g>
+      <g fill="${STEEL}">${px(19, 0.5, 1, 0.5)}${px(20, 0, 1, 0.5)}${px(21, 0.5, 1, 0.5)}${px(20, 1, 1, 0.5)}</g>
+      <g class="pompas-b1"><g fill="${SKY}" opacity="0.6">${px(20, 0, 2, 1)}</g><g fill="#FFFFFF" opacity="0.8">${px(20, 0, 1, 0.5)}</g></g>
+      <g class="pompas-b2" fill="${SKY}" opacity="0.8">${px(20, 0.5, 1, 0.5)}</g>
+      <g class="pompas-b3" fill="${SKY}" opacity="0.8">${px(20, 0.5, 1, 0.5)}</g>`,
+    css: `
+      .pompas-look { animation: pompas-look 3s steps(1) infinite; }
+      .pompas-b1 { animation: pompas-rise 3s steps(1) infinite, pompas-pop 3s steps(1) infinite; }
+      .pompas-b2 { animation: pompas-rise 3s steps(1) -1s infinite, pompas-pop 3s steps(1) -1s infinite; }
+      .pompas-b3 { animation: pompas-rise 3s steps(1) -2s infinite, pompas-pop 3s steps(1) -2s infinite; }
+      ${hops('pompas-rise', BUBBLE)}
+      @keyframes pompas-pop { 0%, 12.4% { opacity: 0; } 12.5%, 87.4% { opacity: 1; } 87.5%, 100% { opacity: 0; } }
+      @keyframes pompas-look { 0%, 39.9% { transform: translate(1px, 0); } 40%, 100% { transform: translate(1px, -0.5px); } }`,
+  },
+  // Reads a book held out to the right, now and then turning a page.
+  {
+    name: 'lee',
+    eyes: `<g class="lee-read">${OPEN_EYES}</g>`,
+    extra: `
+      <g fill="${SHELL}">${px(17, 3, 5, 0.5)}</g>
+      <g fill="${WING}">${px(17, 1, 2, 2)}${px(20, 1, 2, 2)}</g>
+      <g fill="${DOT}">${px(17, 1.5, 2, 0.5)}${px(17, 2.5, 1, 0.5)}${px(20, 1.5, 2, 0.5)}${px(20, 2.5, 2, 0.5)}${px(19, 1, 1, 2)}</g>
+      <g fill="${WING}">
+        <g class="lee-p1">${px(20, 0.5, 1, 2)}</g>
+        <g class="lee-p2">${px(19, 0, 1, 2)}</g>
+        <g class="lee-p3">${px(18, 0.5, 1, 2)}</g>
+      </g>`,
+    css: `
+      .lee-read { transform: translate(1px, 0.5px); }
+      .lee .eyes rect { animation: blink 3.5s steps(1) infinite; }
+      .lee .clawd { animation: lee-nod 3s steps(1) infinite; }
+      .lee-p1 { animation: lee-p1 3s steps(1) infinite; }
+      .lee-p2 { animation: lee-p2 3s steps(1) infinite; }
+      .lee-p3 { animation: lee-p3 3s steps(1) infinite; }
+      @keyframes lee-nod { 0%, 69.9% { transform: translate(0, 0); } 70%, 100% { transform: translate(0, 0.25px); } }
+      @keyframes lee-p1 { 0%, 79.9% { opacity: 0; } 80%, 84.9% { opacity: 1; } 85%, 100% { opacity: 0; } }
+      @keyframes lee-p2 { 0%, 84.9% { opacity: 0; } 85%, 89.9% { opacity: 1; } 90%, 100% { opacity: 0; } }
+      @keyframes lee-p3 { 0%, 89.9% { opacity: 0; } 90%, 94.9% { opacity: 1; } 95%, 100% { opacity: 0; } }`,
+  },
+  // Dances: sways side to side, arms up by turns, notes twinkling above.
+  {
+    name: 'baila',
+    eyes: px(5, 1, 1, 0.5) + px(12, 1, 1, 0.5),
+    extra: `
+      <g class="baila-n1" fill="${SPARK}">${note(1, -1.5)}</g>
+      <g class="baila-n2" fill="${LEAF}">${note(17, -1)}</g>`,
+    css: `
+      .baila .clawd { animation: baila-sway 1s steps(1) infinite; }
+      .baila .arm-l { animation: baila-arm 1s steps(1) infinite; }
+      .baila .arm-r { animation: baila-arm 1s steps(1) -0.5s infinite; }
+      .baila .legs-a { animation: baila-step 0.5s steps(1) infinite; }
+      .baila .legs-b { animation: baila-step 0.5s steps(1) -0.25s infinite; }
+      .baila-n1 { animation: baila-twinkle 1s steps(1) infinite; }
+      .baila-n2 { animation: baila-twinkle 1s steps(1) -0.5s infinite; }
+      @keyframes baila-sway { 0%, 49.9% { transform: translate(-1px, 0); } 50%, 100% { transform: translate(1px, 0); } }
+      @keyframes baila-arm { 0%, 49.9% { transform: translate(0, -1px); } 50%, 100% { transform: translate(0, 0); } }
+      @keyframes baila-step { 0%, 49.9% { transform: translate(0, -0.5px); } 50%, 100% { transform: translate(0, 0); } }
+      @keyframes baila-twinkle { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }`,
+  },
+]
+
+// How long each pastime lasts before the next takes its turn.
+const PASTIME_S = 9
+
+// One pastime by itself, as the preview shows it.
+const pastimeScene = (p: Pastime): Scene => ({
+  label: { es: 'Esperando', en: 'Waiting' },
+  body: `<g class="${p.name}"><g class="clawd">${sprite(p.eyes ?? OPEN_EYES)}</g>${p.extra}</g>`,
+  extra: '',
+  css: `${p.css}
+    ${BLINK}`,
+})
+
+// Each pastime's turn in the round: shown for its share of the cycle, hidden
+// for the rest.
+const turnCss = (i: number, count: number, cycle: number, at: number) => {
+  const from = (i / count) * 100
+  const to = ((i + 1) / count) * 100
+  const steps = [
+    from > 0 ? `0%, ${(from - 0.01).toFixed(2)}% { opacity: 0; }` : '',
+    `${from.toFixed(2)}%, ${(to - 0.01).toFixed(2)}% { opacity: 1; }`,
+    to < 100 ? `${to.toFixed(2)}%, 100% { opacity: 0; }` : '',
+  ]
+  return `.turn${i} { animation: turn${i} ${cycle}s steps(1) -${at.toFixed(1)}s infinite; }
+    @keyframes turn${i} { ${steps.join(' ')} }`
+}
+
+// Clawd between turns with the prompt cache warm: the pastimes one after
+// another, all in one image so no redraw is needed to change them. The round
+// goes by the clock (`atS`, in seconds), so a redraw takes it up where it was
+// rather than from the first.
+const waitingScene = (atS: number): Scene => {
+  const cycle = PASTIMES.length * PASTIME_S
+  const at = atS % cycle
+  return {
+    label: { es: 'Esperando', en: 'Waiting' },
+    body: PASTIMES.map((p, i) => `<g class="turn${i} ${p.name}"><g class="clawd">${sprite(p.eyes ?? OPEN_EYES)}</g>${p.extra}</g>`).join(''),
+    extra: '',
+    css: `${PASTIMES.map((_, i) => turnCss(i, PASTIMES.length, cycle, at)).join('\n    ')}
+    ${PASTIMES.map(p => p.css).join('')}
+    ${BLINK}`,
+  }
+}
+
 // Each scene enters with a small hop of Clawd while its props fade in, so a
 // change of mode reads as a transition rather than a cut.
 const ENTER = `
@@ -564,7 +779,7 @@ const svgFor = (scene: Scene) => `<svg xmlns="http://www.w3.org/2000/svg" viewBo
     ${scene.css}
   </style>
   <g transform="translate(0 ${HEADROOM * 2}) scale(1 2)">
-    <g class="enter"><g class="clawd">${sprite(scene.eyes ?? OPEN_EYES)}</g></g>
+    <g class="enter">${scene.body ?? `<g class="clawd">${sprite(scene.eyes ?? OPEN_EYES)}</g>`}</g>
     <g class="props">${scene.extra}</g>
   </g>
 </svg>`
@@ -833,6 +1048,18 @@ const figuresOf = (s: Stats, now: number, isCompacting = false): Figures => ({
   isCompacting,
 })
 
+// What Clawd does with nothing to do: what the scene on the right calls for,
+// if anything; asleep once the prompt cache has expired; otherwise its
+// pastimes, one after another (`now` sets where in their round).
+const idleScene = (figureScene: FigureScene, figures: Figures, now: number) => {
+  const cue = figureScene.cue?.(figures) ?? null
+  if (cue !== null) {
+    return { scene: cueScenes[cue.act], label: cue.label }
+  }
+  const scene = figures.cacheLeft !== null && figures.cacheLeft <= 0 ? scenes.idle : waitingScene(now / 1000)
+  return { scene, label: scene.label }
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     detected = null
@@ -1002,15 +1229,13 @@ export const register: Register = on => {
     const drawnMode = await read($, mode)
     // A turn that ended without telling (an interruption) leaves no stale mode.
     const isIdle = !e.props.isWorking && drawnMode !== 'compacting' && drawnMode !== 'compacted'
-    const figures = figuresOf(await read($, stats), await $.clock.now(), drawnMode === 'compacting')
+    const now = await $.clock.now()
+    const figures = figuresOf(await read($, stats), now, drawnMode === 'compacting')
     const isLow = figures.contextLeft !== null && figures.contextLeft <= COMPACT_AT
     await read($, redraws)
     const isAsking = await read($, isConfirming)
     const figureScene = figureSceneNamed(await read($, escena))
-    // Idle, Clawd sleeps, unless the scene on the right calls for something else.
-    const cue = isIdle ? (figureScene.cue?.(figures) ?? null) : null
-    const idle = cue === null ? { scene: scenes.idle, label: scenes.idle.label } : { scene: cueScenes[cue.act], label: cue.label }
-    const { scene, label } = isIdle ? idle : sceneFor(drawnMode, await read($, tool))
+    const { scene, label } = isIdle ? idleScene(figureScene, figures, now) : sceneFor(drawnMode, await read($, tool))
     const isOngoing = !isIdle && drawnMode !== 'compacted'
 
     return (
@@ -1055,11 +1280,15 @@ export const register: Register = on => {
     const shown = figureSceneNamed(await read($, escena)).name
     if (e.surface === 'terminal') {
       const { Box, Select, Text } = $.ui.resolve(e)
-      const { scene, label } = sceneFor(await read($, mode), await read($, tool))
+      const shownMode = await read($, mode)
+      const now = await $.clock.now()
+      const { label } =
+        shownMode === 'idle' ? idleScene(figureSceneNamed(shown), figuresOf(await read($, stats), now), now) : sceneFor(shownMode, await read($, tool))
+      const isOngoing = shownMode !== 'idle' && shownMode !== 'compacted'
 
       return (
         <Box flexDirection="column">
-          <Text>{scene === scenes.idle || scene === scenes.compacted ? label[lang] : `${label[lang]}…`}</Text>
+          <Text>{isOngoing ? `${label[lang]}…` : label[lang]}</Text>
           <Select
             key="escena"
             label={t.scene}
