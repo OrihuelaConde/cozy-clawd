@@ -1,4 +1,4 @@
-// The mateada scene: the session's figures as things on a checked tablecloth
+// The mate scene: the session's figures as things on a checked tablecloth
 // for a mate: a thermos of hot water for the context, the mate for the prompt
 // cache, a plate of medialunas for the five-hour limit, and a pack of yerba for
 // the week. Each has its number underneath in the 3x5 pixel font.
@@ -168,7 +168,7 @@ const mateadaSvg = (f: Figures) =>
   )
 
 export const mateada: FigureScene = {
-  name: 'mateada',
+  name: 'mate',
   label: { es: 'Mateada', en: 'Mate' },
   width: WIDTH,
   height: HEIGHT,

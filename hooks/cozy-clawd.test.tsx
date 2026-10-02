@@ -17,8 +17,8 @@ test('the pane shows every scene on the desktop, the one in use marked', async (
   const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
   expect(await pane.findAll({ type: 'Svg' })).toHaveLength(8)
   expect(await pane.find({ type: 'Text', text: 'en uso' })).toBeDefined()
-  expect(await pane.find({ key: 'usar-estante' })).toBeUndefined()
-  for (const name of ['mateada', 'balcon', 'ventana', 'aventura', 'gamer', 'cyberpunk', 'steampunk']) {
+  expect(await pane.find({ key: 'usar-shelf' })).toBeUndefined()
+  for (const name of ['mate', 'balcony', 'window', 'adventure', 'gamer', 'cyberpunk', 'steampunk']) {
     expect(await pane.find({ key: `usar-${name}` })).toBeDefined()
   }
   await pane.unmount()
@@ -70,13 +70,13 @@ test('/cozy-clawd-scene names the scenes and turns down one that does not exist'
   mock.env(on, SPANISH)
 
   const listed = await $.command.run(typed(''))
-  expect(listed.text).toMatch(/Escena: estante\. Hay: estante, mateada, balcon, ventana, aventura, gamer, cyberpunk, steampunk/)
+  expect(listed.text).toMatch(/Escena: shelf\. Hay: shelf, mate, balcony, window, adventure, gamer, cyberpunk, steampunk/)
 
   const unknown = await $.command.run(typed('Playa'))
   expect(unknown.text).toMatch(/No hay una escena "playa"/)
 
-  const same = await $.command.run(typed('estante'))
-  expect(same.text).toMatch(/ya es estante/)
+  const same = await $.command.run(typed('shelf'))
+  expect(same.text).toMatch(/ya es shelf/)
 })
 
 test('Usar in the pane switches the band to that scene', async ($, on) => {
@@ -84,20 +84,20 @@ test('Usar in the pane switches the band to that scene', async ($, on) => {
   mock.store(on)
   mock.env(on, SPANISH)
   const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
-  await pane.press({ key: 'usar-mateada' })
-  expect(await pane.find({ key: 'usar-mateada' })).toBeUndefined()
-  expect(await pane.find({ key: 'usar-estante' })).toBeDefined()
+  await pane.press({ key: 'usar-mate' })
+  expect(await pane.find({ key: 'usar-mate' })).toBeUndefined()
+  expect(await pane.find({ key: 'usar-shelf' })).toBeDefined()
   await pane.unmount()
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
   const figures = (await band.findAll({ type: 'Svg' })).find(svg => String(svg.props.alt).startsWith('Contexto libre'))
-  // The mateada's checked tablecloth.
+  // The mate scene's checked tablecloth.
   expect(figures?.props.source).toContain('#B5483E')
   await band.unmount()
 })
 
 test('a new session starts with the scene picked last', async ($, on) => {
-  mock.store(on, { escena: 'mateada' })
+  mock.store(on, { escena: 'mate' })
   mock.env(on, SPANISH)
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 200_000, tokens: 0, percent: 0 }, rateLimits: [] } }))
   on('command.register', ($, e) => ({ value: { command: e.name } }))
@@ -105,7 +105,7 @@ test('a new session starts with the scene picked last', async ($, on) => {
   await $.session.start({ cwd: '/', surface: null, isInteractive: false })
 
   const listed = await $.command.run(typed(''))
-  expect(listed.text).toMatch(/Escena: mateada\. Hay: estante, mateada, balcon, ventana, aventura, gamer, cyberpunk, steampunk/)
+  expect(listed.text).toMatch(/Escena: mate\. Hay: shelf, mate, balcony, window, adventure, gamer, cyberpunk, steampunk/)
 })
 
 // `/cozy-clawd-scene` as typed in the composer, with what follows it.
@@ -144,7 +144,7 @@ test('as the prompt cache runs out Clawd frets at ten minutes, yawns at two and 
   on('session.usage', usageAt(80))
   on('turn.step', answering)
   // The scene no longer calls for anything of its own, low as the context is.
-  await useScene($, 'balcon')
+  await useScene($, 'balcony')
   await answer($)
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
@@ -205,7 +205,7 @@ test('where the locale is English, the band and the commands speak English', asy
   await band.unmount()
 
   const listed = await $.command.run(typed(''))
-  expect(listed.text).toMatch(/^Scene: estante\. Available: estante, mateada/)
+  expect(listed.text).toMatch(/^Scene: shelf\. Available: shelf, mate/)
 })
 
 test('the Language row of /config wins over the locale', async ($, on) => {
@@ -275,5 +275,5 @@ test('a new session speaks the language picked last', async ($, on) => {
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   await $.session.start({ cwd: '/', surface: null, isInteractive: false })
 
-  expect((await $.command.run(typed(''))).text).toMatch(/^Scene: estante/)
+  expect((await $.command.run(typed(''))).text).toMatch(/^Scene: shelf/)
 })

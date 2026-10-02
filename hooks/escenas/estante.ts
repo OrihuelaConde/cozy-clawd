@@ -1,4 +1,4 @@
-// The estante scene: one pixel-art object per figure of the session,
+// The shelf scene: one pixel-art object per figure of the session,
 // standing on a wooden board, each with its number underneath in a 3x5 pixel
 // font. Drawn as one plain SVG image of square pixels.
 //
@@ -134,7 +134,7 @@ const shelfSvg = (f: Figures) =>
   )
 
 export const estante: FigureScene = {
-  name: 'estante',
+  name: 'shelf',
   label: { es: 'Estante', en: 'Shelf' },
   width: WIDTH,
   height: HEIGHT,

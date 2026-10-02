@@ -1,4 +1,4 @@
-// The balcón scene: the session's figures as things on a sunny balcony: a
+// The balcony scene: the session's figures as things on a sunny balcony: a
 // watering can for the context, a daisy in a pot for the prompt cache, a bird
 // feeder for the five-hour limit, and a jar of honey for the week. Each has its
 // number underneath in the 3x5 pixel font.
@@ -225,7 +225,7 @@ const balconSvg = (f: Figures) =>
   )
 
 export const balcon: FigureScene = {
-  name: 'balcon',
+  name: 'balcony',
   label: { es: 'Balcón', en: 'Balcony' },
   width: WIDTH,
   height: HEIGHT,

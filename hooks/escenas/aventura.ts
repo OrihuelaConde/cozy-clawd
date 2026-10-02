@@ -1,4 +1,4 @@
-// The aventura scene: the session's figures as an adventurer's gear on the
+// The adventure scene: the session's figures as an adventurer's gear on the
 // stone floor of a keep: a mana potion for the context, an hourglass for the
 // prompt cache, a chest of gold for the five-hour limit, and a quiver of
 // arrows for the week. Each has its number underneath in the 3x5 pixel font.
@@ -167,7 +167,7 @@ const aventuraSvg = (f: Figures) =>
   )
 
 export const aventura: FigureScene = {
-  name: 'aventura',
+  name: 'adventure',
   label: { es: 'Aventura', en: 'Adventure' },
   width: WIDTH,
   height: HEIGHT,

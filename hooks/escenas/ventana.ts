@@ -1,4 +1,4 @@
-// The ventana scene: the session's figures as things on a desk by a window at
+// The window scene: the session's figures as things on a desk by a window at
 // night: a candle for the context, the moon crossing the window for the prompt
 // cache, a cup of cocoa for the five-hour limit, and a ball of yarn for the
 // week. Each has its number underneath in the 3x5 pixel font.
@@ -225,7 +225,7 @@ const ventanaSvg = (f: Figures) =>
   )
 
 export const ventana: FigureScene = {
-  name: 'ventana',
+  name: 'window',
   label: { es: 'Ventana de noche', en: 'Night window' },
   width: WIDTH,
   height: HEIGHT,

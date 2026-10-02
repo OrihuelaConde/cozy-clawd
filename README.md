@@ -24,7 +24,7 @@ cozy-clawd is an unofficial fan project. It isn't affiliated with or endorsed by
   | Right after compacting | Clawd hops for joy among sparkles. |
   | Any other tool | Clawd hammers away. |
 
-- **A scene of session figures.** Each figure is an object with its number underneath in a pixel font. In the `estante` scene, the default, the objects stand on a shelf:
+- **A scene of session figures.** Each figure is an object with its number underneath in a pixel font. In the `shelf` scene, the default, the objects stand on a shelf:
   - A mug of tea shows the context window left. It stops steaming at 25% or less, and it fills up again while the conversation is compacted.
   - A candle burns down over the one-hour prompt cache and goes out when the cache expires.
   - A cookie jar shows what's left of the five-hour usage limit.
@@ -79,11 +79,11 @@ The band switches to the new scene at once, and later sessions start with it.
 
 | Scene | What it shows |
 | --- | --- |
-| `estante` | A shelf with a mug of tea, a candle, a cookie jar, and a moon. |
-| `mateada` | A checked tablecloth set for mate. A thermos's strip of water shows the context left, and at 25% or less a steaming kettle waits beside it; while the conversation is compacted, the kettle boils and the thermos fills up. The mate's steam fades over the prompt cache's hour, and the yerba washes out when the cache expires. A plate holds a medialuna for every quarter of the five-hour limit left, and a pack of yerba flattens as you use the weekly limit. |
-| `balcon` | A sunny balcony. A watering can's water shows the context left; at 25% or less a rain cloud gathers over it, and while the conversation is compacted it rains into the can. A daisy in a pot wilts over the prompt cache's hour. A bluebird pecks at a feeder whose seeds are what's left of the five-hour limit, and a jar of honey, a bee buzzing around it, empties as you use the weekly limit. |
-| `ventana` | A desk by a window at night. A candle is as tall as the context left; at 25% or less a spare candle stands by, and while the conversation is compacted the candle grows back. The moon crosses the window over the prompt cache's hour and sets when the cache expires. A cup of cocoa shows what's left of the five-hour limit, its steam thinning as it goes down, and a ball of yarn shrinks as you use the weekly limit. |
-| `aventura` | An adventurer's gear on the stone floor of a keep. A mana potion is as full as the context left; at 25% or less a spare vial waits beside it, and while the conversation is compacted the potion fills up again, sparkling. An hourglass runs over the prompt cache's hour. A chest's heap of gold is what's left of the five-hour limit, and a quiver loses its arrows as you use the weekly limit. |
+| `shelf` | A shelf with a mug of tea, a candle, a cookie jar, and a moon. |
+| `mate` | A checked tablecloth set for mate. A thermos's strip of water shows the context left, and at 25% or less a steaming kettle waits beside it; while the conversation is compacted, the kettle boils and the thermos fills up. The mate's steam fades over the prompt cache's hour, and the yerba washes out when the cache expires. A plate holds a medialuna for every quarter of the five-hour limit left, and a pack of yerba flattens as you use the weekly limit. |
+| `balcony` | A sunny balcony. A watering can's water shows the context left; at 25% or less a rain cloud gathers over it, and while the conversation is compacted it rains into the can. A daisy in a pot wilts over the prompt cache's hour. A bluebird pecks at a feeder whose seeds are what's left of the five-hour limit, and a jar of honey, a bee buzzing around it, empties as you use the weekly limit. |
+| `window` | A desk by a window at night. A candle is as tall as the context left; at 25% or less a spare candle stands by, and while the conversation is compacted the candle grows back. The moon crosses the window over the prompt cache's hour and sets when the cache expires. A cup of cocoa shows what's left of the five-hour limit, its steam thinning as it goes down, and a ball of yarn shrinks as you use the weekly limit. |
+| `adventure` | An adventurer's gear on the stone floor of a keep. A mana potion is as full as the context left; at 25% or less a spare vial waits beside it, and while the conversation is compacted the potion fills up again, sparkling. An hourglass runs over the prompt cache's hour. A chest's heap of gold is what's left of the five-hour limit, and a quiver loses its arrows as you use the weekly limit. |
 | `gamer` | A gaming desk lit by an RGB strip. A monitor shows three hearts of health for the context left; at 25% or less the last one blinks, and while the conversation is compacted the hearts heal. On an arcade cabinet a little hero walks to the flag over the prompt cache's hour; when the cache expires it's game over. Cans of energy drink are what's left of the five-hour limit, and a gamepad's battery runs down as you use the weekly limit. |
 | `cyberpunk` | A rooftop in the rain under a neon skyline. A power cell's charge shows the context left; at 25% or less it flickers pink beside a loose cable, and while the conversation is compacted the cable is plugged in and the cell charges. A neon sign of a bowl of noodles goes out tube by tube over the prompt cache's hour, until it's dark. A stack of credit chips is what's left of the five-hour limit, and signal bars drop as you use the weekly limit. |
 | `steampunk` | Brass and copper machines in a workshop. A boiler's sight glass shows the context left; at 25% or less its fire dies down, the gauge drops into the red, and while the conversation is compacted it whistles and the glass fills up. A pocket watch's minute hand goes round over the prompt cache's hour and stops when the cache expires. A scuttle of coal is what's left of the five-hour limit, and an airship comes down as you use the weekly limit. |
@@ -111,11 +111,11 @@ The mod is a Claude Code plugin of function hooks:
 | `hooks/idioma.ts` | The languages the mod speaks, and how it tells which one you use. |
 | `hooks/escenas/index.ts` | The scenes the session figures can be drawn as, and the figures in words. |
 | `hooks/escenas/pixels.ts` | What the figure scenes share: their layout, the pixel font of the numbers, the cache's countdown, and the refill while compacting. |
-| `hooks/escenas/estante.ts` | The `estante` scene: a shelf of objects. |
-| `hooks/escenas/mateada.ts` | The `mateada` scene: a tablecloth set for mate. |
-| `hooks/escenas/balcon.ts` | The `balcon` scene: a balcony with a watering can and a daisy. |
-| `hooks/escenas/ventana.ts` | The `ventana` scene: a desk by a window at night. |
-| `hooks/escenas/aventura.ts` | The `aventura` scene: an adventurer's gear in a keep. |
+| `hooks/escenas/estante.ts` | The `shelf` scene: a shelf of objects. |
+| `hooks/escenas/mateada.ts` | The `mate` scene: a tablecloth set for mate. |
+| `hooks/escenas/balcon.ts` | The `balcony` scene: a balcony with a watering can and a daisy. |
+| `hooks/escenas/ventana.ts` | The `window` scene: a desk by a window at night. |
+| `hooks/escenas/aventura.ts` | The `adventure` scene: an adventurer's gear in a keep. |
 | `hooks/escenas/gamer.ts` | The `gamer` scene: a gaming desk. |
 | `hooks/escenas/cyberpunk.ts` | The `cyberpunk` scene: a rainy neon rooftop. |
 | `hooks/escenas/steampunk.ts` | The `steampunk` scene: brass and copper machines. |
