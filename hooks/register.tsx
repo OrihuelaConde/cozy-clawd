@@ -501,6 +501,20 @@ const cueScenes: Record<Cue, Scene> = {
       @keyframes grab { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
       ${BLINK}`,
   },
+  // The watering can is running dry: Clawd keeps an anxious eye on it, a drop
+  // of sweat running down its side.
+  watch: {
+    label: 'La regadera se está secando',
+    extra: `<g class="sweat" fill="${SKY}">${px(15, 0, 1, 0.5)}</g>`,
+    css: `
+      .eyes { transform: translate(1px, 0); }
+      .eyes rect { animation: blink 2.4s steps(1) infinite; }
+      .clawd { animation: fret 0.8s steps(1) infinite; }
+      .sweat { animation: sweat 1.6s steps(4) infinite; }
+      @keyframes fret { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, 0.25px); } }
+      @keyframes sweat { 0% { opacity: 0; transform: translate(0, 0); } 25% { opacity: 1; } 100% { opacity: 0; transform: translate(0, 1.5px); } }
+      ${BLINK}`,
+  },
 }
 
 // Each scene enters with a small hop of Clawd while its props fade in, so a
