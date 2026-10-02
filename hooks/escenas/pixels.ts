@@ -83,6 +83,13 @@ export const refill = (short: number) => `animation: refill${short} 2s steps(${M
 export const REFILL_CSS = Array.from({ length: 9 }, (_, n) =>
   `@keyframes refill${n} { from { clip-path: inset(${n}px 0 0 0); } to { clip-path: inset(0 0 0 0); } }`).join('\n    ')
 
+// What sits on top of a refilling figure, a flame or a float, rising with it
+// from `short` rows down over the same two seconds. Needs RISE_CSS.
+export const rise = (short: number) => `animation: rise${short} 2s steps(${Math.max(1, short)}) both`
+
+export const RISE_CSS = Array.from({ length: 9 }, (_, n) =>
+  `@keyframes rise${n} { from { transform: translate(0, ${n}px); } to { transform: translate(0, 0); } }`).join('\n    ')
+
 // The scene's image: its pixels below a style; `g` transforms work in scene pixels.
 export const sceneSvg = (css: string, body: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 ${TOP} ${WIDTH} ${HEIGHT}" shape-rendering="crispEdges">
   <style>

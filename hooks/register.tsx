@@ -501,6 +501,27 @@ const cueScenes: Record<Cue, Scene> = {
       @keyframes grab { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
       ${BLINK}`,
   },
+  // The moon set: Clawd stretches its arms up in a big yawn, then nods off.
+  yawn: {
+    label: 'Se puso la luna',
+    eyes: `<g class="drowsy">${px(5, 1.5, 1, 0.5)}${px(12, 1.5, 1, 0.5)}</g><g class="shut">${CLOSED_EYES}</g>`,
+    extra: `
+      <g class="mouth" fill="${EYE}"><g class="gape">${px(8, 2, 2, 1)}</g><g class="ajar">${px(8, 2.5, 2, 0.5)}</g></g>
+      <g fill="${DOT}"><g class="z1">${zee(18, -0.5)}</g></g>`,
+    css: `
+      .arm-l, .arm-r { animation: stretchup 4s steps(1) infinite; }
+      .drowsy { animation: drowsy 4s steps(1) infinite; }
+      .shut { animation: shut 4s steps(1) infinite; }
+      .ajar { animation: ajar 4s steps(1) infinite; }
+      .gape { animation: gape 4s steps(1) infinite; }
+      .z1 { animation: doze 4s linear infinite; }
+      @keyframes stretchup { 0%, 14.9% { transform: translate(0, 0); } 15%, 44.9% { transform: translate(0, -1px); } 45%, 100% { transform: translate(0, 0); } }
+      @keyframes drowsy { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
+      @keyframes shut { 0%, 49.9% { opacity: 0; } 50%, 100% { opacity: 1; } }
+      @keyframes ajar { 0%, 14.9% { opacity: 0; } 15%, 19.9% { opacity: 1; } 20%, 39.9% { opacity: 0; } 40%, 44.9% { opacity: 1; } 45%, 100% { opacity: 0; } }
+      @keyframes gape { 0%, 19.9% { opacity: 0; } 20%, 39.9% { opacity: 1; } 40%, 100% { opacity: 0; } }
+      @keyframes doze { 0%, 59.9% { opacity: 0; transform: translate(0, 0.5px); } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(1px, -0.5px); } }`,
+  },
   // The watering can is running dry: Clawd keeps an anxious eye on it, a drop
   // of sweat running down its side.
   watch: {

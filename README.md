@@ -81,6 +81,7 @@ The band switches to the new scene at once, and later sessions start with it.
 | `estante` | A shelf with a mug of tea, a candle, a cookie jar, and a moon. |
 | `mateada` | A checked tablecloth set for mate. A thermos's strip of water shows the context left, and at 25% or less a steaming kettle waits beside it; while the conversation is compacted, the kettle boils and the thermos fills up. The mate's steam fades over the prompt cache's hour, and the yerba washes out when the cache expires; then Clawd reaches for the cold mate. A plate holds a medialuna for every quarter of the five-hour limit left, and a pack of yerba flattens as you use the weekly limit. |
 | `balcon` | A sunny balcony. A watering can's water shows the context left; at 25% or less a rain cloud gathers over it and Clawd keeps a worried eye on it, and while the conversation is compacted it rains into the can. A daisy in a pot wilts over the prompt cache's hour. A bluebird pecks at a feeder whose seeds are what's left of the five-hour limit, and a jar of honey, a bee buzzing around it, empties as you use the weekly limit. |
+| `ventana` | A desk by a window at night. A candle is as tall as the context left; at 25% or less a spare candle stands by, and while the conversation is compacted the candle grows back. The moon crosses the window over the prompt cache's hour and sets when the cache expires, and then Clawd yawns. A cup of cocoa shows what's left of the five-hour limit, its steam thinning as it goes down, and a ball of yarn shrinks as you use the weekly limit. |
 
 ## Development
 
@@ -94,6 +95,7 @@ The mod is a Claude Code plugin of function hooks:
 | `hooks/escenas/estante.ts` | The `estante` scene: a shelf of objects. |
 | `hooks/escenas/mateada.ts` | The `mateada` scene: a tablecloth set for mate. |
 | `hooks/escenas/balcon.ts` | The `balcon` scene: a balcony with a watering can and a daisy. |
+| `hooks/escenas/ventana.ts` | The `ventana` scene: a desk by a window at night. |
 | `types/index.d.ts` | The contract for the values the mod keeps in the session's state. |
 | `hooks/cozy-clawd.test.tsx` | Tests that run against the engine. |
 | `tools/preview.mjs` | A script that renders Clawd's scenes and a few states of each figure scene to an HTML page. |

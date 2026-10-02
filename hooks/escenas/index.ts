@@ -5,6 +5,7 @@
 import { balcon } from './balcon'
 import { estante } from './estante'
 import { mateada } from './mateada'
+import { ventana } from './ventana'
 
 // The figures every scene shows.
 export type Figures = {
@@ -23,8 +24,9 @@ export type Figures = {
 }
 
 // What Clawd does about the scene while it has nothing else to do, instead of
-// sleeping: reach for the cold mate, watch the watering can run dry.
-export type Cue = 'reach' | 'watch'
+// sleeping: reach for the cold mate, yawn at the moon that set, watch the
+// watering can run dry.
+export type Cue = 'reach' | 'yawn' | 'watch'
 
 export type FigureScene = {
   // What /clawd-escena takes and the plugin's store keeps.
@@ -41,7 +43,7 @@ export type FigureScene = {
   cue?: (f: Figures) => Cue | null
 }
 
-export const FIGURE_SCENES: readonly FigureScene[] = [estante, mateada, balcon]
+export const FIGURE_SCENES: readonly FigureScene[] = [estante, mateada, balcon, ventana]
 
 export const DEFAULT_FIGURE_SCENE = estante
 
