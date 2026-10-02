@@ -1,6 +1,6 @@
 {
   "name": "cozy-clawd",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "A cozy pixel-art band above the prompt: Clawd acts out what Claude is doing, beside a scene of session figures",
   "author": { "name": "OrihuelaConde" },
   "types": "./types/index.d.ts"

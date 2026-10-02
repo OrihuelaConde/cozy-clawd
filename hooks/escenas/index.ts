@@ -8,6 +8,7 @@ import { cyberpunk } from './cyberpunk'
 import { estante } from './estante'
 import { gamer } from './gamer'
 import { mateada } from './mateada'
+import { steampunk } from './steampunk'
 import { ventana } from './ventana'
 
 // The figures every scene shows.
@@ -49,7 +50,7 @@ export type FigureScene = {
   cue?: (f: Figures) => Cue | null
 }
 
-export const FIGURE_SCENES: readonly FigureScene[] = [estante, mateada, balcon, ventana, aventura, gamer, cyberpunk]
+export const FIGURE_SCENES: readonly FigureScene[] = [estante, mateada, balcon, ventana, aventura, gamer, cyberpunk, steampunk]
 
 export const DEFAULT_FIGURE_SCENE = estante
 

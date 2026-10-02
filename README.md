@@ -85,6 +85,7 @@ The band switches to the new scene at once, and later sessions start with it.
 | `aventura` | An adventurer's gear on the stone floor of a keep. A mana potion is as full as the context left; at 25% or less a spare vial waits beside it and Clawd watches the mana run low, and while the conversation is compacted the potion fills up again, sparkling. An hourglass runs over the prompt cache's hour, and once it has run out Clawd reaches over to turn it. A chest's heap of gold is what's left of the five-hour limit, and a quiver loses its arrows as you use the weekly limit. |
 | `gamer` | A gaming desk lit by an RGB strip. A monitor shows three hearts of health for the context left; at 25% or less the last one blinks and Clawd frets over it, and while the conversation is compacted the hearts heal. On an arcade cabinet a little hero walks to the flag over the prompt cache's hour; when the cache expires it's game over and Clawd reaches for a token. Cans of energy drink are what's left of the five-hour limit, and a gamepad's battery runs down as you use the weekly limit. |
 | `cyberpunk` | A rooftop in the rain under a neon skyline. A power cell's charge shows the context left; at 25% or less it flickers pink beside a loose cable and Clawd frets over it, and while the conversation is compacted the cable is plugged in and the cell charges. A neon sign of a bowl of noodles goes out tube by tube over the prompt cache's hour, and when it's dark Clawd yawns. A stack of credit chips is what's left of the five-hour limit, and signal bars drop as you use the weekly limit. |
+| `steampunk` | Brass and copper machines in a workshop. A boiler's sight glass shows the context left; at 25% or less its fire dies down, the gauge drops into the red and Clawd frets over the pressure, and while the conversation is compacted it whistles and the glass fills up. A pocket watch's minute hand goes round over the prompt cache's hour; when it stops, Clawd reaches over to wind it. A scuttle of coal is what's left of the five-hour limit, and an airship comes down as you use the weekly limit. |
 
 ## Development
 
@@ -102,6 +103,7 @@ The mod is a Claude Code plugin of function hooks:
 | `hooks/escenas/aventura.ts` | The `aventura` scene: an adventurer's gear in a keep. |
 | `hooks/escenas/gamer.ts` | The `gamer` scene: a gaming desk. |
 | `hooks/escenas/cyberpunk.ts` | The `cyberpunk` scene: a rainy neon rooftop. |
+| `hooks/escenas/steampunk.ts` | The `steampunk` scene: brass and copper machines. |
 | `types/index.d.ts` | The contract for the values the mod keeps in the session's state. |
 | `hooks/cozy-clawd.test.tsx` | Tests that run against the engine. |
 | `tools/preview.mjs` | A script that renders Clawd's scenes and a few states of each figure scene to an HTML page. |
