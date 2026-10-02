@@ -30,7 +30,7 @@ const body = code.slice(code.indexOf('const BODY'), code.indexOf('// Each mode s
 const scenesFile = join(outDir, 'scenes.gen.ts')
 writeFileSync(scenesFile, `type ClawdMode = string\n${body}\nexport { scenes, toolScenes, cacheScenes, REST, PASTIMES, pastimeScene, waitingScene, svgFor, SCALE, VIEW_W, VIEW_H }\n`)
 const { scenes, toolScenes, cacheScenes, REST, PASTIMES, pastimeScene, waitingScene, svgFor, SCALE, VIEW_W, VIEW_H } = await import(pathToFileURL(scenesFile).href + '?t=' + Date.now())
-const { FIGURE_SCENES, figuresAlt } = await import(pathToFileURL(join(root, 'hooks', 'escenas', 'index.ts')).href + '?t=' + Date.now())
+const { FIGURE_SCENES, figuresAlt } = await import(pathToFileURL(join(root, 'hooks', 'scenes', 'index.ts')).href + '?t=' + Date.now())
 
 const uri = svg => 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64')
 

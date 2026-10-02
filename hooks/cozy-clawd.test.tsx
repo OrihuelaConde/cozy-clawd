@@ -17,9 +17,9 @@ test('the pane shows every scene on the desktop, the one in use marked', async (
   const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
   expect(await pane.findAll({ type: 'Svg' })).toHaveLength(8)
   expect(await pane.find({ type: 'Text', text: 'en uso' })).toBeDefined()
-  expect(await pane.find({ key: 'usar-shelf' })).toBeUndefined()
+  expect(await pane.find({ key: 'use-shelf' })).toBeUndefined()
   for (const name of ['mate', 'balcony', 'window', 'adventure', 'gamer', 'cyberpunk', 'steampunk']) {
-    expect(await pane.find({ key: `usar-${name}` })).toBeDefined()
+    expect(await pane.find({ key: `use-${name}` })).toBeDefined()
   }
   await pane.unmount()
 })
@@ -29,8 +29,8 @@ test('the pane on the terminal says what Clawd does and offers pickers', async (
   mock.env(on, SPANISH)
   const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
   expect(await pane.find({ type: 'Text', text: 'Esperando' })).toBeDefined()
-  expect((await pane.find({ key: 'escena' }))?.type).toBe('Select')
-  expect((await pane.find({ key: 'idioma' }))?.type).toBe('Select')
+  expect((await pane.find({ key: 'scene' }))?.type).toBe('Select')
+  expect((await pane.find({ key: 'language' }))?.type).toBe('Select')
   await pane.unmount()
 })
 
@@ -72,8 +72,8 @@ test('/cozy-clawd-scene names the scenes and turns down one that does not exist'
   const listed = await $.command.run(typed(''))
   expect(listed.text).toMatch(/Escena: shelf\. Hay: shelf, mate, balcony, window, adventure, gamer, cyberpunk, steampunk/)
 
-  const unknown = await $.command.run(typed('Playa'))
-  expect(unknown.text).toMatch(/No hay una escena "playa"/)
+  const unknown = await $.command.run(typed('Beach'))
+  expect(unknown.text).toMatch(/No hay una escena "beach"/)
 
   const same = await $.command.run(typed('shelf'))
   expect(same.text).toMatch(/ya es shelf/)
@@ -84,9 +84,9 @@ test('Usar in the pane switches the band to that scene', async ($, on) => {
   mock.store(on)
   mock.env(on, SPANISH)
   const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
-  await pane.press({ key: 'usar-mate' })
-  expect(await pane.find({ key: 'usar-mate' })).toBeUndefined()
-  expect(await pane.find({ key: 'usar-shelf' })).toBeDefined()
+  await pane.press({ key: 'use-mate' })
+  expect(await pane.find({ key: 'use-mate' })).toBeUndefined()
+  expect(await pane.find({ key: 'use-shelf' })).toBeDefined()
   await pane.unmount()
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
@@ -97,7 +97,7 @@ test('Usar in the pane switches the band to that scene', async ($, on) => {
 })
 
 test('a new session starts with the scene picked last', async ($, on) => {
-  mock.store(on, { escena: 'mate' })
+  mock.store(on, { scene: 'mate' })
   mock.env(on, SPANISH)
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 200_000, tokens: 0, percent: 0 }, rateLimits: [] } }))
   on('command.register', ($, e) => ({ value: { command: e.name } }))
@@ -119,7 +119,7 @@ const clawdOf = async (band: { findAll: (q: { type: 'Svg' }) => Promise<{ props:
 // Picks a scene the way the person does: Usar in the pane.
 const useScene = async ($: Parameters<TestBody>[0], name: string) => {
   const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
-  await pane.press({ key: `usar-${name}` })
+  await pane.press({ key: `use-${name}` })
   await pane.unmount()
 }
 
@@ -162,10 +162,10 @@ test('after a compaction Clawd celebrates a moment, then sleeps', async ($, on) 
   const clock = mock.clock(on, { now: 1_000_000 })
   mock.env(on, SPANISH)
   on('session.usage', usageAt(10))
-  on('session.compact', () => ({ messages: [{ role: 'user', text: 'Resumen', toolUses: [] }] }))
+  on('session.compact', () => ({ messages: [{ role: 'user', text: 'Summary', toolUses: [] }] }))
 
   // The event as the engine raises it for /compact; the test has no transcript to build it from.
-  await $.session.compact({ trigger: 'manual', messages: [{ role: 'user', text: 'hola', toolUses: [] }] } as never)
+  await $.session.compact({ trigger: 'manual', messages: [{ role: 'user', text: 'hello', toolUses: [] }] } as never)
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
   // So quick a compaction still shows for its while before the celebration.
   expect(await clawdOf(band)).toBe('Clawd: Compactando la conversación')
@@ -189,7 +189,7 @@ test('idle with the cache warm Clawd rests, and now and then takes up a pastime'
   expect(await clawdOf(band)).toBe('Clawd: Esperando')
   const clawd = (await band.findAll({ type: 'Svg' })).find(svg => String(svg.props.alt).startsWith('Clawd: '))
   // Clawd at rest and every pastime, the ladybug among them, are in the one image, each with its turns.
-  for (const name of ['reposo', 'mira', 'silba', 'malabares', 'yoyo', 'pompas', 'lee', 'baila', 'vaquita']) {
+  for (const name of ['rest', 'gaze', 'whistle', 'juggle', 'yoyo', 'bubbles', 'read', 'dance', 'ladybug']) {
     expect(String(clawd?.props.source)).toContain(`@keyframes turn-${name}`)
   }
   await band.unmount()
@@ -256,9 +256,9 @@ test('a language picked in the pane switches the band', async ($, on) => {
 
   const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
   expect(await pane.find({ type: 'Text', text: 'Automático (Español)' })).toBeDefined()
-  await pane.press({ key: 'idioma-en' })
-  expect(await pane.find({ key: 'idioma-en' })).toBeUndefined()
-  expect(await pane.find({ key: 'idioma-auto' })).toBeDefined()
+  await pane.press({ key: 'language-en' })
+  expect(await pane.find({ key: 'language-en' })).toBeUndefined()
+  expect(await pane.find({ key: 'language-auto' })).toBeDefined()
   expect(await pane.find({ type: 'Text', text: 'in use' })).toBeDefined()
   await pane.unmount()
 
@@ -268,7 +268,7 @@ test('a language picked in the pane switches the band', async ($, on) => {
 })
 
 test('a new session speaks the language picked last', async ($, on) => {
-  mock.store(on, { idioma: 'en' })
+  mock.store(on, { language: 'en' })
   mock.env(on, SPANISH)
   on('session.usage', usageAt(0))
   on('command.register', ($, e) => ({ value: { command: e.name } }))

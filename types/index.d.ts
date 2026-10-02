@@ -38,9 +38,9 @@ declare module 'claude-code' {
       // Bumped when the cache expires: a write that redraws the band.
       redraws: number
       // The name of the scene the band draws on its right.
-      escena: string
+      sceneName: string
       // The language the band, the pane and the commands speak.
-      idioma: LangChoice
+      langChoice: LangChoice
     }
   }
 }

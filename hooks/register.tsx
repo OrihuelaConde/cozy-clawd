@@ -2,10 +2,10 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import type { ClawdMode, Stats } from '../types'
-import { DEFAULT_FIGURE_SCENE, FIGURE_SCENES, figureSceneNamed, figuresAlt } from './escenas/index'
-import type { Figures } from './escenas/index'
-import { DEFAULT_LANG, LANG_NAMES, LANGS, langOf } from './idioma'
-import type { Lang, LangChoice, Words } from './idioma'
+import { DEFAULT_FIGURE_SCENE, FIGURE_SCENES, figureSceneNamed, figuresAlt } from './scenes/index'
+import type { Figures } from './scenes/index'
+import { DEFAULT_LANG, LANG_NAMES, LANGS, langOf } from './language'
+import type { Lang, LangChoice, Words } from './language'
 
 const PANE = 'clawd'
 // The slash commands: the pane, and the scene by name.
@@ -16,8 +16,8 @@ const tool = atom({ plugin: 'cozy-clawd', key: 'tool' } as const, null)
 const stats = atom({ plugin: 'cozy-clawd', key: 'stats' } as const, { contextLeft: null, fiveHour: null, week: null, cacheAt: null })
 const isConfirming = atom({ plugin: 'cozy-clawd', key: 'isConfirming' } as const, false)
 const redraws = atom({ plugin: 'cozy-clawd', key: 'redraws' } as const, 0)
-const escena = atom({ plugin: 'cozy-clawd', key: 'escena' } as const, DEFAULT_FIGURE_SCENE.name)
-const idioma = atom({ plugin: 'cozy-clawd', key: 'idioma' } as const, 'auto')
+const sceneName = atom({ plugin: 'cozy-clawd', key: 'sceneName' } as const, DEFAULT_FIGURE_SCENE.name)
+const langChoice = atom({ plugin: 'cozy-clawd', key: 'langChoice' } as const, 'auto')
 
 const BODY = '#D97757'
 const EYE = '#1F1E1D'
@@ -522,50 +522,50 @@ const BUBBLE: [number, number][] = [[0, 0], [1, -0.5], [1, -1], [2, -1.5], [2, -
 const PASTIMES: readonly Pastime[] = [
   // Looks around, this way and that, tapping a foot.
   {
-    name: 'mira',
-    eyes: `<g class="mira-look">${OPEN_EYES}</g>`,
+    name: 'gaze',
+    eyes: `<g class="gaze-look">${OPEN_EYES}</g>`,
     extra: '',
     css: `
-      .mira .eyes rect { animation: blink 3s steps(1) infinite; }
-      .mira .mira-look { animation: mira-look 4.5s steps(1) infinite; }
-      .mira .legs-b { animation: mira-tap 0.6s steps(1) infinite; }
-      @keyframes mira-look {
+      .gaze .eyes rect { animation: blink 3s steps(1) infinite; }
+      .gaze .gaze-look { animation: gaze-look 4.5s steps(1) infinite; }
+      .gaze .legs-b { animation: gaze-tap 0.6s steps(1) infinite; }
+      @keyframes gaze-look {
         0%, 24.9% { transform: translate(-1px, 0); } 25%, 37.9% { transform: translate(0, 0); }
         38%, 64.9% { transform: translate(1px, 0); } 65%, 79.9% { transform: translate(1px, -0.5px); } 80%, 100% { transform: translate(0, 0); }
       }
-      @keyframes mira-tap { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, -0.5px); } }`,
+      @keyframes gaze-tap { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, -0.5px); } }`,
   },
   // Whistles a tune, eyes half shut, notes floating off.
   {
-    name: 'silba',
+    name: 'whistle',
     eyes: px(5, 1.5, 1, 0.5) + px(12, 1.5, 1, 0.5) + px(9, 2.5, 1, 0.5),
     extra: `
-      <g class="silba-n1" fill="${SPARK}">${note(17, 1)}</g>
-      <g class="silba-n2" fill="${SKY}">${note(19, 0)}</g>`,
+      <g class="whistle-n1" fill="${SPARK}">${note(17, 1)}</g>
+      <g class="whistle-n2" fill="${SKY}">${note(19, 0)}</g>`,
     css: `
-      .silba .clawd { animation: silba-bob 1.2s steps(1) infinite; }
-      .silba-n1 { animation: silba-float 2.4s steps(4) infinite; }
-      .silba-n2 { animation: silba-float 2.4s steps(4) -1.2s infinite; }
-      @keyframes silba-bob { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, 0.5px); } }
-      @keyframes silba-float { 0% { opacity: 0; transform: translate(0, 0.5px); } 25% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(2px, -1.5px); } }`,
+      .whistle .clawd { animation: whistle-bob 1.2s steps(1) infinite; }
+      .whistle-n1 { animation: whistle-float 2.4s steps(4) infinite; }
+      .whistle-n2 { animation: whistle-float 2.4s steps(4) -1.2s infinite; }
+      @keyframes whistle-bob { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, 0.5px); } }
+      @keyframes whistle-float { 0% { opacity: 0; transform: translate(0, 0.5px); } 25% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(2px, -1.5px); } }`,
   },
   // Juggles three balls over its head, the hands taking turns.
   {
-    name: 'malabares',
-    eyes: `<g class="mal-up">${OPEN_EYES}</g>`,
+    name: 'juggle',
+    eyes: `<g class="juggle-up">${OPEN_EYES}</g>`,
     extra: `
-      <g class="mal-b1" fill="${SHELL}">${px(1, 1.5, 1, 0.5)}</g>
-      <g class="mal-b2" fill="${SKY}">${px(1, 1.5, 1, 0.5)}</g>
-      <g class="mal-b3" fill="${LEAF}">${px(1, 1.5, 1, 0.5)}</g>`,
+      <g class="juggle-b1" fill="${SHELL}">${px(1, 1.5, 1, 0.5)}</g>
+      <g class="juggle-b2" fill="${SKY}">${px(1, 1.5, 1, 0.5)}</g>
+      <g class="juggle-b3" fill="${LEAF}">${px(1, 1.5, 1, 0.5)}</g>`,
     css: `
-      .mal-up { transform: translate(0, -0.5px); }
-      .malabares .arm-l { animation: mal-pump 0.6s steps(1) infinite; }
-      .malabares .arm-r { animation: mal-pump 0.6s steps(1) -0.3s infinite; }
-      .mal-b1 { animation: mal-ball 1.8s steps(1) infinite; }
-      .mal-b2 { animation: mal-ball 1.8s steps(1) -0.6s infinite; }
-      .mal-b3 { animation: mal-ball 1.8s steps(1) -1.2s infinite; }
-      @keyframes mal-pump { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, -0.5px); } }
-      ${hops('mal-ball', JUGGLE)}`,
+      .juggle-up { transform: translate(0, -0.5px); }
+      .juggle .arm-l { animation: juggle-pump 0.6s steps(1) infinite; }
+      .juggle .arm-r { animation: juggle-pump 0.6s steps(1) -0.3s infinite; }
+      .juggle-b1 { animation: juggle-ball 1.8s steps(1) infinite; }
+      .juggle-b2 { animation: juggle-ball 1.8s steps(1) -0.6s infinite; }
+      .juggle-b3 { animation: juggle-ball 1.8s steps(1) -1.2s infinite; }
+      @keyframes juggle-pump { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, -0.5px); } }
+      ${hops('juggle-ball', JUGGLE)}`,
   },
   // Plays with a yo-yo: down on its string, a spin at the bottom, back up.
   {
@@ -600,92 +600,92 @@ const PASTIMES: readonly Pastime[] = [
   },
   // Blows soap bubbles through a wand and watches them drift off.
   {
-    name: 'pompas',
-    eyes: `<g class="pompas-look">${OPEN_EYES}</g>`,
+    name: 'bubbles',
+    eyes: `<g class="bubbles-look">${OPEN_EYES}</g>`,
     extra: `
       <g fill="${HANDLE}">${px(17, 2, 1, 0.5)}${px(18, 1.5, 1, 0.5)}</g>
       <g fill="${STEEL}">${px(19, 0.5, 1, 0.5)}${px(20, 0, 1, 0.5)}${px(21, 0.5, 1, 0.5)}${px(20, 1, 1, 0.5)}</g>
-      <g class="pompas-b1"><g fill="${SKY}" opacity="0.6">${px(20, 0, 2, 1)}</g><g fill="#FFFFFF" opacity="0.8">${px(20, 0, 1, 0.5)}</g></g>
-      <g class="pompas-b2" fill="${SKY}" opacity="0.8">${px(20, 0.5, 1, 0.5)}</g>
-      <g class="pompas-b3" fill="${SKY}" opacity="0.8">${px(20, 0.5, 1, 0.5)}</g>`,
+      <g class="bubbles-b1"><g fill="${SKY}" opacity="0.6">${px(20, 0, 2, 1)}</g><g fill="#FFFFFF" opacity="0.8">${px(20, 0, 1, 0.5)}</g></g>
+      <g class="bubbles-b2" fill="${SKY}" opacity="0.8">${px(20, 0.5, 1, 0.5)}</g>
+      <g class="bubbles-b3" fill="${SKY}" opacity="0.8">${px(20, 0.5, 1, 0.5)}</g>`,
     css: `
-      .pompas-look { animation: pompas-look 3s steps(1) infinite; }
-      .pompas-b1 { animation: pompas-rise 3s steps(1) infinite, pompas-pop 3s steps(1) infinite; }
-      .pompas-b2 { animation: pompas-rise 3s steps(1) -1s infinite, pompas-pop 3s steps(1) -1s infinite; }
-      .pompas-b3 { animation: pompas-rise 3s steps(1) -2s infinite, pompas-pop 3s steps(1) -2s infinite; }
-      ${hops('pompas-rise', BUBBLE)}
-      @keyframes pompas-pop { 0%, 12.4% { opacity: 0; } 12.5%, 87.4% { opacity: 1; } 87.5%, 100% { opacity: 0; } }
-      @keyframes pompas-look { 0%, 39.9% { transform: translate(1px, 0); } 40%, 100% { transform: translate(1px, -0.5px); } }`,
+      .bubbles-look { animation: bubbles-look 3s steps(1) infinite; }
+      .bubbles-b1 { animation: bubbles-rise 3s steps(1) infinite, bubbles-pop 3s steps(1) infinite; }
+      .bubbles-b2 { animation: bubbles-rise 3s steps(1) -1s infinite, bubbles-pop 3s steps(1) -1s infinite; }
+      .bubbles-b3 { animation: bubbles-rise 3s steps(1) -2s infinite, bubbles-pop 3s steps(1) -2s infinite; }
+      ${hops('bubbles-rise', BUBBLE)}
+      @keyframes bubbles-pop { 0%, 12.4% { opacity: 0; } 12.5%, 87.4% { opacity: 1; } 87.5%, 100% { opacity: 0; } }
+      @keyframes bubbles-look { 0%, 39.9% { transform: translate(1px, 0); } 40%, 100% { transform: translate(1px, -0.5px); } }`,
   },
   // Reads a book held out to the right, now and then turning a page.
   {
-    name: 'lee',
-    eyes: `<g class="lee-read">${OPEN_EYES}</g>`,
+    name: 'read',
+    eyes: `<g class="read-eyes">${OPEN_EYES}</g>`,
     extra: `
       <g fill="${SHELL}">${px(17, 3, 5, 0.5)}</g>
       <g fill="${WING}">${px(17, 1, 2, 2)}${px(20, 1, 2, 2)}</g>
       <g fill="${DOT}">${px(17, 1.5, 2, 0.5)}${px(17, 2.5, 1, 0.5)}${px(20, 1.5, 2, 0.5)}${px(20, 2.5, 2, 0.5)}${px(19, 1, 1, 2)}</g>
       <g fill="${WING}">
-        <g class="lee-p1">${px(20, 0.5, 1, 2)}</g>
-        <g class="lee-p2">${px(19, 0, 1, 2)}</g>
-        <g class="lee-p3">${px(18, 0.5, 1, 2)}</g>
+        <g class="read-p1">${px(20, 0.5, 1, 2)}</g>
+        <g class="read-p2">${px(19, 0, 1, 2)}</g>
+        <g class="read-p3">${px(18, 0.5, 1, 2)}</g>
       </g>`,
     css: `
-      .lee-read { transform: translate(1px, 0.5px); }
-      .lee .eyes rect { animation: blink 3.5s steps(1) infinite; }
-      .lee .clawd { animation: lee-nod 3s steps(1) infinite; }
-      .lee-p1 { animation: lee-p1 3s steps(1) infinite; }
-      .lee-p2 { animation: lee-p2 3s steps(1) infinite; }
-      .lee-p3 { animation: lee-p3 3s steps(1) infinite; }
-      @keyframes lee-nod { 0%, 69.9% { transform: translate(0, 0); } 70%, 100% { transform: translate(0, 0.25px); } }
-      @keyframes lee-p1 { 0%, 79.9% { opacity: 0; } 80%, 84.9% { opacity: 1; } 85%, 100% { opacity: 0; } }
-      @keyframes lee-p2 { 0%, 84.9% { opacity: 0; } 85%, 89.9% { opacity: 1; } 90%, 100% { opacity: 0; } }
-      @keyframes lee-p3 { 0%, 89.9% { opacity: 0; } 90%, 94.9% { opacity: 1; } 95%, 100% { opacity: 0; } }`,
+      .read-eyes { transform: translate(1px, 0.5px); }
+      .read .eyes rect { animation: blink 3.5s steps(1) infinite; }
+      .read .clawd { animation: read-nod 3s steps(1) infinite; }
+      .read-p1 { animation: read-p1 3s steps(1) infinite; }
+      .read-p2 { animation: read-p2 3s steps(1) infinite; }
+      .read-p3 { animation: read-p3 3s steps(1) infinite; }
+      @keyframes read-nod { 0%, 69.9% { transform: translate(0, 0); } 70%, 100% { transform: translate(0, 0.25px); } }
+      @keyframes read-p1 { 0%, 79.9% { opacity: 0; } 80%, 84.9% { opacity: 1; } 85%, 100% { opacity: 0; } }
+      @keyframes read-p2 { 0%, 84.9% { opacity: 0; } 85%, 89.9% { opacity: 1; } 90%, 100% { opacity: 0; } }
+      @keyframes read-p3 { 0%, 89.9% { opacity: 0; } 90%, 94.9% { opacity: 1; } 95%, 100% { opacity: 0; } }`,
   },
   // Dances: sways side to side, arms up by turns, notes twinkling above.
   {
-    name: 'baila',
+    name: 'dance',
     eyes: px(5, 1, 1, 0.5) + px(12, 1, 1, 0.5),
     extra: `
-      <g class="baila-n1" fill="${SPARK}">${note(1, -1.5)}</g>
-      <g class="baila-n2" fill="${LEAF}">${note(17, -1)}</g>`,
+      <g class="dance-n1" fill="${SPARK}">${note(1, -1.5)}</g>
+      <g class="dance-n2" fill="${LEAF}">${note(17, -1)}</g>`,
     css: `
-      .baila .clawd { animation: baila-sway 1s steps(1) infinite; }
-      .baila .arm-l { animation: baila-arm 1s steps(1) infinite; }
-      .baila .arm-r { animation: baila-arm 1s steps(1) -0.5s infinite; }
-      .baila .legs-a { animation: baila-step 0.5s steps(1) infinite; }
-      .baila .legs-b { animation: baila-step 0.5s steps(1) -0.25s infinite; }
-      .baila-n1 { animation: baila-twinkle 1s steps(1) infinite; }
-      .baila-n2 { animation: baila-twinkle 1s steps(1) -0.5s infinite; }
-      @keyframes baila-sway { 0%, 49.9% { transform: translate(-1px, 0); } 50%, 100% { transform: translate(1px, 0); } }
-      @keyframes baila-arm { 0%, 49.9% { transform: translate(0, -1px); } 50%, 100% { transform: translate(0, 0); } }
-      @keyframes baila-step { 0%, 49.9% { transform: translate(0, -0.5px); } 50%, 100% { transform: translate(0, 0); } }
-      @keyframes baila-twinkle { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }`,
+      .dance .clawd { animation: dance-sway 1s steps(1) infinite; }
+      .dance .arm-l { animation: dance-arm 1s steps(1) infinite; }
+      .dance .arm-r { animation: dance-arm 1s steps(1) -0.5s infinite; }
+      .dance .legs-a { animation: dance-step 0.5s steps(1) infinite; }
+      .dance .legs-b { animation: dance-step 0.5s steps(1) -0.25s infinite; }
+      .dance-n1 { animation: dance-twinkle 1s steps(1) infinite; }
+      .dance-n2 { animation: dance-twinkle 1s steps(1) -0.5s infinite; }
+      @keyframes dance-sway { 0%, 49.9% { transform: translate(-1px, 0); } 50%, 100% { transform: translate(1px, 0); } }
+      @keyframes dance-arm { 0%, 49.9% { transform: translate(0, -1px); } 50%, 100% { transform: translate(0, 0); } }
+      @keyframes dance-step { 0%, 49.9% { transform: translate(0, -0.5px); } 50%, 100% { transform: translate(0, 0); } }
+      @keyframes dance-twinkle { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }`,
   },
   // Follows a ladybug that flies past overhead, bobbing.
   {
-    name: 'vaquita',
-    eyes: `<g class="vaquita-follow">${OPEN_EYES}</g>`,
+    name: 'ladybug',
+    eyes: `<g class="ladybug-follow">${OPEN_EYES}</g>`,
     extra: `
-      <g class="vaquita-bug">
+      <g class="ladybug-flight">
         <g fill="${SHELL}">${px(1, 0, 3, 0.5)}${px(0, 0.5, 5, 1)}${px(1, 1.5, 3, 0.5)}</g>
         <g fill="${EYE}">${px(1, 0.5, 1, 0.5)}${px(3, 0.5, 1, 0.5)}${px(2, 1, 1, 0.5)}</g>
         <g fill="${STEEL}">${px(5, 0.5, 1, 1)}</g>
-        <g class="vaquita-wings" fill="${WING}" opacity="0.8">${px(1, -0.5, 1, 0.5)}${px(3, -0.5, 1, 0.5)}</g>
+        <g class="ladybug-wings" fill="${WING}" opacity="0.8">${px(1, -0.5, 1, 0.5)}${px(3, -0.5, 1, 0.5)}</g>
       </g>`,
     css: `
-      .vaquita .clawd { animation: vaquita-bob 1.2s steps(1) infinite; }
-      .vaquita .vaquita-follow { animation: vaquita-follow 4s steps(1) infinite; }
-      .vaquita .vaquita-bug { animation: vaquita-fly 4s steps(48) infinite; }
-      .vaquita .vaquita-wings { animation: vaquita-flap 0.2s steps(1) infinite; }
-      @keyframes vaquita-bob { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(0, 0.5px); } }
-      @keyframes vaquita-follow {
+      .ladybug .clawd { animation: ladybug-bob 1.2s steps(1) infinite; }
+      .ladybug .ladybug-follow { animation: ladybug-follow 4s steps(1) infinite; }
+      .ladybug .ladybug-flight { animation: ladybug-fly 4s steps(48) infinite; }
+      .ladybug .ladybug-wings { animation: ladybug-flap 0.2s steps(1) infinite; }
+      @keyframes ladybug-bob { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(0, 0.5px); } }
+      @keyframes ladybug-follow {
         0%, 24.9% { transform: translate(-1px, -0.5px); }
         25%, 49.9% { transform: translate(0, -0.5px); }
         50%, 79.9% { transform: translate(1px, -0.5px); }
         80%, 100% { transform: translate(0, 0); }
       }
-      @keyframes vaquita-fly {
+      @keyframes ladybug-fly {
         0% { transform: translate(-6px, -2.5px); }
         20% { transform: translate(1px, -3px); }
         40% { transform: translate(8px, -2.5px); }
@@ -693,23 +693,23 @@ const PASTIMES: readonly Pastime[] = [
         80% { transform: translate(26px, -2.5px); }
         100% { transform: translate(26px, -2.5px); }
       }
-      @keyframes vaquita-flap { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }`,
+      @keyframes ladybug-flap { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }`,
   },
 ]
 
 // Clawd at rest between pastimes: breathing slowly, blinking now and then,
 // glancing one way and the other. It asks for no attention.
 const REST: Pastime = {
-  name: 'reposo',
-  eyes: `<g class="reposo-look">${OPEN_EYES}</g>`,
+  name: 'rest',
+  eyes: `<g class="rest-look">${OPEN_EYES}</g>`,
   extra: '',
   css: `
-    .reposo .clawd { animation: reposo-breathe 4s steps(1) infinite; }
-    .reposo .eyes rect { animation: reposo-blink 5s steps(1) infinite; }
-    .reposo .reposo-look { animation: reposo-look 13s steps(1) infinite; }
-    @keyframes reposo-breathe { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, 0.25px); } }
-    @keyframes reposo-blink { 0%, 95.9% { opacity: 1; } 96%, 100% { opacity: 0; } }
-    @keyframes reposo-look {
+    .rest .clawd { animation: rest-breathe 4s steps(1) infinite; }
+    .rest .eyes rect { animation: rest-blink 5s steps(1) infinite; }
+    .rest .rest-look { animation: rest-look 13s steps(1) infinite; }
+    @keyframes rest-breathe { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, 0.25px); } }
+    @keyframes rest-blink { 0%, 95.9% { opacity: 1; } 96%, 100% { opacity: 0; } }
+    @keyframes rest-look {
       0%, 54.9% { transform: translate(0, 0); } 55%, 67.9% { transform: translate(1px, 0); }
       68%, 79.9% { transform: translate(0, 0); } 80%, 91.9% { transform: translate(-1px, 0); } 92%, 100% { transform: translate(0, 0); }
     }`,
@@ -1017,8 +1017,8 @@ async function compactNow($: EngineInterface, isWorking: boolean) {
 // the next session starts from. Not a userConfig field: the desktop app lists
 // no plugin rows in /config, so $.config.set cannot reach one there.
 async function chooseFigureScene($: EngineInterface, name: string) {
-  await update($, escena, () => name)
-  await $.store.set('escena', name)
+  await update($, sceneName, () => name)
+  await $.store.set('scene', name)
 }
 
 // Whether the person had given the pane the keyboard, as it was last drawn or
@@ -1028,9 +1028,9 @@ let isPaneFocused = false
 
 // The scene the last pick left in the store, for a new session.
 async function loadFigureScene($: EngineInterface) {
-  const stored = await $.store.get('escena')
+  const stored = await $.store.get('scene')
   if (typeof stored === 'string') {
-    await update($, escena, () => figureSceneNamed(stored).name)
+    await update($, sceneName, () => figureSceneNamed(stored).name)
   }
 }
 
@@ -1090,7 +1090,7 @@ async function detectedLang($: EngineInterface) {
 // The language the band, the pane and the commands speak: the person's pick
 // in the pane, or the one detected.
 async function langNow($: EngineInterface): Promise<Lang> {
-  const choice = await read($, idioma)
+  const choice = await read($, langChoice)
   return choice === 'auto' ? await detectedLang($) : choice
 }
 
@@ -1106,17 +1106,17 @@ async function registerCommands($: EngineInterface) {
 // session's state, which draws the band and the pane again, and in the
 // plugin's store, which the next session starts from.
 async function chooseLang($: EngineInterface, choice: LangChoice) {
-  await update($, idioma, () => choice)
-  await $.store.set('idioma', choice)
+  await update($, langChoice, () => choice)
+  await $.store.set('language', choice)
   await registerCommands($)
 }
 
 // The language the last pick left in the store, for a new session.
 async function loadLang($: EngineInterface) {
-  const stored = await $.store.get('idioma').catch(() => undefined)
+  const stored = await $.store.get('language').catch(() => undefined)
   const choice = LANG_CHOICES.find(c => c === stored)
   if (choice !== undefined) {
-    await update($, idioma, () => choice)
+    await update($, langChoice, () => choice)
   }
 }
 
@@ -1173,11 +1173,11 @@ export const register: Register = on => {
     if (wasFocused || e.origin.kind !== 'person') {
       return result
     }
-    const name = e.element?.startsWith('usar-') ? e.element.slice('usar-'.length) : undefined
+    const name = e.element?.startsWith('use-') ? e.element.slice('use-'.length) : undefined
     if (name !== undefined && FIGURE_SCENES.some(s => s.name === name)) {
       await chooseFigureScene($, name)
     }
-    const choice = LANG_CHOICES.find(c => e.element === `idioma-${c}`)
+    const choice = LANG_CHOICES.find(c => e.element === `language-${c}`)
     if (choice !== undefined) {
       await chooseLang($, choice)
     }
@@ -1195,7 +1195,7 @@ export const register: Register = on => {
   on('command.run', { command: SCENE_COMMAND }, async ($, e) => {
     const t = TEXTS[await langNow($)]
     const names = FIGURE_SCENES.map(s => s.name).join(', ')
-    const shown = figureSceneNamed(await read($, escena)).name
+    const shown = figureSceneNamed(await read($, sceneName)).name
     const name = e.args.trim().toLowerCase()
     if (name === '') {
       return { text: `${t.sceneIs(shown)} ${t.available(names)}` }
@@ -1322,7 +1322,7 @@ export const register: Register = on => {
     const isLow = figures.contextLeft !== null && figures.contextLeft <= COMPACT_AT
     await read($, redraws)
     const isAsking = await read($, isConfirming)
-    const figureScene = figureSceneNamed(await read($, escena))
+    const figureScene = figureSceneNamed(await read($, sceneName))
     const { scene, label } = isIdle ? idleScene(figures, now) : sceneFor(drawnMode, await read($, tool), shownAt)
     const isOngoing = !isIdle && drawnMode !== 'compacted'
 
@@ -1362,10 +1362,10 @@ export const register: Register = on => {
     await read($, redraws)
     const lang = await langNow($)
     const t = TEXTS[lang]
-    const choice = await read($, idioma)
+    const choice = await read($, langChoice)
     const auto = LANG_NAMES[await detectedLang($)]
     const choiceName = (c: LangChoice) => (c === 'auto' ? t.auto(auto) : LANG_NAMES[c])
-    const shown = figureSceneNamed(await read($, escena)).name
+    const shown = figureSceneNamed(await read($, sceneName)).name
     if (e.surface === 'terminal') {
       const { Box, Select, Text } = $.ui.resolve(e)
       const shownMode = await read($, mode)
@@ -1378,14 +1378,14 @@ export const register: Register = on => {
         <Box flexDirection="column">
           <Text>{isOngoing ? `${label[lang]}…` : label[lang]}</Text>
           <Select
-            key="escena"
+            key="scene"
             label={t.scene}
             options={FIGURE_SCENES.map(s => ({ value: s.name, label: s.label[lang] }))}
             value={shown}
             onSelect={name => chooseFigureScene($, name)}
           />
           <Select
-            key="idioma"
+            key="language"
             label={t.language}
             options={LANG_CHOICES.map(c => ({ value: c, label: choiceName(c) }))}
             value={choice}
@@ -1404,11 +1404,11 @@ export const register: Register = on => {
           <Text dimColor>{t.language}:</Text>
           {LANG_CHOICES.map(c =>
             c === choice ? (
-              <Text key={`idioma-${c}`} bold>
+              <Text key={`language-${c}`} bold>
                 {choiceName(c)}
               </Text>
             ) : (
-              <Button key={`idioma-${c}`} label={choiceName(c)} onPress={() => chooseLang($, c)} />
+              <Button key={`language-${c}`} label={choiceName(c)} onPress={() => chooseLang($, c)} />
             ),
           )}
         </Box>
@@ -1418,7 +1418,7 @@ export const register: Register = on => {
 
           return (
             <Box
-              key={`escena-${s.name}`}
+              key={`scene-${s.name}`}
               flexDirection="column"
               alignItems="center"
               gap={1}
@@ -1433,7 +1433,7 @@ export const register: Register = on => {
                 {isInUse ? (
                   <Text dimColor>{t.inUse}</Text>
                 ) : (
-                  <Button key={`usar-${s.name}`} label={t.use} onPress={() => chooseFigureScene($, s.name)} />
+                  <Button key={`use-${s.name}`} label={t.use} onPress={() => chooseFigureScene($, s.name)} />
                 )}
               </Box>
             </Box>

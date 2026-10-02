@@ -139,7 +139,7 @@ const quiver = (used: number | null, x: number) => {
 const floor = () =>
   Array.from({ length: WIDTH / 4 }, (_, i) => `<g fill="${i % 2 === 0 ? STONE : STONE_DARK}">${px(i * 4, FLOOR_Y, 4, 1)}</g>`).join('')
 
-const aventuraSvg = (f: Figures) =>
+const adventureSvg = (f: Figures) =>
   sceneSvg(
     `${COUNTDOWN_CSS}
     ${REFILL_CSS}
@@ -166,11 +166,11 @@ const aventuraSvg = (f: Figures) =>
   ${quiver(f.week, SLOT * 3)}`,
   )
 
-export const aventura: FigureScene = {
+export const adventureScene: FigureScene = {
   name: 'adventure',
   label: { es: 'Aventura', en: 'Adventure' },
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
-  svg: aventuraSvg,
+  svg: adventureSvg,
 }

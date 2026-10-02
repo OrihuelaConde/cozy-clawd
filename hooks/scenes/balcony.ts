@@ -188,7 +188,7 @@ const railing = () => `
 const floor = () =>
   Array.from({ length: WIDTH / 4 }, (_, i) => `<g fill="${i % 2 === 0 ? TILE : TILE_DARK}">${px(i * 4, FLOOR_Y, 4, 1)}</g>`).join('')
 
-const balconSvg = (f: Figures) =>
+const balconySvg = (f: Figures) =>
   sceneSvg(
     `${COUNTDOWN_CSS}
     ${REFILL_CSS}
@@ -224,11 +224,11 @@ const balconSvg = (f: Figures) =>
   ${honeyJar(f.week, SLOT * 3)}`,
   )
 
-export const balcon: FigureScene = {
+export const balconyScene: FigureScene = {
   name: 'balcony',
   label: { es: 'Balcón', en: 'Balcony' },
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
-  svg: balconSvg,
+  svg: balconySvg,
 }

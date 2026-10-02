@@ -133,7 +133,7 @@ const shelfSvg = (f: Figures) =>
   <g fill="${WOOD_DARK}">${px(2, BOARD_Y + 1, 1, 1)}${px(WIDTH - 3, BOARD_Y + 1, 1, 1)}</g>`,
   )
 
-export const estante: FigureScene = {
+export const shelfScene: FigureScene = {
   name: 'shelf',
   label: { es: 'Estante', en: 'Shelf' },
   width: WIDTH,

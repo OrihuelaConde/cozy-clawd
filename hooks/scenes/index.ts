@@ -1,16 +1,16 @@
 // The scenes the band's right side can be drawn as. Each one draws the same
 // figures of the session its own way, as one plain SVG image; the one picked
-// last is kept in the plugin's store under `escena`.
+// last is kept in the plugin's store under `scene`.
 
-import { aventura } from './aventura'
-import { balcon } from './balcon'
-import { cyberpunk } from './cyberpunk'
-import { estante } from './estante'
-import { gamer } from './gamer'
-import { mateada } from './mateada'
-import { steampunk } from './steampunk'
-import { ventana } from './ventana'
-import type { Lang, Words } from '../idioma'
+import { adventureScene } from './adventure'
+import { balconyScene } from './balcony'
+import { cyberpunkScene } from './cyberpunk'
+import { gamerScene } from './gamer'
+import type { Lang, Words } from '../language'
+import { mateScene } from './mate'
+import { shelfScene } from './shelf'
+import { steampunkScene } from './steampunk'
+import { windowScene } from './window'
 
 // The figures every scene shows.
 export type Figures = {
@@ -40,9 +40,9 @@ export type FigureScene = {
   svg: (f: Figures) => string
 }
 
-export const FIGURE_SCENES: readonly FigureScene[] = [estante, mateada, balcon, ventana, aventura, gamer, cyberpunk, steampunk]
+export const FIGURE_SCENES: readonly FigureScene[] = [shelfScene, mateScene, balconyScene, windowScene, adventureScene, gamerScene, cyberpunkScene, steampunkScene]
 
-export const DEFAULT_FIGURE_SCENE = estante
+export const DEFAULT_FIGURE_SCENE = shelfScene
 
 // The scene a stored name names; the default for one no scene has.
 export const figureSceneNamed = (name: unknown) => FIGURE_SCENES.find(s => s.name === name) ?? DEFAULT_FIGURE_SCENE

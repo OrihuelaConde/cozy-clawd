@@ -123,9 +123,9 @@ const nightWindow = (left: number | null, ttl: number, x: number) => {
   const stars = STARS.map(([sx, sy], i) => `<g class="star${i % 3}" fill="${STAR}">${px(x + sx, sy)}</g>`).join('')
   const moon = isOver
     ? ''
-    : `<g clip-path="url(#ventana-panes)"><g class="moon" style="${timing}">${moonDisc(x + MOON_START[0], MOON_START[1])}</g></g>`
+    : `<g clip-path="url(#window-panes)"><g class="moon" style="${timing}">${moonDisc(x + MOON_START[0], MOON_START[1])}</g></g>`
   return `
-    <clipPath id="ventana-panes">${px(x + PANES.x, PANES.y, PANES.w, PANES.h)}</clipPath>
+    <clipPath id="window-panes">${px(x + PANES.x, PANES.y, PANES.w, PANES.h)}</clipPath>
     ${sky}${stars}${moon}
     <g fill="${FRAME}">${px(x + 2, -2, 11, 1)}${px(x + 2, -1, 1, 9)}${px(x + 12, -1, 1, 9)}${px(x + 7, -1, 1, 9)}${px(x + 3, 3, 9, 1)}</g>
     <g fill="${FRAME_DARK}">${px(x + 1, 8, 13, 1)}</g>
@@ -197,7 +197,7 @@ const desk = () => `
   <g fill="${DESK}">${px(0, DESK_Y, WIDTH, 1)}</g>
   <g fill="${DESK_DARK}">${px(2, DESK_Y + 1, 1, 1)}${px(WIDTH - 3, DESK_Y + 1, 1, 1)}</g>`
 
-const ventanaSvg = (f: Figures) =>
+const windowSvg = (f: Figures) =>
   sceneSvg(
     `${COUNTDOWN_CSS}
     ${REFILL_CSS}
@@ -224,11 +224,11 @@ const ventanaSvg = (f: Figures) =>
   ${yarn(f.week, SLOT * 3)}`,
   )
 
-export const ventana: FigureScene = {
+export const windowScene: FigureScene = {
   name: 'window',
   label: { es: 'Ventana de noche', en: 'Night window' },
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
-  svg: ventanaSvg,
+  svg: windowSvg,
 }

@@ -199,7 +199,7 @@ const steampunkSvg = (f: Figures) =>
   ${airship(f.week, SLOT * 3)}`,
   )
 
-export const steampunk: FigureScene = {
+export const steampunkScene: FigureScene = {
   name: 'steampunk',
   label: { es: 'Steampunk', en: 'Steampunk' },
   width: WIDTH,

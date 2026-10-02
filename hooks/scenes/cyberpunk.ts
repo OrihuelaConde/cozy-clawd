@@ -170,7 +170,7 @@ const cyberpunkSvg = (f: Figures) =>
   ${rain()}`,
   )
 
-export const cyberpunk: FigureScene = {
+export const cyberpunkScene: FigureScene = {
   name: 'cyberpunk',
   label: { es: 'Cyberpunk', en: 'Cyberpunk' },
   width: WIDTH,

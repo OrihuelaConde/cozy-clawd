@@ -108,17 +108,17 @@ The mod is a Claude Code plugin of function hooks:
 | Path | Contents |
 | --- | --- |
 | `hooks/register.tsx` | The hooks module: Clawd's scenes, how the mod follows the turn, the band, and the `/cozy-clawd` pane. |
-| `hooks/idioma.ts` | The languages the mod speaks, and how it tells which one you use. |
-| `hooks/escenas/index.ts` | The scenes the session figures can be drawn as, and the figures in words. |
-| `hooks/escenas/pixels.ts` | What the figure scenes share: their layout, the pixel font of the numbers, the cache's countdown, and the refill while compacting. |
-| `hooks/escenas/estante.ts` | The `shelf` scene: a shelf of objects. |
-| `hooks/escenas/mateada.ts` | The `mate` scene: a tablecloth set for mate. |
-| `hooks/escenas/balcon.ts` | The `balcony` scene: a balcony with a watering can and a daisy. |
-| `hooks/escenas/ventana.ts` | The `window` scene: a desk by a window at night. |
-| `hooks/escenas/aventura.ts` | The `adventure` scene: an adventurer's gear in a keep. |
-| `hooks/escenas/gamer.ts` | The `gamer` scene: a gaming desk. |
-| `hooks/escenas/cyberpunk.ts` | The `cyberpunk` scene: a rainy neon rooftop. |
-| `hooks/escenas/steampunk.ts` | The `steampunk` scene: brass and copper machines. |
+| `hooks/language.ts` | The languages the mod speaks, and how it tells which one you use. |
+| `hooks/scenes/index.ts` | The scenes the session figures can be drawn as, and the figures in words. |
+| `hooks/scenes/pixels.ts` | What the figure scenes share: their layout, the pixel font of the numbers, the cache's countdown, and the refill while compacting. |
+| `hooks/scenes/shelf.ts` | The `shelf` scene: a shelf of objects. |
+| `hooks/scenes/mate.ts` | The `mate` scene: a tablecloth set for mate. |
+| `hooks/scenes/balcony.ts` | The `balcony` scene: a balcony with a watering can and a daisy. |
+| `hooks/scenes/window.ts` | The `window` scene: a desk by a window at night. |
+| `hooks/scenes/adventure.ts` | The `adventure` scene: an adventurer's gear in a keep. |
+| `hooks/scenes/gamer.ts` | The `gamer` scene: a gaming desk. |
+| `hooks/scenes/cyberpunk.ts` | The `cyberpunk` scene: a rainy neon rooftop. |
+| `hooks/scenes/steampunk.ts` | The `steampunk` scene: brass and copper machines. |
 | `types/index.d.ts` | The contract for the values the mod keeps in the session's state. |
 | `hooks/cozy-clawd.test.tsx` | Tests that run against the engine. |
 | `tools/preview.mjs` | A script that renders Clawd's scenes and a few states of each figure scene to an HTML page. |

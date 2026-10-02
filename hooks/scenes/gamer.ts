@@ -168,7 +168,7 @@ const gamerSvg = (f: Figures) =>
   ${gamepad(f.week, SLOT * 3)}`,
   )
 
-export const gamer: FigureScene = {
+export const gamerScene: FigureScene = {
   name: 'gamer',
   label: { es: 'Gamer', en: 'Gamer' },
   width: WIDTH,

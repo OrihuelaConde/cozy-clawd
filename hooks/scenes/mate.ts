@@ -144,7 +144,7 @@ const tablecloth = () =>
     )
     .join('')
 
-const mateadaSvg = (f: Figures) =>
+const mateSvg = (f: Figures) =>
   sceneSvg(
     `${COUNTDOWN_CSS}
     .steam1 { animation: steam 2s steps(4) infinite; }
@@ -167,11 +167,11 @@ const mateadaSvg = (f: Figures) =>
   ${pack(f.week, SLOT * 3)}`,
   )
 
-export const mateada: FigureScene = {
+export const mateScene: FigureScene = {
   name: 'mate',
   label: { es: 'Mateada', en: 'Mate' },
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
-  svg: mateadaSvg,
+  svg: mateSvg,
 }
