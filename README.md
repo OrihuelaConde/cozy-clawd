@@ -28,7 +28,7 @@ cozy-clawd is an unofficial fan project. It isn't affiliated with or endorsed by
   - A candle burns down over the one-hour prompt cache and goes out when the cache expires.
   - A cookie jar shows what's left of the five-hour usage limit.
   - A moon wanes as you use the weekly limit.
-- **Scenes to choose from.** The `/clawd-escena` command switches the scene. For more information, see [Choose a scene](#choose-a-scene).
+- **Scenes to choose from.** The `/clawd-escena` command and the `/clawd` pane each switch the scene. For more information, see [Choose a scene](#choose-a-scene).
 - **A compact button.** When 25% or less of the context is free, a **Compactar** button appears next to the scene. It asks for confirmation before it compacts the conversation.
 
 The band draws in the Code tab of the Claude desktop app. In the terminal, the mod leaves Claude Code's own spinner as it is; the `/clawd` pane shows the current state as text.
@@ -62,13 +62,16 @@ Replace `PATH_TO_COZY_CLAWD` with the folder where you cloned the repository.
 
 ## Choose a scene
 
-The figures on the right of the band are drawn as a scene. To choose the scene, run the `/clawd-escena` command with the scene's name:
+The figures on the right of the band are drawn as a scene. To choose the scene, use one of the following:
 
-```text
-/clawd-escena SCENE_NAME
-```
+- Run the `/clawd-escena` command with the scene's name:
 
-Replace `SCENE_NAME` with a name from the following table. Run `/clawd-escena` with no name to see the current scene and the ones available.
+  ```text
+  /clawd-escena SCENE_NAME
+  ```
+
+  Replace `SCENE_NAME` with a name from the following table. Run `/clawd-escena` with no name to see the current scene and the ones available.
+- Open the `/clawd` pane, which shows each scene with your session's figures, and select **Usar** under the one you want. In the terminal, the pane has an **Escena** picker instead.
 
 The band switches to the new scene at once, and later sessions start with it.
 
@@ -83,7 +86,7 @@ The mod is a Claude Code plugin of function hooks:
 
 | Path | Contents |
 | --- | --- |
-| `hooks/register.tsx` | The hooks module: Clawd's scenes, how the mod follows the turn, and the band. |
+| `hooks/register.tsx` | The hooks module: Clawd's scenes, how the mod follows the turn, the band, and the `/clawd` pane. |
 | `hooks/escenas/index.ts` | The scenes the session figures can be drawn as, and the figures in words. |
 | `hooks/escenas/pixels.ts` | What the figure scenes share: their layout, the pixel font of the numbers, and the cache's countdown. |
 | `hooks/escenas/estante.ts` | The `estante` scene: a shelf of objects. |

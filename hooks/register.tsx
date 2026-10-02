@@ -578,13 +578,18 @@ async function compactNow($: EngineInterface, isWorking: boolean) {
 }
 
 // Switches the scene the band draws on its right: in the session's state,
-// which draws the band again, and in the plugin's store, which the next
-// session starts from. Not a userConfig field: the desktop app lists no plugin
-// rows in /config, so $.config.set cannot reach one there.
+// which draws the band and the pane again, and in the plugin's store, which
+// the next session starts from. Not a userConfig field: the desktop app lists
+// no plugin rows in /config, so $.config.set cannot reach one there.
 async function chooseFigureScene($: EngineInterface, name: string) {
   await update($, escena, () => name)
   await $.store.set('escena', name)
 }
+
+// Whether the person had given the pane the keyboard, as it was last drawn or
+// focused. On the desktop, a click on a Button of a pane without the keyboard
+// only hands it the keyboard: `ui.focus` lands on the Button, and no press.
+let isPaneFocused = false
 
 // The scene the last pick left in the store, for a new session.
 async function loadFigureScene($: EngineInterface) {
@@ -605,7 +610,7 @@ const figuresOf = (s: Stats, now: number): Figures => ({
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: 'clawd', description: 'Open the pane where Clawd shows what Claude is doing' })
+    await $.command.register({ name: 'clawd', description: 'Abrí el panel para elegir la escena de la franja' })
     await $.command.register({ name: 'clawd-escena', description: 'Elegí la escena de la derecha de la franja', argumentHint: '[escena]' })
     current = { mode: await read($, mode), tool: await read($, tool) }
     await loadFigureScene($)
@@ -614,10 +619,27 @@ export const register: Register = on => {
     return next(e)
   })
 
-  on('command.run', { command: 'clawd' }, async $ => {
-    await $.ui.open({ id: PANE, title: 'Clawd' })
+  // The first click on Usar, in a pane without the keyboard, arrives as a focus
+  // move and no press (see isPaneFocused), so it picks the scene here. Tab and
+  // the arrows move the ring only in a pane that holds the keyboard.
+  on('ui.focus', { requestId: PANE }, async ($, e, next) => {
+    const wasFocused = isPaneFocused
+    const result = await next(e)
+    if (result.deny === undefined) {
+      isPaneFocused = true
+    }
+    const name = e.element?.startsWith('usar-') ? e.element.slice('usar-'.length) : undefined
+    if (!wasFocused && e.origin.kind === 'person' && name !== undefined && FIGURE_SCENES.some(s => s.name === name)) {
+      await chooseFigureScene($, name)
+    }
 
-    return { text: 'Clawd pane opened.' }
+    return result
+  })
+
+  on('command.run', { command: 'clawd' }, async $ => {
+    await $.ui.open({ id: PANE, title: 'Escenas' })
+
+    return { text: 'Panel de escenas abierto.' }
   })
 
   on('command.run', { command: 'clawd-escena' }, async ($, e) => {
@@ -760,21 +782,64 @@ export const register: Register = on => {
     )
   })
 
+  // The pane where the person picks the scene on the band's right. Where
+  // images draw, a gallery: each scene with the session's figures as they are
+  // now, the one in use marked. The terminal, with no band, shows what Clawd is
+  // doing in words and a picker of the scenes.
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text } = $.ui.resolve(e)
-    const { scene, label } = sceneFor(await read($, mode), await read($, tool))
-    const text = scene === scenes.idle ? label : `${label}…`
-
+    isPaneFocused = e.props.isFocused
     if (e.surface === 'terminal') {
-      return <Text>{text}</Text>
+      const { Box, Select, Text } = $.ui.resolve(e)
+      const { scene, label } = sceneFor(await read($, mode), await read($, tool))
+      const shown = figureSceneNamed(await read($, escena)).name
+
+      return (
+        <Box flexDirection="column">
+          <Text>{scene === scenes.idle ? label : `${label}…`}</Text>
+          <Select
+            key="escena"
+            label="Escena"
+            options={FIGURE_SCENES.map(s => ({ value: s.name, label: s.label }))}
+            value={shown}
+            onSelect={name => chooseFigureScene($, name)}
+          />
+        </Box>
+      )
     }
 
-    const { Svg } = $.ui.resolve(e)
+    const { Box, Button, Svg, Text } = $.ui.resolve(e)
+    const figures = figuresOf(await read($, stats), await $.clock.now())
+    const shown = figureSceneNamed(await read($, escena)).name
 
     return (
-      <Box flexDirection="column" alignItems="center" gap={1} paddingY={1}>
-        <Svg source={svgFor(scene)} alt={`Clawd: ${label}`} width={VIEW_W * SCALE * 2} height={VIEW_H * 2 * SCALE * 2} />
-        <Text dimColor>{text}</Text>
+      <Box flexDirection="column" gap={1} paddingY={1}>
+        <Text dimColor>Elegí la escena de la derecha de la franja.</Text>
+        {FIGURE_SCENES.map(s => {
+          const isInUse = s.name === shown
+
+          return (
+            <Box
+              key={`escena-${s.name}`}
+              flexDirection="column"
+              alignItems="center"
+              gap={1}
+              padding={1}
+              borderStyle="round"
+              borderColor={isInUse ? BODY : undefined}
+              borderDimColor={!isInUse}
+            >
+              <Svg source={s.svg(figures)} alt={`${s.label}: ${figuresAlt(figures)}`} width={s.width * s.scale} height={s.height * s.scale} />
+              <Box flexDirection="row" alignItems="center" gap={1}>
+                <Text bold>{s.label}</Text>
+                {isInUse ? (
+                  <Text dimColor>en uso</Text>
+                ) : (
+                  <Button key={`usar-${s.name}`} label="Usar" onPress={() => chooseFigureScene($, s.name)} />
+                )}
+              </Box>
+            </Box>
+          )
+        })}
       </Box>
     )
   })
