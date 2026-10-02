@@ -25,10 +25,10 @@ cozy-clawd is an unofficial fan project. It isn't affiliated with or endorsed by
   | Any other tool | Clawd hammers away. |
 
 - **A scene of session figures.** Each figure is an object with its number underneath in a pixel font. In the `shelf` scene, the default, the objects stand on a shelf:
-  - A mug of tea shows the context window left. It stops steaming at 25% or less, and it fills up again while the conversation is compacted.
-  - A candle burns down over the one-hour prompt cache and goes out when the cache expires.
-  - A cookie jar shows what's left of the five-hour usage limit.
-  - A moon wanes as you use the weekly limit.
+  - A mug of tea shows the context window left. At 25% or less it stops steaming and a teapot stands beside it; while the conversation is compacted, the teapot pours and the mug fills up again.
+  - A candle in a brass holder burns down over the one-hour prompt cache and goes out when the cache expires.
+  - A cookie jar holds a cookie for every fifth of the five-hour usage limit left, and crumbs once only a couple remain.
+  - A moon lamp wanes, its glow shrinking, as you use the weekly limit.
 - **Scenes to choose from.** The `/cozy-clawd-scene` command and the `/cozy-clawd` pane each switch the scene. For more information, see [Choose a scene](#choose-a-scene).
 - **A compact button.** When 25% or less of the context is free, a **Compactar** (Compact) button appears next to the scene. It asks for confirmation before it compacts the conversation.
 - **Spanish or English.** The band, the `/cozy-clawd` pane, and the commands speak Spanish or English. For more information, see [Choose the language](#choose-the-language).
@@ -79,7 +79,7 @@ The band switches to the new scene at once, and later sessions start with it.
 
 | Scene | What it shows |
 | --- | --- |
-| `shelf` | A shelf with a mug of tea, a candle, a cookie jar, and a moon. |
+| `shelf` | A wooden shelf with a mug of tea, a candle, a cookie jar, and a moon lamp. |
 | `mate` | A checked tablecloth set for mate. A thermos's strip of water shows the context left, and at 25% or less a steaming kettle waits beside it; while the conversation is compacted, the kettle boils and the thermos fills up. The mate's steam fades over the prompt cache's hour, and the yerba washes out when the cache expires. A plate holds a medialuna for every quarter of the five-hour limit left, and a pack of yerba flattens as you use the weekly limit. |
 | `balcony` | A sunny balcony. A watering can's water shows the context left; at 25% or less a rain cloud gathers over it, and while the conversation is compacted it rains into the can. A daisy in a pot wilts over the prompt cache's hour. A bluebird pecks at a feeder whose seeds are what's left of the five-hour limit, and a jar of honey, a bee buzzing around it, empties as you use the weekly limit. |
 | `window` | A desk by a window at night. A candle is as tall as the context left; at 25% or less a spare candle stands by, and while the conversation is compacted the candle grows back. The moon crosses the window over the prompt cache's hour and sets when the cache expires. A cup of cocoa shows what's left of the five-hour limit, its steam thinning as it goes down, and a ball of yarn shrinks as you use the weekly limit. |
