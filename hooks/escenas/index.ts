@@ -2,6 +2,7 @@
 // figures of the session its own way, as one plain SVG image; the one picked
 // last is kept in the plugin's store under `escena`.
 
+import { aventura } from './aventura'
 import { balcon } from './balcon'
 import { estante } from './estante'
 import { mateada } from './mateada'
@@ -46,7 +47,7 @@ export type FigureScene = {
   cue?: (f: Figures) => Cue | null
 }
 
-export const FIGURE_SCENES: readonly FigureScene[] = [estante, mateada, balcon, ventana]
+export const FIGURE_SCENES: readonly FigureScene[] = [estante, mateada, balcon, ventana, aventura]
 
 export const DEFAULT_FIGURE_SCENE = estante
 

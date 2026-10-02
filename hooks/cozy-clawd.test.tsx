@@ -10,10 +10,10 @@ const PANE_PROPS = { ...SITE, title: 'Escenas', isFocused: false, bodyColumns: 4
 test('the pane shows every scene on the desktop, the one in use marked', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
-  expect(await pane.findAll({ type: 'Svg' })).toHaveLength(4)
+  expect(await pane.findAll({ type: 'Svg' })).toHaveLength(5)
   expect(await pane.find({ type: 'Text', text: 'en uso' })).toBeDefined()
   expect(await pane.find({ key: 'usar-estante' })).toBeUndefined()
-  for (const name of ['mateada', 'balcon', 'ventana']) {
+  for (const name of ['mateada', 'balcon', 'ventana', 'aventura']) {
     expect(await pane.find({ key: `usar-${name}` })).toBeDefined()
   }
   await pane.unmount()
@@ -62,7 +62,7 @@ test('/clawd-escena names the scenes and turns down one that does not exist', as
     ({ command: 'clawd-escena', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } }) as const
 
   const listed = await $.command.run(typed(''))
-  expect(listed.text).toMatch(/Escena: estante\. Hay: estante, mateada, balcon, ventana/)
+  expect(listed.text).toMatch(/Escena: estante\. Hay: estante, mateada, balcon, ventana, aventura/)
 
   const unknown = await $.command.run(typed('Playa'))
   expect(unknown.text).toMatch(/No hay una escena "playa"/)
@@ -95,7 +95,7 @@ test('a new session starts with the scene picked last', async ($, on) => {
   await $.session.start({ cwd: '/', surface: null, isInteractive: false })
 
   const listed = await $.command.run({ command: 'clawd-escena', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
-  expect(listed.text).toMatch(/Escena: mateada\. Hay: estante, mateada, balcon, ventana/)
+  expect(listed.text).toMatch(/Escena: mateada\. Hay: estante, mateada, balcon, ventana, aventura/)
 })
 
 // What Clawd is doing, as the band's Clawd image says it.
@@ -123,7 +123,11 @@ const answer = async ($: Parameters<TestBody>[0]) => {
 
 const usageAt = (percent: number) => () => ({ value: { startedAt: 0, context: { window: 200_000, tokens: percent * 2_000, percent }, rateLimits: [] } })
 
-for (const [name, cue] of [['mateada', 'El mate se enfrió'], ['ventana', 'Se puso la luna']] as const) {
+for (const [name, cue] of [
+  ['mateada', 'El mate se enfrió'],
+  ['ventana', 'Se puso la luna'],
+  ['aventura', 'Hay que dar vuelta el reloj de arena'],
+] as const) {
   test(`idle in the ${name} once the cache has expired, Clawd: ${cue}`, async ($, on) => {
     const clock = mock.clock(on, { now: 1_000_000 })
     mock.store(on)
@@ -140,18 +144,23 @@ for (const [name, cue] of [['mateada', 'El mate se enfrió'], ['ventana', 'Se pu
   })
 }
 
-test('idle on the balcony at a quarter of the context, Clawd watches the watering can', async ($, on) => {
-  mock.clock(on, { now: 1_000_000 })
-  mock.store(on)
-  on('session.usage', usageAt(80))
-  on('turn.step', answering)
-  await useScene($, 'balcon')
-  await answer($)
+for (const [name, cue] of [
+  ['balcon', 'La regadera se está secando'],
+  ['aventura', 'Se acaba el maná'],
+] as const) {
+  test(`idle in the ${name} at a quarter of the context, Clawd: ${cue}`, async ($, on) => {
+    mock.clock(on, { now: 1_000_000 })
+    mock.store(on)
+    on('session.usage', usageAt(80))
+    on('turn.step', answering)
+    await useScene($, name)
+    await answer($)
 
-  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
-  expect(await clawdOf(band)).toBe('Clawd: La regadera se está secando')
-  await band.unmount()
-})
+    const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
+    expect(await clawdOf(band)).toBe(`Clawd: ${cue}`)
+    await band.unmount()
+  })
+}
 
 test('after a compaction Clawd celebrates a moment, then sleeps', async ($, on) => {
   const clock = mock.clock(on, { now: 1_000_000 })
