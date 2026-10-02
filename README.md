@@ -83,6 +83,7 @@ The band switches to the new scene at once, and later sessions start with it.
 | `balcon` | A sunny balcony. A watering can's water shows the context left; at 25% or less a rain cloud gathers over it and Clawd keeps a worried eye on it, and while the conversation is compacted it rains into the can. A daisy in a pot wilts over the prompt cache's hour. A bluebird pecks at a feeder whose seeds are what's left of the five-hour limit, and a jar of honey, a bee buzzing around it, empties as you use the weekly limit. |
 | `ventana` | A desk by a window at night. A candle is as tall as the context left; at 25% or less a spare candle stands by, and while the conversation is compacted the candle grows back. The moon crosses the window over the prompt cache's hour and sets when the cache expires, and then Clawd yawns. A cup of cocoa shows what's left of the five-hour limit, its steam thinning as it goes down, and a ball of yarn shrinks as you use the weekly limit. |
 | `aventura` | An adventurer's gear on the stone floor of a keep. A mana potion is as full as the context left; at 25% or less a spare vial waits beside it and Clawd watches the mana run low, and while the conversation is compacted the potion fills up again, sparkling. An hourglass runs over the prompt cache's hour, and once it has run out Clawd reaches over to turn it. A chest's heap of gold is what's left of the five-hour limit, and a quiver loses its arrows as you use the weekly limit. |
+| `gamer` | A gaming desk lit by an RGB strip. A monitor shows three hearts of health for the context left; at 25% or less the last one blinks and Clawd frets over it, and while the conversation is compacted the hearts heal. On an arcade cabinet a little hero walks to the flag over the prompt cache's hour; when the cache expires it's game over and Clawd reaches for a token. Cans of energy drink are what's left of the five-hour limit, and a gamepad's battery runs down as you use the weekly limit. |
 
 ## Development
 
@@ -98,6 +99,7 @@ The mod is a Claude Code plugin of function hooks:
 | `hooks/escenas/balcon.ts` | The `balcon` scene: a balcony with a watering can and a daisy. |
 | `hooks/escenas/ventana.ts` | The `ventana` scene: a desk by a window at night. |
 | `hooks/escenas/aventura.ts` | The `aventura` scene: an adventurer's gear in a keep. |
+| `hooks/escenas/gamer.ts` | The `gamer` scene: a gaming desk. |
 | `types/index.d.ts` | The contract for the values the mod keeps in the session's state. |
 | `hooks/cozy-clawd.test.tsx` | Tests that run against the engine. |
 | `tools/preview.mjs` | A script that renders Clawd's scenes and a few states of each figure scene to an HTML page. |

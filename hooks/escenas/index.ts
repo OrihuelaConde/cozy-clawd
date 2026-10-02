@@ -5,6 +5,7 @@
 import { aventura } from './aventura'
 import { balcon } from './balcon'
 import { estante } from './estante'
+import { gamer } from './gamer'
 import { mateada } from './mateada'
 import { ventana } from './ventana'
 
@@ -47,7 +48,7 @@ export type FigureScene = {
   cue?: (f: Figures) => Cue | null
 }
 
-export const FIGURE_SCENES: readonly FigureScene[] = [estante, mateada, balcon, ventana, aventura]
+export const FIGURE_SCENES: readonly FigureScene[] = [estante, mateada, balcon, ventana, aventura, gamer]
 
 export const DEFAULT_FIGURE_SCENE = estante
 
