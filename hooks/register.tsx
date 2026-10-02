@@ -100,7 +100,7 @@ const scenes: Record<Exclude<ClawdMode, 'waiting'>, Scene> = {
   // Nothing to do and the prompt cache expired: asleep, breathing slowly, z's
   // drifting up. With the cache still warm Clawd passes the time instead.
   idle: {
-    label: { es: 'Durmiendo', en: 'Sleeping' },
+    label: { es: 'Durmiendo: la caché venció', en: 'Sleeping: the cache expired' },
     eyes: CLOSED_EYES,
     extra: `
       <g fill="${DOT}">
@@ -460,7 +460,7 @@ const cacheScenes: Record<'worry' | 'yawn', Scene> = {
   // Clawd stretches its arms up in a big yawn, then nods off: two minutes or
   // less of the cache are left.
   yawn: {
-    label: { es: 'Bostezando', en: 'Yawning' },
+    label: { es: 'Bostezando: la caché está por vencer', en: 'Yawning: the cache is about to expire' },
     eyes: `<g class="drowsy">${px(5, 1.5, 1, 0.5)}${px(12, 1.5, 1, 0.5)}</g><g class="shut">${CLOSED_EYES}</g>`,
     extra: `
       <g class="mouth" fill="${EYE}"><g class="gape">${px(8, 2, 2, 1)}</g><g class="ajar">${px(8, 2.5, 2, 0.5)}</g></g>
@@ -482,7 +482,7 @@ const cacheScenes: Record<'worry' | 'yawn', Scene> = {
   // Clawd keeps an anxious eye on the scene, a drop of sweat running down its
   // side: ten minutes or less of the cache are left.
   worry: {
-    label: { es: 'Preocupado', en: 'Worried' },
+    label: { es: 'Preocupado: la caché vence pronto', en: 'Worried: the cache expires soon' },
     extra: `<g class="sweat" fill="${SKY}">${px(15, 0, 1, 0.5)}</g>`,
     css: `
       .eyes { transform: translate(1px, 0); }
