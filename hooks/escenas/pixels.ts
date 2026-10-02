@@ -75,6 +75,14 @@ export const COUNTDOWN_CSS = `
     @keyframes roll10 { from { transform: translateY(0); } to { transform: translateY(-60px); } }
     @keyframes roll6 { from { transform: translateY(0); } to { transform: translateY(-36px); } }`
 
+// A figure refilling while the conversation is compacted: the group holding it
+// full is uncovered from the bottom up, from `short` rows below the top, over
+// two seconds. Needs REFILL_CSS in the scene's style.
+export const refill = (short: number) => `animation: refill${short} 2s steps(${Math.max(1, short)}) both`
+
+export const REFILL_CSS = Array.from({ length: 9 }, (_, n) =>
+  `@keyframes refill${n} { from { clip-path: inset(${n}px 0 0 0); } to { clip-path: inset(0 0 0 0); } }`).join('\n    ')
+
 // The scene's image: its pixels below a style; `g` transforms work in scene pixels.
 export const sceneSvg = (css: string, body: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 ${TOP} ${WIDTH} ${HEIGHT}" shape-rendering="crispEdges">
   <style>

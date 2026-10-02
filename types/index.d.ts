@@ -7,6 +7,7 @@ export type ClawdMode =
   | 'tool-use'
   | 'responding'
   | 'compacting'
+  | 'compacted'
 
 // The figures the band shows on its right, read after each model request.
 export type Stats = {

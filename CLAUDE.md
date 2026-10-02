@@ -18,6 +18,7 @@ A Claude Code mod (a plugin of function hooks) that draws a pixel-art band above
 - **Pixel units.** A sprite pixel is 1 unit wide and 2 tall (`scale(1 2)`), like a terminal quarter-block; props use half-unit heights for square pixels. The figure scenes use square pixels.
 - **Plugin options are out of reach in the desktop.** There `$.config.list()` returns only the engine's own rows (seen on 2.1.287), so `$.config.set` can't change a `userConfig` field. The scene choice lives in `$.store` instead.
 - **The first click in an unfocused pane only focuses it.** On the desktop, a click on a `Button` in a `Pane` that doesn't hold the keyboard raises `ui.focus` on that Button and no `ui.press` (seen on 2.1.286). The `/clawd` pane picks the scene from that focus move too (`isPaneFocused`).
+- **A test raises a compaction with the whole event.** In `claude plugin test` nothing builds the event beneath `$.session.compact()`, so a test passes `{ trigger, messages }` itself; and every `on(...)` a test registers beneath the plugin comes before its first `$` call.
 - **The desktop draws its own busy indicator.** A `ui.render` hook on `Spinner` never ran in the desktop app (seen on 2.1.286), so Clawd lives in the band (`AbovePrompt`) and the `/clawd` pane (`Pane`), which do render there.
 
 ## Commits

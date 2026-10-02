@@ -4,10 +4,12 @@
 // the week. Each has its number underneath in the 3x5 pixel font.
 //
 // The mate's steam fades by itself over the cache's hour, so the band need not
-// be redrawn to keep it current; once the cache expires the yerba is washed out.
+// be redrawn to keep it current; once the cache expires the yerba is washed out
+// and Clawd reaches for the cold mate. While the conversation is compacted, the
+// kettle boils and the thermos fills up.
 
 import type { FigureScene, Figures } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
+import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
 
 // Objects stand on the tablecloth, which takes rows 8 and 9.
 const CLOTH_Y = 8
@@ -32,29 +34,43 @@ const PACK = '#6B8E4E'
 const PACK_DARK = '#557341'
 
 // A kettle ready to refill the thermos: round, its handle arched over the lid
-// and its spout rising to the left, steaming.
-const kettle = (x: number) => `
+// and its spout rising to the left, steaming. Boiling, its lid rattles and the
+// spout puffs hard.
+const kettle = (x: number, isBoiling: boolean) => `
   <g fill="${STEEL_DARK}">${px(x + 3, 1, 3, 1)}${px(x + 2, 2)}${px(x + 6, 2)}${px(x + 3, 7, 3, 1)}</g>
-  <g fill="${STEEL}">${px(x, 3)}${px(x + 3, 3, 3, 1)}${px(x + 1, 4, 6, 1)}${px(x + 2, 5, 5, 2)}</g>
-  <g fill="${CREAM}" opacity="0.6"><g class="kettle-steam">${px(x, 1)}</g></g>`
+  <g fill="${STEEL}">${px(x, 3)}${px(x + 1, 4, 6, 1)}${px(x + 2, 5, 5, 2)}</g>
+  <g fill="${STEEL}"${isBoiling ? ' class="rattle"' : ''}>${px(x + 3, 3, 3, 1)}</g>
+  <g fill="${CREAM}" opacity="${isBoiling ? 0.85 : 0.6}">${
+    isBoiling
+      ? `<g class="boil1">${px(x, 1)}</g><g class="boil2">${px(x + 1, 0)}</g><g class="boil3">${px(x, 0)}</g>`
+      : `<g class="kettle-steam">${px(x, 1)}</g>`
+  }</g>`
 
 // How far the thermos steps right to make room for the kettle.
 const ASIDE = 2
 
+// The water strip's rows, from the bottom.
+const STRIP = 5
+
 // Context: a thermos with a strip of water down its side that drops as the
 // context fills. At a quarter or less, a kettle waits beside it to refill it,
-// and the thermos steps aside for it.
-const thermos = (left: number | null, x: number) => {
-  const rows = left === null ? 0 : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * 5))
+// and the thermos steps aside for it. While the conversation is compacted the
+// kettle boils and the water rises to the top.
+const thermos = (left: number | null, x: number, isCompacting: boolean) => {
+  const rows = left === null ? 0 : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * STRIP))
   const isLow = left !== null && left <= 25
-  const at = isLow ? x + ASIDE : x
+  const hasKettle = isLow || isCompacting
+  const at = hasKettle ? x + ASIDE : x
+  const water = isCompacting
+    ? `<g style="${refill(STRIP - rows)}">${px(at + 7, 7 - STRIP, 1, STRIP)}</g>`
+    : rows > 0 ? px(at + 7, 7 - rows, 1, rows) : ''
   return `
     <g fill="${STEEL}">${px(at + 7, -2)}${px(at + 6, -1, 3, 1)}${px(at + 5, 0, 5, 1)}</g>
     <g fill="${THERMOS}">${px(at + 5, 1, 5, 7)}</g>
     <g fill="${THERMOS_DARK}">${px(at + 9, 1, 1, 7)}${px(at + 10, 2)}${px(at + 10, 5)}${px(at + 11, 2, 1, 4)}</g>
     <g fill="${GAUGE}">${px(at + 7, 2, 1, 5)}</g>
-    <g fill="${WATER}">${rows > 0 ? px(at + 7, 7 - rows, 1, rows) : ''}</g>
-    ${isLow ? kettle(x) : ''}
+    <g fill="${WATER}">${water}</g>
+    ${hasKettle ? kettle(x, isCompacting) : ''}
     ${percentText(left, x)}`
 }
 
@@ -134,12 +150,18 @@ const mateadaSvg = (f: Figures) =>
     .steam1 { animation: steam 2s steps(4) infinite; }
     .steam2 { animation: steam 2s steps(4) -1s infinite; }
     .kettle-steam { animation: steam 2s steps(4) -0.5s infinite; }
+    .boil1 { animation: steam 0.9s steps(3) infinite; }
+    .boil2 { animation: steam 0.9s steps(3) -0.3s infinite; }
+    .boil3 { animation: steam 0.9s steps(3) -0.6s infinite; }
+    .rattle { animation: rattle 0.4s steps(1) infinite; }
+    @keyframes rattle { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, -1px); } }
+    ${REFILL_CSS}
     @keyframes steam { 0% { transform: translate(0, 2px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(0, -1px); opacity: 0; } }
     .warm { animation-name: cool; animation-timing-function: linear; animation-fill-mode: forwards; }
     @keyframes cool { from { opacity: 1; } to { opacity: 0; } }`,
     `
   ${tablecloth()}
-  ${thermos(f.contextLeft, 0)}
+  ${thermos(f.contextLeft, 0, f.isCompacting)}
   ${mate(f.cacheLeft, f.cacheTtl, SLOT)}
   ${plate(f.fiveHour, SLOT * 2)}
   ${pack(f.week, SLOT * 3)}`,
@@ -152,4 +174,5 @@ export const mateada: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: mateadaSvg,
+  cue: f => (f.cacheLeft !== null && f.cacheLeft <= 0 ? 'reach' : null),
 }

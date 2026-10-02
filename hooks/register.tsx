@@ -3,7 +3,7 @@ import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import type { ClawdMode, Stats } from '../types'
 import { DEFAULT_FIGURE_SCENE, FIGURE_SCENES, figureSceneNamed, figuresAlt } from './escenas/index'
-import type { Figures } from './escenas/index'
+import type { Cue, Figures } from './escenas/index'
 
 const PANE = 'clawd'
 const mode = atom({ plugin: 'cozy-clawd', key: 'mode' } as const, 'idle')
@@ -192,6 +192,26 @@ const scenes: Record<ClawdMode, Scene> = {
       @keyframes s2 { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(-1px, 1px); } }
       @keyframes sheets { 0%, 69.9% { opacity: 1; } 70%, 100% { opacity: 0; } }
       @keyframes cube { 0%, 69.9% { opacity: 0; } 70%, 100% { opacity: 1; } }`,
+  },
+  // A compaction just finished: Clawd hops twice for joy, arms up, among sparkles.
+  compacted: {
+    label: '¡Conversación compactada!',
+    eyes: px(5, 1, 1, 0.5) + px(12, 1, 1, 0.5),
+    extra: `
+      <g fill="${SPARK}">
+        <g class="k1">${px(17, -1, 1, 0.5)}${px(1, -1.5, 1, 0.5)}</g>
+        <g class="k2">${px(19, 1, 1, 0.5)}${px(0, 0.5, 1, 0.5)}</g>
+        <g class="k3">${px(18, -2.5, 1, 0.5)}${px(2, -2.5, 1, 0.5)}</g>
+      </g>`,
+    css: `
+      .clawd { animation: jump 1.2s steps(1) infinite; }
+      .arm-l, .arm-r { animation: cheer 1.2s steps(1) infinite; }
+      .k1 { animation: twinkle 0.6s steps(1) infinite; }
+      .k2 { animation: twinkle 0.6s steps(1) -0.2s infinite; }
+      .k3 { animation: twinkle 0.6s steps(1) -0.4s infinite; }
+      @keyframes jump { 0%, 19.9% { transform: translate(0, -1px); } 20%, 49.9% { transform: translate(0, 0); } 50%, 69.9% { transform: translate(0, -1px); } 70%, 100% { transform: translate(0, 0); } }
+      @keyframes cheer { 0%, 19.9% { transform: translate(0, -1px); } 20%, 49.9% { transform: translate(0, -0.5px); } 50%, 69.9% { transform: translate(0, -1px); } 70%, 100% { transform: translate(0, 0); } }
+      @keyframes twinkle { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }`,
   },
   // Thinking: two thought dots, then a light bulb that switches on.
   thinking: {
@@ -454,6 +474,35 @@ const sceneFor = (m: ClawdMode, tool: string | null) => {
   return { scene, label: scene.label }
 }
 
+// A piece of Clawd's arm that shows from `from`% of the cycle until it pulls
+// the arm back at 80%.
+const stretch = (name: string, from: number) =>
+  `.${name} { animation: ${name} 3.2s steps(1) infinite; }
+  @keyframes ${name} { 0%, ${from - 0.1}% { opacity: 0; } ${from}%, 79.9% { opacity: 1; } 80%, 100% { opacity: 0; } }`
+
+// What Clawd does instead of sleeping when the scene on the right calls for it.
+const cueScenes: Record<Cue, Scene> = {
+  // The mate went cold: Clawd looks over at it and stretches an arm out toward
+  // it, its claw grabbing at the air, then pulls back and tries again.
+  reach: {
+    label: 'El mate se enfrió',
+    extra: `
+      <g fill="${BODY}">
+        <g class="r1">${px(17, 2)}</g><g class="r2">${px(18, 2)}</g><g class="r3">${px(19, 2)}</g>
+        <g class="r4">${px(20, 2)}</g><g class="r5">${px(21, 2)}</g>
+        <g class="r6"><g class="open">${px(22, 1.5, 1, 0.5)}${px(22, 3, 1, 0.5)}</g><g class="closed">${px(22, 2)}</g></g>
+      </g>`,
+    css: `
+      .eyes { transform: translate(1px, 0); }
+      .eyes rect { animation: blink 3.2s steps(1) infinite; }
+      ${stretch('r1', 8)} ${stretch('r2', 14)} ${stretch('r3', 20)} ${stretch('r4', 26)} ${stretch('r5', 32)} ${stretch('r6', 38)}
+      .open { animation: grab 0.5s steps(1) infinite; }
+      .closed { animation: grab 0.5s steps(1) -0.25s infinite; }
+      @keyframes grab { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
+      ${BLINK}`,
+  },
+}
+
 // Each scene enters with a small hop of Clawd while its props fade in, so a
 // change of mode reads as a transition rather than a cut.
 const ENTER = `
@@ -567,6 +616,25 @@ async function redrawBand($: EngineInterface) {
   await update($, redraws, n => n + 1)
 }
 
+// How long Clawd hops for joy after a compaction.
+const CELEBRATE_MS = 2400
+
+// After a compaction Clawd celebrates a moment, then sleeps, unless the turn
+// the compaction was part of has moved on by then.
+async function celebrate($: EngineInterface) {
+  await show($, 'compacted')
+  // A quick compaction leaves the celebration waiting out the compacting
+  // scene's MIN_MS first; it lasts its while from when it shows.
+  const wait = current.mode === 'compacted' ? 0 : Math.max(0, shownAt + MIN_MS - (await $.clock.now()))
+  $.clock.after(wait + CELEBRATE_MS, () => endCelebration($))
+}
+
+async function endCelebration($: EngineInterface) {
+  if (current.mode === 'compacted' && timer === null) {
+    await show($, 'idle')
+  }
+}
+
 // Compacting in the middle of a turn would cut it short: the button only says so.
 async function compactNow($: EngineInterface, isWorking: boolean) {
   await update($, isConfirming, () => false)
@@ -599,13 +667,15 @@ async function loadFigureScene($: EngineInterface) {
   }
 }
 
-// What the scene on the right shows: the figures, and the cache's seconds left right now.
-const figuresOf = (s: Stats, now: number): Figures => ({
+// What the scene on the right shows: the figures, the cache's seconds left
+// right now, and whether the conversation is being compacted.
+const figuresOf = (s: Stats, now: number, isCompacting = false): Figures => ({
   contextLeft: s.contextLeft,
   fiveHour: s.fiveHour,
   week: s.week,
   cacheLeft: s.cacheAt === null ? null : Math.max(0, (s.cacheAt + CACHE_TTL_MIN * 60_000 - now) / 1000),
   cacheTtl: CACHE_TTL_MIN * 60,
+  isCompacting,
 })
 
 export const register: Register = on => {
@@ -718,11 +788,15 @@ export const register: Register = on => {
       return next(e)
     }
     await show($, 'compacting')
+    let isDone = false
     try {
-      return await next(e)
+      const result = await next(e)
+      isDone = result.skip === undefined
+      return result
     } finally {
-      await show($, 'idle')
+      // The fresh figures first, so the celebration shows the scene refilled.
       await refreshStats($)
+      await (isDone ? celebrate($) : show($, 'idle'))
     }
   })
 
@@ -747,19 +821,23 @@ export const register: Register = on => {
     const { Box, Button, Markdown, Svg, Text } = $.ui.resolve(e)
     const drawnMode = await read($, mode)
     // A turn that ended without telling (an interruption) leaves no stale mode.
-    const isIdle = !e.props.isWorking && drawnMode !== 'compacting'
-    const { scene, label } = isIdle ? { scene: scenes.idle, label: 'Durmiendo' } : sceneFor(drawnMode, await read($, tool))
-    const figures = figuresOf(await read($, stats), await $.clock.now())
+    const isIdle = !e.props.isWorking && drawnMode !== 'compacting' && drawnMode !== 'compacted'
+    const figures = figuresOf(await read($, stats), await $.clock.now(), drawnMode === 'compacting')
     const isLow = figures.contextLeft !== null && figures.contextLeft <= COMPACT_AT
     await read($, redraws)
     const isAsking = await read($, isConfirming)
     const figureScene = figureSceneNamed(await read($, escena))
+    // Idle, Clawd sleeps, unless the scene on the right calls for something else.
+    const cue = isIdle ? (figureScene.cue?.(figures) ?? null) : null
+    const idleScene = cue === null ? scenes.idle : cueScenes[cue]
+    const { scene, label } = isIdle ? { scene: idleScene, label: idleScene.label } : sceneFor(drawnMode, await read($, tool))
+    const isOngoing = !isIdle && drawnMode !== 'compacted'
 
     return (
       <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap={2}>
         <Box flexDirection="row" alignItems="center" gap={1}>
           <Svg source={svgFor(scene)} alt={`Clawd: ${label}`} width={VIEW_W * SCALE} height={VIEW_H * 2 * SCALE} />
-          <Markdown text={`### ${label}${isIdle ? '' : '…'}`} dimColor />
+          <Markdown text={`### ${label}${isOngoing ? '…' : ''}`} dimColor />
         </Box>
         <Box flexDirection="row" alignItems="center" gap={1}>
           {isAsking ? (
@@ -795,7 +873,7 @@ export const register: Register = on => {
 
       return (
         <Box flexDirection="column">
-          <Text>{scene === scenes.idle ? label : `${label}…`}</Text>
+          <Text>{scene === scenes.idle || scene === scenes.compacted ? label : `${label}…`}</Text>
           <Select
             key="escena"
             label="Escena"

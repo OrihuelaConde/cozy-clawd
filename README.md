@@ -10,7 +10,7 @@ cozy-clawd is an unofficial fan project. It isn't affiliated with or endorsed by
 
   | State or tool | Scene |
   | --- | --- |
-  | Idle | Clawd sleeps, with z's drifting up. |
+  | Idle | Clawd sleeps, with z's drifting up, unless the scene of figures calls for something else. For more information, see [Choose a scene](#choose-a-scene). |
   | Working on the answer | Clawd stacks colored blocks. |
   | Thinking | Thought dots rise to a light bulb that switches on. |
   | Writing the answer | Clawd walks in place while lines of text appear. |
@@ -21,10 +21,11 @@ cozy-clawd is an unofficial fan project. It isn't affiliated with or endorsed by
   | Launching a subagent | A small Clawd runs off while the big one waves. |
   | Waiting for your approval or answer | A ladybug flies past, and Clawd follows it. |
   | Compacting the conversation | Loose sheets are pressed into a golden block. |
+  | Right after compacting | Clawd hops for joy among sparkles. |
   | Any other tool | Clawd hammers away. |
 
 - **A scene of session figures.** Each figure is an object with its number underneath in a pixel font. In the `estante` scene, the default, the objects stand on a shelf:
-  - A mug of tea shows the context window left. It stops steaming at 25% or less.
+  - A mug of tea shows the context window left. It stops steaming at 25% or less, and it fills up again while the conversation is compacted.
   - A candle burns down over the one-hour prompt cache and goes out when the cache expires.
   - A cookie jar shows what's left of the five-hour usage limit.
   - A moon wanes as you use the weekly limit.
@@ -78,7 +79,7 @@ The band switches to the new scene at once, and later sessions start with it.
 | Scene | What it shows |
 | --- | --- |
 | `estante` | A shelf with a mug of tea, a candle, a cookie jar, and a moon. |
-| `mateada` | A checked tablecloth set for mate. A thermos's strip of water shows the context left, and at 25% or less a steaming kettle waits beside it. The mate's steam fades over the prompt cache's hour, and the yerba washes out when the cache expires. A plate holds a medialuna for every quarter of the five-hour limit left, and a pack of yerba flattens as you use the weekly limit. |
+| `mateada` | A checked tablecloth set for mate. A thermos's strip of water shows the context left, and at 25% or less a steaming kettle waits beside it; while the conversation is compacted, the kettle boils and the thermos fills up. The mate's steam fades over the prompt cache's hour, and the yerba washes out when the cache expires; then Clawd reaches for the cold mate. A plate holds a medialuna for every quarter of the five-hour limit left, and a pack of yerba flattens as you use the weekly limit. |
 
 ## Development
 
@@ -88,7 +89,7 @@ The mod is a Claude Code plugin of function hooks:
 | --- | --- |
 | `hooks/register.tsx` | The hooks module: Clawd's scenes, how the mod follows the turn, the band, and the `/clawd` pane. |
 | `hooks/escenas/index.ts` | The scenes the session figures can be drawn as, and the figures in words. |
-| `hooks/escenas/pixels.ts` | What the figure scenes share: their layout, the pixel font of the numbers, and the cache's countdown. |
+| `hooks/escenas/pixels.ts` | What the figure scenes share: their layout, the pixel font of the numbers, the cache's countdown, and the refill while compacting. |
 | `hooks/escenas/estante.ts` | The `estante` scene: a shelf of objects. |
 | `hooks/escenas/mateada.ts` | The `mateada` scene: a tablecloth set for mate. |
 | `types/index.d.ts` | The contract for the values the mod keeps in the session's state. |

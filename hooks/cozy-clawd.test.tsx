@@ -1,8 +1,11 @@
-import { expect, mock, test } from 'claude-code/testing'
+import { expect, mock, test, type TestBody } from 'claude-code/testing'
 
-const BAND = { hasSurvey: false, maxRows: 10, bodyColumns: 120 }
+// What a site's props carry beside its own: where it scrolls, and whose conversation it shows.
+const SITE = { scroll: { offset: 0, bodyRows: 10 }, view: {} }
 
-const PANE_PROPS = { title: 'Escenas', isFocused: false, bodyColumns: 40, placement: 'dock' } as const
+const BAND = { ...SITE, hasSurvey: false, maxRows: 10, bodyColumns: 120 }
+
+const PANE_PROPS = { ...SITE, title: 'Escenas', isFocused: false, bodyColumns: 40, placement: 'dock' } as const
 
 test('the pane shows every scene on the desktop, the one in use marked', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
@@ -10,7 +13,9 @@ test('the pane shows every scene on the desktop, the one in use marked', async (
   expect(await pane.findAll({ type: 'Svg' })).toHaveLength(2)
   expect(await pane.find({ type: 'Text', text: 'en uso' })).toBeDefined()
   expect(await pane.find({ key: 'usar-estante' })).toBeUndefined()
-  expect(await pane.find({ key: 'usar-mateada' })).toBeDefined()
+  for (const name of ['mateada']) {
+    expect(await pane.find({ key: `usar-${name}` })).toBeDefined()
+  }
   await pane.unmount()
 })
 
@@ -57,7 +62,7 @@ test('/clawd-escena names the scenes and turns down one that does not exist', as
     ({ command: 'clawd-escena', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } }) as const
 
   const listed = await $.command.run(typed(''))
-  expect(listed.text).toMatch(/Escena: estante\. Hay: estante/)
+  expect(listed.text).toMatch(/Escena: estante\. Hay: estante, mateada/)
 
   const unknown = await $.command.run(typed('Playa'))
   expect(unknown.text).toMatch(/No hay una escena "playa"/)
@@ -91,4 +96,65 @@ test('a new session starts with the scene picked last', async ($, on) => {
 
   const listed = await $.command.run({ command: 'clawd-escena', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
   expect(listed.text).toMatch(/Escena: mateada\. Hay: estante, mateada/)
+})
+
+// What Clawd is doing, as the band's Clawd image says it.
+const clawdOf = async (band: { findAll: (q: { type: 'Svg' }) => Promise<{ props: { alt?: unknown } }[]> }) =>
+  (await band.findAll({ type: 'Svg' })).map(svg => String(svg.props.alt)).find(alt => alt.startsWith('Clawd: '))
+
+// Picks a scene the way the person does: Usar in the pane.
+const useScene = async ($: Parameters<TestBody>[0], name: string) => {
+  const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
+  await pane.press({ key: `usar-${name}` })
+  await pane.unmount()
+}
+
+// The model beneath the plugins: it answers each request with nothing.
+const answering = async function* (_$: unknown, e: { turnId: string; index: number }) {
+  return { turnId: e.turnId, index: e.index, answer: '', toolUses: [], stopReason: 'end_turn' as const, usage: null }
+}
+
+// One model request answered: the prompt cache starts over from now.
+const answer = async ($: Parameters<TestBody>[0]) => {
+  for await (const _ of $.turn.step({ turnId: 't1', index: 0, model: 'test', messageCount: 1 })) {
+    // The test's answer streams nothing.
+  }
+}
+
+const usageAt = (percent: number) => () => ({ value: { startedAt: 0, context: { window: 200_000, tokens: percent * 2_000, percent }, rateLimits: [] } })
+
+for (const [name, cue] of [['mateada', 'El mate se enfrió']] as const) {
+  test(`idle in the ${name} once the cache has expired, Clawd: ${cue}`, async ($, on) => {
+    const clock = mock.clock(on, { now: 1_000_000 })
+    mock.store(on)
+    on('session.usage', usageAt(30))
+    on('turn.step', answering)
+    await useScene($, name)
+    await answer($)
+
+    const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
+    expect(await clawdOf(band)).toBe('Clawd: Durmiendo')
+    await clock.advance(61 * 60_000)
+    expect(await clawdOf(band)).toBe(`Clawd: ${cue}`)
+    await band.unmount()
+  })
+}
+
+test('after a compaction Clawd celebrates a moment, then sleeps', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  on('session.usage', usageAt(10))
+  on('session.compact', () => ({ messages: [{ role: 'user', text: 'Resumen', toolUses: [] }] }))
+
+  // The event as the engine raises it for /compact; the test has no transcript to build it from.
+  await $.session.compact({ trigger: 'manual', messages: [{ role: 'user', text: 'hola', toolUses: [] }] } as never)
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
+  // So quick a compaction still shows for its while before the celebration.
+  expect(await clawdOf(band)).toBe('Clawd: Compactando la conversación')
+  await clock.advance(1_500)
+  expect(await clawdOf(band)).toBe('Clawd: ¡Conversación compactada!')
+  await clock.advance(2_300)
+  expect(await clawdOf(band)).toBe('Clawd: ¡Conversación compactada!')
+  await clock.advance(100)
+  expect(await clawdOf(band)).toBe('Clawd: Durmiendo')
+  await band.unmount()
 })

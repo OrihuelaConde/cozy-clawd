@@ -28,13 +28,17 @@ mkdirSync(outDir, { recursive: true })
 const code = readFileSync(join(root, 'hooks', 'register.tsx'), 'utf8')
 const body = code.slice(code.indexOf('const BODY'), code.indexOf('// Each mode stays on screen'))
 const scenesFile = join(outDir, 'scenes.gen.ts')
-writeFileSync(scenesFile, `type ClawdMode = string\n${body}\nexport { scenes, toolScenes, svgFor, SCALE, VIEW_W, VIEW_H }\n`)
-const { scenes, toolScenes, svgFor, SCALE, VIEW_W, VIEW_H } = await import(pathToFileURL(scenesFile).href + '?t=' + Date.now())
+writeFileSync(scenesFile, `type ClawdMode = string\n${body}\nexport { scenes, toolScenes, cueScenes, svgFor, SCALE, VIEW_W, VIEW_H }\n`)
+const { scenes, toolScenes, cueScenes, svgFor, SCALE, VIEW_W, VIEW_H } = await import(pathToFileURL(scenesFile).href + '?t=' + Date.now())
 const { FIGURE_SCENES, figuresAlt } = await import(pathToFileURL(join(root, 'hooks', 'escenas', 'index.ts')).href + '?t=' + Date.now())
 
 const uri = svg => 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64')
 
-const sceneRows = [...Object.entries(scenes), ...Object.entries(toolScenes).map(([kind, scene]) => [`tool:${kind}`, scene])]
+const sceneRows = [
+  ...Object.entries(scenes),
+  ...Object.entries(toolScenes).map(([kind, scene]) => [`tool:${kind}`, scene]),
+  ...Object.entries(cueScenes).map(([cue, scene]) => [`cue:${cue}`, scene]),
+]
   .map(([name, scene]) => `
   <div class="row">
     <img src="${uri(svgFor(scene))}" width="${VIEW_W * SCALE}" height="${VIEW_H * 2 * SCALE}">
@@ -48,6 +52,7 @@ const shelfCases = [
   ['Low, cache expired', { contextLeft: 20, fiveHour: 95, week: 80, cacheLeft: 0, cacheTtl: 3600 }],
   ['No readings yet', { contextLeft: null, fiveHour: null, week: null, cacheLeft: null, cacheTtl: 3600 }],
   ['Cache about to expire', { contextLeft: 100, fiveHour: 0, week: 0, cacheLeft: 125, cacheTtl: 3600 }],
+  ['Compacting', { contextLeft: 20, fiveHour: 42, week: 18, cacheLeft: 47 * 60 + 12, cacheTtl: 3600, isCompacting: true }],
 ]
 const figureSections = FIGURE_SCENES.map(scene => {
   const w = scene.width * scene.scale

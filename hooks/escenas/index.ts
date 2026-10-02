@@ -16,7 +16,14 @@ export type Figures = {
   cacheLeft: number | null
   // The cache's whole life, in seconds.
   cacheTtl: number
+  // The conversation is being compacted right now: each scene refills its
+  // context figure while it lasts.
+  isCompacting: boolean
 }
+
+// What Clawd does about the scene while it has nothing else to do, instead of
+// sleeping: reach for the cold mate.
+export type Cue = 'reach'
 
 export type FigureScene = {
   // What /clawd-escena takes and the plugin's store keeps.
@@ -28,6 +35,9 @@ export type FigureScene = {
   height: number
   scale: number
   svg: (f: Figures) => string
+  // What Clawd does about the scene while idle, when something in it calls
+  // for it; nothing, and Clawd sleeps.
+  cue?: (f: Figures) => Cue | null
 }
 
 export const FIGURE_SCENES: readonly FigureScene[] = [estante, mateada]

@@ -4,9 +4,10 @@
 //
 // Everything that moves runs on its own CSS animation, including the cache's
 // candle and minutes, so the band need not be redrawn to keep them current.
+// While the conversation is compacted the mug fills up again.
 
 import type { FigureScene, Figures } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, INK, percentText, pixelText, px, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
+import { COUNTDOWN_CSS, countdown, HEIGHT, INK, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
 
 // Objects stand on the board at y 9; the numbers sit under it.
 const BOARD_Y = 9
@@ -25,15 +26,22 @@ const MOON = '#F2E9C9'
 const MOON_DARK = '#3A3934'
 const STAR = '#F5C26B'
 
+// The mug holds this many rows of tea.
+const MUG_ROWS = 5
+
 // Context: a mug of tea whose level is the context left; it steams while
-// warm and goes cold (no steam) at a quarter or less.
-const mug = (left: number | null, x: number) => {
-  const rows = left === null ? 0 : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * 5))
-  const isWarm = left !== null && left > 25
+// warm and goes cold (no steam) at a quarter or less. While the conversation
+// is compacted the mug fills up with hot tea.
+const mug = (left: number | null, x: number, isCompacting: boolean) => {
+  const rows = left === null ? 0 : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * MUG_ROWS))
+  const isWarm = isCompacting || (left !== null && left > 25)
+  const tea = isCompacting
+    ? `<g style="${refill(MUG_ROWS - rows)}">${px(x + 5, 8 - MUG_ROWS, 4, MUG_ROWS)}</g>`
+    : rows > 0 ? px(x + 5, 8 - rows, 4, rows) : ''
   return `
     <g fill="${CERAMIC}">${px(x + 4, 3, 1, 6)}${px(x + 9, 3, 1, 6)}${px(x + 4, 8, 6, 1)}
       ${px(x + 10, 4, 1, 1)}${px(x + 11, 4, 1, 3)}${px(x + 10, 6, 1, 1)}</g>
-    <g fill="${TEA}">${rows > 0 ? px(x + 5, 8 - rows, 4, rows) : ''}</g>
+    <g fill="${TEA}">${tea}</g>
     ${isWarm ? `<g fill="${CERAMIC}" opacity="0.6">
       <g class="steam1">${px(x + 6, 1, 1, 1)}${px(x + 5, 0, 1, 1)}</g>
       <g class="steam2">${px(x + 8, 1, 1, 1)}${px(x + 9, 0, 1, 1)}</g>
@@ -103,6 +111,7 @@ const moon = (used: number | null, x: number) => {
 const shelfSvg = (f: Figures) =>
   sceneSvg(
     `${COUNTDOWN_CSS}
+    ${REFILL_CSS}
     .steam1 { animation: steam 2s steps(4) infinite; }
     .steam2 { animation: steam 2s steps(4) -1s infinite; }
     @keyframes steam { 0% { transform: translate(0, 2px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(0, -1px); opacity: 0; } }
@@ -116,7 +125,7 @@ const shelfSvg = (f: Figures) =>
     .star { animation: twinkle 2.2s steps(1) infinite; }
     @keyframes twinkle { 0%, 69.9% { opacity: 1; } 70%, 84.9% { opacity: 0.2; } 85%, 100% { opacity: 1; } }`,
     `
-  ${mug(f.contextLeft, 0)}
+  ${mug(f.contextLeft, 0, f.isCompacting)}
   ${candle(f.cacheLeft, f.cacheTtl, SLOT)}
   ${jar(f.fiveHour, SLOT * 2)}
   ${moon(f.week, SLOT * 3)}
