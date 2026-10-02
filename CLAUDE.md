@@ -11,7 +11,7 @@ A Claude Code mod (a plugin of function hooks) that draws a pixel-art band above
 
 ## Gotchas the code doesn't confess
 
-- **A redraw restarts every animation.** The desktop reloads each `Svg` image when the band redraws, even with identical source. The band reads only state that changes on a new mode, a new reading, or the cache's expiry; anything that moves on its own (the candle, the countdown digits) is a CSS animation with a negative delay, never a periodic state write.
+- **A redraw restarts every animation.** The desktop reloads each `Svg` image when the band redraws, even with identical source. The band reads only state that changes on a new mode, a new reading, or a step of the cache running out (10 and 2 minutes left, then its expiry); anything that moves on its own (the candle, the countdown digits, Clawd's round of rest and pastimes) is a CSS animation with a negative delay, never a periodic state write.
 - **Plain images only.** `isInteractive` draws the SVG in a sandboxed frame with a white backdrop. CSS `@keyframes` run in plain images.
 - **The engine hands a response over in a burst.** Text and tool-call chunks often arrive within milliseconds of each other, so every mode stays on screen at least `MIN_MS`.
 - **`$` travels only to top-level functions.** The engine scans the module: a helper that receives `$` is a top-level `function` or a `const` bound to one, never a closure inside `register`.

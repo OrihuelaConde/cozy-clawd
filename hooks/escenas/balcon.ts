@@ -5,8 +5,8 @@
 //
 // The daisy wilts by itself over the cache's hour, so the band need not be
 // redrawn to keep it current. At a quarter of the context or less a rain cloud
-// gathers over the watering can, and Clawd keeps an eye on the can; while the
-// conversation is compacted it rains and the can fills up.
+// gathers over the watering can; while the conversation is compacted it rains
+// and the can fills up.
 
 import type { FigureScene, Figures } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
@@ -231,8 +231,4 @@ export const balcon: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: balconSvg,
-  cue: f =>
-    f.contextLeft !== null && f.contextLeft <= 25
-      ? { act: 'watch', label: { es: 'La regadera se está secando', en: 'The watering can is drying up' } }
-      : null,
 }

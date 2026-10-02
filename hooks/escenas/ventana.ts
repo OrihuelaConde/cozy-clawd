@@ -5,9 +5,9 @@
 //
 // The moon crosses the window by itself over the cache's hour and sets as the
 // cache expires, so the band need not be redrawn to keep it current; then only
-// the stars are left and Clawd yawns. At a quarter of the context or less a
-// spare candle waits beside the stub; while the conversation is compacted the
-// candle grows back to its full height.
+// the stars are left. At a quarter of the context or less a spare candle
+// waits beside the stub; while the conversation is compacted the candle grows
+// back to its full height.
 
 import type { FigureScene, Figures } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, level, percentText, pixelText, px, refill, REFILL_CSS, rise, RISE_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
@@ -231,8 +231,4 @@ export const ventana: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: ventanaSvg,
-  cue: f =>
-    f.cacheLeft !== null && f.cacheLeft <= 0
-      ? { act: 'yawn', label: { es: 'Se puso la luna', en: 'The moon has set' } }
-      : null,
 }

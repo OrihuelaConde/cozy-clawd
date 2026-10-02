@@ -5,9 +5,8 @@
 //
 // The arcade's little hero walks to the flag by itself over the cache's hour,
 // so the band need not be redrawn to keep it current; once the cache expires
-// it is game over and Clawd reaches for a token. At a quarter of the context
-// or less the last heart blinks and Clawd frets over it; while the
-// conversation is compacted the hearts heal back to full.
+// it is game over. At a quarter of the context or less the last heart blinks;
+// while the conversation is compacted the hearts heal back to full.
 
 import type { FigureScene, Figures } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
@@ -176,10 +175,4 @@ export const gamer: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: gamerSvg,
-  cue: f =>
-    f.cacheLeft !== null && f.cacheLeft <= 0
-      ? { act: 'reach', label: { es: 'Insertá otra ficha', en: 'Insert another coin' } }
-      : f.contextLeft !== null && f.contextLeft <= 25
-        ? { act: 'watch', label: { es: 'Queda poca vida', en: 'Low on health' } }
-        : null,
 }

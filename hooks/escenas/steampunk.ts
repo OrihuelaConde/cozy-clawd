@@ -6,9 +6,9 @@
 //
 // The clock's minute hand goes round by itself over the cache's hour, so the
 // band need not be redrawn to keep it current; once the cache expires the
-// clock stops and Clawd reaches over to wind it. At a quarter of the context
-// or less the boiler runs cold and Clawd frets over its pressure; while the
-// conversation is compacted the boiler whistles and the sight glass fills.
+// clock stops. At a quarter of the context or less the boiler runs cold;
+// while the conversation is compacted the boiler whistles and the sight glass
+// fills.
 
 import type { FigureScene, Figures } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
@@ -206,10 +206,4 @@ export const steampunk: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: steampunkSvg,
-  cue: f =>
-    f.cacheLeft !== null && f.cacheLeft <= 0
-      ? { act: 'reach', label: { es: 'Hay que darle cuerda al reloj', en: 'The watch needs winding' } }
-      : f.contextLeft !== null && f.contextLeft <= 25
-        ? { act: 'watch', label: { es: 'Baja la presión de la caldera', en: 'The boiler is losing pressure' } }
-        : null,
 }

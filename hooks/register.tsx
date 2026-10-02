@@ -3,7 +3,7 @@ import type { EngineInterface, Register, Timer } from 'claude-code'
 
 import type { ClawdMode, Stats } from '../types'
 import { DEFAULT_FIGURE_SCENE, FIGURE_SCENES, figureSceneNamed, figuresAlt } from './escenas/index'
-import type { Act, Figures, FigureScene } from './escenas/index'
+import type { Figures } from './escenas/index'
 import { DEFAULT_LANG, LANG_NAMES, LANGS, langOf } from './idioma'
 import type { Lang, LangChoice, Words } from './idioma'
 
@@ -93,7 +93,7 @@ const toolUse: Scene = {
     @keyframes thud { 0%, 54.9% { transform: translate(0, 0); } 55%, 69.9% { transform: translate(0, 0.5px); } 70%, 100% { transform: translate(0, 0); } }`,
 }
 
-const scenes: Record<ClawdMode, Scene> = {
+const scenes: Record<Exclude<ClawdMode, 'waiting'>, Scene> = {
   // Nothing to do and the prompt cache expired: asleep, breathing slowly, z's
   // drifting up. With the cache still warm Clawd passes the time instead.
   idle: {
@@ -139,40 +139,6 @@ const scenes: Record<ClawdMode, Scene> = {
       @keyframes drop3 { 0%, 39% { transform: translate(0, -4px); opacity: 0; } 40% { transform: translate(0, -4px); opacity: 1; } 52%, 80% { transform: translate(0, 0); opacity: 1; } 81%, 100% { opacity: 0; } }
       @keyframes done { 0%, 55.9% { opacity: 0; } 56%, 63.9% { opacity: 1; } 64%, 69.9% { opacity: 0; } 70%, 77.9% { opacity: 1; } 78%, 100% { opacity: 0; } }
       ${BLINK}`,
-  },
-  // Waiting on the person (a tool to allow, a form to fill in): a ladybug
-  // flies past overhead and Clawd follows it.
-  waiting: {
-    label: { es: 'Esperando', en: 'Waiting' },
-    eyes: `<g class="follow">${OPEN_EYES}</g>`,
-    extra: `
-      <g class="bug">
-        <g fill="${SHELL}">${px(1, 0, 3, 0.5)}${px(0, 0.5, 5, 1)}${px(1, 1.5, 3, 0.5)}</g>
-        <g fill="${EYE}">${px(1, 0.5, 1, 0.5)}${px(3, 0.5, 1, 0.5)}${px(2, 1, 1, 0.5)}</g>
-        <g fill="${STEEL}">${px(5, 0.5, 1, 1)}</g>
-        <g class="wings" fill="${WING}" opacity="0.8">${px(1, -0.5, 1, 0.5)}${px(3, -0.5, 1, 0.5)}</g>
-      </g>`,
-    css: `
-      .clawd { animation: bob 1.2s steps(1) infinite; }
-      .follow { animation: follow 4s steps(1) infinite; }
-      .bug { animation: fly 4s steps(48) infinite; }
-      .wings { animation: flap 0.2s steps(1) infinite; }
-      @keyframes bob { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(0, 0.5px); } }
-      @keyframes follow {
-        0%, 24.9% { transform: translate(-1px, -0.5px); }
-        25%, 49.9% { transform: translate(0, -0.5px); }
-        50%, 79.9% { transform: translate(1px, -0.5px); }
-        80%, 100% { transform: translate(0, 0); }
-      }
-      @keyframes fly {
-        0% { transform: translate(-6px, -2.5px); }
-        20% { transform: translate(1px, -3px); }
-        40% { transform: translate(8px, -2.5px); }
-        60% { transform: translate(15px, -3px); }
-        80% { transform: translate(26px, -2.5px); }
-        100% { transform: translate(26px, -2.5px); }
-      }
-      @keyframes flap { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }`,
   },
   // Compacting the conversation: three loose sheets are pressed together,
   // Clawd's arm pushing down, until they are one small golden block.
@@ -310,7 +276,7 @@ const LAND: [number, number][] = [
 // The props each family of tools hands Clawd while it runs.
 type ToolKind = 'look' | 'write' | 'shell' | 'web' | 'agent' | 'wait' | 'other'
 
-const toolScenes: Record<ToolKind, Scene> = {
+const toolScenes: Record<Exclude<ToolKind, 'wait'>, Scene> = {
   // Reading or searching: the page of the editing scene, already written, and a
   // magnifying glass that sweeps down and up over it while Clawd watches.
   look: {
@@ -437,8 +403,6 @@ const toolScenes: Record<ToolKind, Scene> = {
       }`,
   },
   // Any other tool: the hammer.
-  // Waiting on the person (a question, a plan to approve): the ladybug.
-  wait: scenes.waiting,
   other: toolUse,
 }
 
@@ -468,10 +432,12 @@ const shortName = (tool: string) => (tool.startsWith('mcp__') ? tool.split('__')
 // What the band shows for a mode, and for the tool when one runs. In the
 // waiting mode `tool` says what is awaited: `answer` (a form a connector
 // asked for) or anything else, a tool waiting for the person's approval.
-const sceneFor = (m: ClawdMode, tool: string | null) => {
+// While Clawd waits on the person it passes the time with a pastime picked
+// for that wait (`since`, when the wait began).
+const sceneFor = (m: ClawdMode, tool: string | null, since = 0) => {
   if (m === 'waiting') {
     return {
-      scene: scenes.waiting,
+      scene: waitScene(since),
       label:
         tool === 'answer'
           ? { es: 'Esperando tu respuesta', en: 'Waiting for your answer' }
@@ -480,41 +446,16 @@ const sceneFor = (m: ClawdMode, tool: string | null) => {
   }
   if ((m === 'tool-use' || m === 'tool-input') && tool !== null) {
     const [kind, label] = TOOLS[tool] ?? ['other', { es: `Usando ${shortName(tool)}`, en: `Using ${shortName(tool)}` }]
-    return { scene: toolScenes[kind], label }
+    return { scene: kind === 'wait' ? waitScene(since) : toolScenes[kind], label }
   }
   const scene = scenes[m] ?? scenes.requesting
   return { scene, label: scene.label }
 }
 
-// A piece of Clawd's arm that shows from `from`% of the cycle until it pulls
-// the arm back at 80%.
-const stretch = (name: string, from: number) =>
-  `.${name} { animation: ${name} 3.2s steps(1) infinite; }
-  @keyframes ${name} { 0%, ${from - 0.1}% { opacity: 0; } ${from}%, 79.9% { opacity: 1; } 80%, 100% { opacity: 0; } }`
-
-// What Clawd does instead of sleeping when the scene on the right calls for
-// it; the scene says what for, and the band says that instead of the label.
-const cueScenes: Record<Act, Scene> = {
-  // Clawd looks over at the scene and stretches an arm out toward it, its claw
-  // grabbing at the air, then pulls back and tries again: for the cold mate.
-  reach: {
-    label: { es: 'Estirando el brazo', en: 'Reaching out' },
-    extra: `
-      <g fill="${BODY}">
-        <g class="r1">${px(17, 2)}</g><g class="r2">${px(18, 2)}</g><g class="r3">${px(19, 2)}</g>
-        <g class="r4">${px(20, 2)}</g><g class="r5">${px(21, 2)}</g>
-        <g class="r6"><g class="open">${px(22, 1.5, 1, 0.5)}${px(22, 3, 1, 0.5)}</g><g class="closed">${px(22, 2)}</g></g>
-      </g>`,
-    css: `
-      .eyes { transform: translate(1px, 0); }
-      .eyes rect { animation: blink 3.2s steps(1) infinite; }
-      ${stretch('r1', 8)} ${stretch('r2', 14)} ${stretch('r3', 20)} ${stretch('r4', 26)} ${stretch('r5', 32)} ${stretch('r6', 38)}
-      .open { animation: grab 0.5s steps(1) infinite; }
-      .closed { animation: grab 0.5s steps(1) -0.25s infinite; }
-      @keyframes grab { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
-      ${BLINK}`,
-  },
-  // Clawd stretches its arms up in a big yawn, then nods off: the moon set.
+// What Clawd does as the prompt cache runs out, between waiting and sleeping.
+const cacheScenes: Record<'worry' | 'yawn', Scene> = {
+  // Clawd stretches its arms up in a big yawn, then nods off: two minutes or
+  // less of the cache are left.
   yawn: {
     label: { es: 'Bostezando', en: 'Yawning' },
     eyes: `<g class="drowsy">${px(5, 1.5, 1, 0.5)}${px(12, 1.5, 1, 0.5)}</g><g class="shut">${CLOSED_EYES}</g>`,
@@ -536,8 +477,8 @@ const cueScenes: Record<Act, Scene> = {
       @keyframes doze { 0%, 59.9% { opacity: 0; transform: translate(0, 0.5px); } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(1px, -0.5px); } }`,
   },
   // Clawd keeps an anxious eye on the scene, a drop of sweat running down its
-  // side: the watering can is running dry.
-  watch: {
+  // side: ten minutes or less of the cache are left.
+  worry: {
     label: { es: 'Preocupado', en: 'Worried' },
     extra: `<g class="sweat" fill="${SKY}">${px(15, 0, 1, 0.5)}</g>`,
     css: `
@@ -718,49 +659,150 @@ const PASTIMES: readonly Pastime[] = [
       @keyframes baila-step { 0%, 49.9% { transform: translate(0, -0.5px); } 50%, 100% { transform: translate(0, 0); } }
       @keyframes baila-twinkle { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }`,
   },
+  // Follows a ladybug that flies past overhead, bobbing.
+  {
+    name: 'vaquita',
+    eyes: `<g class="vaquita-follow">${OPEN_EYES}</g>`,
+    extra: `
+      <g class="vaquita-bug">
+        <g fill="${SHELL}">${px(1, 0, 3, 0.5)}${px(0, 0.5, 5, 1)}${px(1, 1.5, 3, 0.5)}</g>
+        <g fill="${EYE}">${px(1, 0.5, 1, 0.5)}${px(3, 0.5, 1, 0.5)}${px(2, 1, 1, 0.5)}</g>
+        <g fill="${STEEL}">${px(5, 0.5, 1, 1)}</g>
+        <g class="vaquita-wings" fill="${WING}" opacity="0.8">${px(1, -0.5, 1, 0.5)}${px(3, -0.5, 1, 0.5)}</g>
+      </g>`,
+    css: `
+      .vaquita .clawd { animation: vaquita-bob 1.2s steps(1) infinite; }
+      .vaquita .vaquita-follow { animation: vaquita-follow 4s steps(1) infinite; }
+      .vaquita .vaquita-bug { animation: vaquita-fly 4s steps(48) infinite; }
+      .vaquita .vaquita-wings { animation: vaquita-flap 0.2s steps(1) infinite; }
+      @keyframes vaquita-bob { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(0, 0.5px); } }
+      @keyframes vaquita-follow {
+        0%, 24.9% { transform: translate(-1px, -0.5px); }
+        25%, 49.9% { transform: translate(0, -0.5px); }
+        50%, 79.9% { transform: translate(1px, -0.5px); }
+        80%, 100% { transform: translate(0, 0); }
+      }
+      @keyframes vaquita-fly {
+        0% { transform: translate(-6px, -2.5px); }
+        20% { transform: translate(1px, -3px); }
+        40% { transform: translate(8px, -2.5px); }
+        60% { transform: translate(15px, -3px); }
+        80% { transform: translate(26px, -2.5px); }
+        100% { transform: translate(26px, -2.5px); }
+      }
+      @keyframes vaquita-flap { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }`,
+  },
 ]
 
-// How long each pastime lasts before the next takes its turn.
+// Clawd at rest between pastimes: breathing slowly, blinking now and then,
+// glancing one way and the other. It asks for no attention.
+const REST: Pastime = {
+  name: 'reposo',
+  eyes: `<g class="reposo-look">${OPEN_EYES}</g>`,
+  extra: '',
+  css: `
+    .reposo .clawd { animation: reposo-breathe 4s steps(1) infinite; }
+    .reposo .eyes rect { animation: reposo-blink 5s steps(1) infinite; }
+    .reposo .reposo-look { animation: reposo-look 13s steps(1) infinite; }
+    @keyframes reposo-breathe { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, 0.25px); } }
+    @keyframes reposo-blink { 0%, 95.9% { opacity: 1; } 96%, 100% { opacity: 0; } }
+    @keyframes reposo-look {
+      0%, 54.9% { transform: translate(0, 0); } 55%, 67.9% { transform: translate(1px, 0); }
+      68%, 79.9% { transform: translate(0, 0); } 80%, 91.9% { transform: translate(-1px, 0); } 92%, 100% { transform: translate(0, 0); }
+    }`,
+}
+
+// How long Clawd rests before a pastime, and how long the pastime lasts.
+const REST_S = 30
 const PASTIME_S = 9
 
-// One pastime by itself, as the preview shows it.
+// How many times each pastime comes up in one round, in a shuffled order.
+const ROUND_SHUFFLES = 2
+
+// A number in [0, 1) for each whole number, the same every time
+// (mulberry32): the round's order and a wait's pastime come from it, so a
+// redraw keeps them as they were.
+const chance = (n: number) => {
+  let t = Math.imul(n + 1, 0x6d2b79f5) >>> 0
+  t = Math.imul(t ^ (t >>> 15), t | 1)
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+}
+
+// The pastimes' order in round `round`: each of them `ROUND_SHUFFLES` times,
+// shuffled, never the same one twice in a row, the round's last and first
+// included.
+const roundOrder = (round: number) => {
+  const order: number[] = []
+  for (let k = 0; k < ROUND_SHUFFLES; k++) {
+    const deck = PASTIMES.map((_, i) => i)
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(chance(round * 100 + k * 10 + i) * (i + 1))
+      ;[deck[i], deck[j]] = [deck[j] ?? 0, deck[i] ?? 0]
+    }
+    if (deck[0] === order[order.length - 1]) {
+      ;[deck[0], deck[1]] = [deck[1] ?? 0, deck[0] ?? 0]
+    }
+    order.push(...deck)
+  }
+  if (order[order.length - 1] === order[0]) {
+    const n = order.length
+    ;[order[n - 1], order[n - 2]] = [order[n - 2] ?? 0, order[n - 1] ?? 0]
+  }
+  return order
+}
+
+// A group of the round that shows in `windows` (from and to, in seconds of
+// the cycle) and is hidden the rest of it.
+const windowsCss = (name: string, windows: [number, number][], cycle: number, at: number) => {
+  const pct = (s: number) => `${((s / cycle) * 100).toFixed(3)}%`
+  const frames = windows.map(([from, to]) => `${pct(from)} { opacity: 1; } ${pct(to)} { opacity: 0; }`).join(' ')
+  return `.turn-${name} { animation: turn-${name} ${cycle}s steps(1) -${at.toFixed(1)}s infinite; }
+    @keyframes turn-${name} { 0% { opacity: 0; } ${frames} 100% { opacity: 0; } }`
+}
+
+// Clawd in a group of its own: its pose, its eyes and its props.
+const pastimeBody = (p: Pastime, turn = '') =>
+  `<g class="${turn} ${p.name}"><g class="clawd">${sprite(p.eyes ?? OPEN_EYES)}</g>${p.extra}</g>`
+
+// One pastime by itself, as the preview shows it and as Clawd waits on the person.
 const pastimeScene = (p: Pastime): Scene => ({
   label: { es: 'Esperando', en: 'Waiting' },
-  body: `<g class="${p.name}"><g class="clawd">${sprite(p.eyes ?? OPEN_EYES)}</g>${p.extra}</g>`,
+  body: pastimeBody(p),
   extra: '',
   css: `${p.css}
     ${BLINK}`,
 })
 
-// Each pastime's turn in the round: shown for its share of the cycle, hidden
-// for the rest.
-const turnCss = (i: number, count: number, cycle: number, at: number) => {
-  const from = (i / count) * 100
-  const to = ((i + 1) / count) * 100
-  const steps = [
-    from > 0 ? `0%, ${(from - 0.01).toFixed(2)}% { opacity: 0; }` : '',
-    `${from.toFixed(2)}%, ${(to - 0.01).toFixed(2)}% { opacity: 1; }`,
-    to < 100 ? `${to.toFixed(2)}%, 100% { opacity: 0; }` : '',
-  ]
-  return `.turn${i} { animation: turn${i} ${cycle}s steps(1) -${at.toFixed(1)}s infinite; }
-    @keyframes turn${i} { ${steps.join(' ')} }`
-}
-
-// Clawd between turns with the prompt cache warm: the pastimes one after
-// another, all in one image so no redraw is needed to change them. The round
-// goes by the clock (`atS`, in seconds), so a redraw takes it up where it was
-// rather than from the first.
+// Clawd between turns with the prompt cache warm: at rest, and every so
+// often a pastime picked at random, all in one image so no redraw is needed
+// to change them. The round goes by the clock (`atS`, in seconds), so a
+// redraw takes it up where it was rather than from the start.
 const waitingScene = (atS: number): Scene => {
-  const cycle = PASTIMES.length * PASTIME_S
+  const slot = REST_S + PASTIME_S
+  const cycle = PASTIMES.length * ROUND_SHUFFLES * slot
+  const order = roundOrder(Math.floor(atS / cycle))
+  const rests = order.map((_, k): [number, number] => [k * slot, k * slot + REST_S])
+  const turns = PASTIMES.map((_, i) =>
+    order.flatMap((p, k): [number, number][] => (p === i ? [[k * slot + REST_S, (k + 1) * slot]] : [])),
+  )
   const at = atS % cycle
   return {
     label: { es: 'Esperando', en: 'Waiting' },
-    body: PASTIMES.map((p, i) => `<g class="turn${i} ${p.name}"><g class="clawd">${sprite(p.eyes ?? OPEN_EYES)}</g>${p.extra}</g>`).join(''),
+    body: [pastimeBody(REST, `turn-${REST.name}`), ...PASTIMES.map(p => pastimeBody(p, `turn-${p.name}`))].join(''),
     extra: '',
-    css: `${PASTIMES.map((_, i) => turnCss(i, PASTIMES.length, cycle, at)).join('\n    ')}
-    ${PASTIMES.map(p => p.css).join('')}
+    css: `${windowsCss(REST.name, rests, cycle, at)}
+    ${PASTIMES.map((p, i) => windowsCss(p.name, turns[i] ?? [], cycle, at)).join('\n    ')}
+    ${[REST, ...PASTIMES].map(p => p.css).join('')}
     ${BLINK}`,
   }
+}
+
+// What Clawd does while it waits on the person: one pastime, picked at
+// random for the wait that began at `since` (milliseconds).
+const waitScene = (since: number) => {
+  const pick = PASTIMES[Math.floor(chance(Math.floor(since / 1000)) * PASTIMES.length)] ?? REST
+  return pastimeScene(pick)
 }
 
 // Each scene enters with a small hop of Clawd while its props fade in, so a
@@ -901,12 +943,18 @@ async function show($: EngineInterface, nextMode: ClawdMode, nextTool: string | 
   await apply($, next)
 }
 
+// With this little of the prompt cache left, in seconds, Clawd frets; with
+// this little, it yawns.
+const WORRY_S = 10 * 60
+const YAWN_S = 2 * 60
+
 // The cache's candle and minutes run down by themselves; the band is drawn
-// again once, when the cache expires, to put the candle out.
-let expiry: Timer | null = null
+// again only as the cache runs out: when Clawd starts to fret, when it
+// yawns, and when the cache expires, to put the candle out.
+let cacheTimers: Timer[] = []
 
 // Reads the context window and the usage limits as the engine last saw them.
-// After an answer the cache starts over, and its expiry is scheduled anew.
+// After an answer the cache starts over, and its last minutes are scheduled anew.
 async function refreshStats($: EngineInterface, isAnswer = false) {
   const usage = await $.session.usage()
   const limit = (kind: string) => usage.rateLimits.find(r => r.kind === kind)?.percentUsed ?? null
@@ -918,8 +966,13 @@ async function refreshStats($: EngineInterface, isAnswer = false) {
     cacheAt: isAnswer ? now : s.cacheAt,
   }))
   if (isAnswer) {
-    expiry?.cancel()
-    expiry = $.clock.after(CACHE_TTL_MIN * 60_000 + 500, () => redrawBand($))
+    for (const t of cacheTimers) {
+      t.cancel()
+    }
+    cacheTimers = []
+    for (const leftS of [WORRY_S, YAWN_S, 0]) {
+      cacheTimers.push($.clock.after((CACHE_TTL_MIN * 60 - leftS) * 1000 + 500, () => redrawBand($)))
+    }
   }
 }
 
@@ -1075,15 +1128,20 @@ const figuresOf = (s: Stats, now: number, isCompacting = false): Figures => ({
   isCompacting,
 })
 
-// What Clawd does with nothing to do: what the scene on the right calls for,
-// if anything; asleep once the prompt cache has expired; otherwise its
-// pastimes, one after another (`now` sets where in their round).
-const idleScene = (figureScene: FigureScene, figures: Figures, now: number) => {
-  const cue = figureScene.cue?.(figures) ?? null
-  if (cue !== null) {
-    return { scene: cueScenes[cue.act], label: cue.label }
-  }
-  const scene = figures.cacheLeft !== null && figures.cacheLeft <= 0 ? scenes.idle : waitingScene(now / 1000)
+// What Clawd does with nothing to do, as the prompt cache runs out: at rest
+// with a pastime now and then (`now` sets where in their round), worried with
+// ten minutes or less left, yawning with two or less, and asleep once the
+// cache has expired.
+const idleScene = (figures: Figures, now: number) => {
+  const left = figures.cacheLeft
+  const scene =
+    left === null || left > WORRY_S
+      ? waitingScene(now / 1000)
+      : left <= 0
+        ? scenes.idle
+        : left <= YAWN_S
+          ? cacheScenes.yawn
+          : cacheScenes.worry
   return { scene, label: scene.label }
 }
 
@@ -1190,8 +1248,8 @@ export const register: Register = on => {
     return next(e)
   })
 
-  // The engine is about to ask the person to allow a tool: Clawd waits with
-  // the ladybug until the next thing happens (the tool runs, or the turn moves on).
+  // The engine is about to ask the person to allow a tool: Clawd waits with a
+  // pastime until the next thing happens (the tool runs, or the turn moves on).
   on('classic.PermissionRequest', async ($, e, next) => {
     await show($, 'waiting', e.tool_name)
 
@@ -1244,7 +1302,7 @@ export const register: Register = on => {
   // right. Drawn as plain images (no isInteractive): the sandboxed frame paints
   // a white backdrop. Redrawing reloads the images and restarts their
   // animations, so the band reads only values that change on a new mode, a new
-  // reading or the cache's expiry.
+  // reading or a step of the cache running out.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey || e.surface === 'terminal') {
       return next(e)
@@ -1262,7 +1320,7 @@ export const register: Register = on => {
     await read($, redraws)
     const isAsking = await read($, isConfirming)
     const figureScene = figureSceneNamed(await read($, escena))
-    const { scene, label } = isIdle ? idleScene(figureScene, figures, now) : sceneFor(drawnMode, await read($, tool))
+    const { scene, label } = isIdle ? idleScene(figures, now) : sceneFor(drawnMode, await read($, tool), shownAt)
     const isOngoing = !isIdle && drawnMode !== 'compacted'
 
     return (
@@ -1310,7 +1368,7 @@ export const register: Register = on => {
       const shownMode = await read($, mode)
       const now = await $.clock.now()
       const { label } =
-        shownMode === 'idle' ? idleScene(figureSceneNamed(shown), figuresOf(await read($, stats), now), now) : sceneFor(shownMode, await read($, tool))
+        shownMode === 'idle' ? idleScene(figuresOf(await read($, stats), now), now) : sceneFor(shownMode, await read($, tool), shownAt)
       const isOngoing = shownMode !== 'idle' && shownMode !== 'compacted'
 
       return (

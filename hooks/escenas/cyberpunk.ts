@@ -6,9 +6,9 @@
 //
 // The sign's tubes go out by themselves over the cache's hour, so the band
 // need not be redrawn to keep it current; once the cache expires the sign is
-// dark and Clawd yawns. At a quarter of the context or less the cell's charge
-// flickers pink beside a loose charging cable, and Clawd frets over it; while
-// the conversation is compacted the cable is plugged in and the cell charges.
+// dark. At a quarter of the context or less the cell's charge flickers pink
+// beside a loose charging cable; while the conversation is compacted the
+// cable is plugged in and the cell charges.
 
 import type { FigureScene, Figures } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
@@ -177,10 +177,4 @@ export const cyberpunk: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: cyberpunkSvg,
-  cue: f =>
-    f.cacheLeft !== null && f.cacheLeft <= 0
-      ? { act: 'yawn', label: { es: 'Se apagó el neón', en: 'The neon went out' } }
-      : f.contextLeft !== null && f.contextLeft <= 25
-        ? { act: 'watch', label: { es: 'Queda poca batería', en: 'Low on battery' } }
-        : null,
 }

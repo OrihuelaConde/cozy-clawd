@@ -4,9 +4,9 @@
 // the week. Each has its number underneath in the 3x5 pixel font.
 //
 // The mate's steam fades by itself over the cache's hour, so the band need not
-// be redrawn to keep it current; once the cache expires the yerba is washed out
-// and Clawd reaches for the cold mate. While the conversation is compacted, the
-// kettle boils and the thermos fills up.
+// be redrawn to keep it current; once the cache expires the yerba is washed
+// out. While the conversation is compacted, the kettle boils and the thermos
+// fills up.
 
 import type { FigureScene, Figures } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
@@ -174,8 +174,4 @@ export const mateada: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: mateadaSvg,
-  cue: f =>
-    f.cacheLeft !== null && f.cacheLeft <= 0
-      ? { act: 'reach', label: { es: 'El mate se enfrió', en: 'The mate went cold' } }
-      : null,
 }

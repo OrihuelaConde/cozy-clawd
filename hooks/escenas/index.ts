@@ -28,14 +28,6 @@ export type Figures = {
   isCompacting: boolean
 }
 
-// What Clawd can do about the scene while it has nothing else to do, instead
-// of sleeping: stretch an arm out toward it, yawn, or keep a worried eye on it.
-export type Act = 'reach' | 'yawn' | 'watch'
-
-// What Clawd does about the scene, and what the band says of it: reach for
-// the cold mate, yawn at the moon that set, watch the watering can run dry.
-export type Cue = { act: Act; label: Words }
-
 export type FigureScene = {
   // What /clawd-escena takes and the plugin's store keeps.
   name: string
@@ -46,9 +38,6 @@ export type FigureScene = {
   height: number
   scale: number
   svg: (f: Figures) => string
-  // What Clawd does about the scene while idle, when something in it calls
-  // for it; nothing, and Clawd sleeps.
-  cue?: (f: Figures) => Cue | null
 }
 
 export const FIGURE_SCENES: readonly FigureScene[] = [estante, mateada, balcon, ventana, aventura, gamer, cyberpunk, steampunk]

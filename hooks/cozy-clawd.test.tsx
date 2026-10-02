@@ -137,52 +137,26 @@ const answer = async ($: Parameters<TestBody>[0]) => {
 
 const usageAt = (percent: number) => () => ({ value: { startedAt: 0, context: { window: 200_000, tokens: percent * 2_000, percent }, rateLimits: [] } })
 
-for (const [name, cue] of [
-  ['mateada', 'El mate se enfrió'],
-  ['ventana', 'Se puso la luna'],
-  ['aventura', 'Hay que dar vuelta el reloj de arena'],
-  ['gamer', 'Insertá otra ficha'],
-  ['cyberpunk', 'Se apagó el neón'],
-  ['steampunk', 'Hay que darle cuerda al reloj'],
-] as const) {
-  test(`idle in the ${name} once the cache has expired, Clawd: ${cue}`, async ($, on) => {
-    const clock = mock.clock(on, { now: 1_000_000 })
-    mock.store(on)
-    mock.env(on, SPANISH)
-    on('session.usage', usageAt(30))
-    on('turn.step', answering)
-    await useScene($, name)
-    await answer($)
+test('as the prompt cache runs out Clawd frets at ten minutes, yawns at two and sleeps once it expires', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  mock.store(on)
+  mock.env(on, SPANISH)
+  on('session.usage', usageAt(80))
+  on('turn.step', answering)
+  // The scene no longer calls for anything of its own, low as the context is.
+  await useScene($, 'balcon')
+  await answer($)
 
-    const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
-    expect(await clawdOf(band)).toBe('Clawd: Esperando')
-    await clock.advance(61 * 60_000)
-    expect(await clawdOf(band)).toBe(`Clawd: ${cue}`)
-    await band.unmount()
-  })
-}
-
-for (const [name, cue] of [
-  ['balcon', 'La regadera se está secando'],
-  ['aventura', 'Se acaba el maná'],
-  ['gamer', 'Queda poca vida'],
-  ['cyberpunk', 'Queda poca batería'],
-  ['steampunk', 'Baja la presión de la caldera'],
-] as const) {
-  test(`idle in the ${name} at a quarter of the context, Clawd: ${cue}`, async ($, on) => {
-    mock.clock(on, { now: 1_000_000 })
-    mock.store(on)
-    mock.env(on, SPANISH)
-    on('session.usage', usageAt(80))
-    on('turn.step', answering)
-    await useScene($, name)
-    await answer($)
-
-    const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
-    expect(await clawdOf(band)).toBe(`Clawd: ${cue}`)
-    await band.unmount()
-  })
-}
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
+  expect(await clawdOf(band)).toBe('Clawd: Esperando')
+  await clock.advance(50 * 60_000 + 1_000)
+  expect(await clawdOf(band)).toBe('Clawd: Preocupado')
+  await clock.advance(8 * 60_000)
+  expect(await clawdOf(band)).toBe('Clawd: Bostezando')
+  await clock.advance(2 * 60_000)
+  expect(await clawdOf(band)).toBe('Clawd: Durmiendo')
+  await band.unmount()
+})
 
 test('after a compaction Clawd celebrates a moment, then sleeps', async ($, on) => {
   const clock = mock.clock(on, { now: 1_000_000 })
@@ -204,8 +178,8 @@ test('after a compaction Clawd celebrates a moment, then sleeps', async ($, on) 
   await band.unmount()
 })
 
-test('idle with the cache warm Clawd passes the time by turns, and sleeps once it expires', async ($, on) => {
-  const clock = mock.clock(on, { now: 1_000_000 })
+test('idle with the cache warm Clawd rests, and now and then takes up a pastime', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
   mock.env(on, SPANISH)
   on('session.usage', usageAt(30))
   on('turn.step', answering)
@@ -214,10 +188,10 @@ test('idle with the cache warm Clawd passes the time by turns, and sleeps once i
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
   expect(await clawdOf(band)).toBe('Clawd: Esperando')
   const clawd = (await band.findAll({ type: 'Svg' })).find(svg => String(svg.props.alt).startsWith('Clawd: '))
-  // Every pastime is in the one image, each with its turn.
-  expect(String(clawd?.props.source)).toContain('@keyframes turn6')
-  await clock.advance(61 * 60_000)
-  expect(await clawdOf(band)).toBe('Clawd: Durmiendo')
+  // Clawd at rest and every pastime, the ladybug among them, are in the one image, each with its turns.
+  for (const name of ['reposo', 'mira', 'silba', 'malabares', 'yoyo', 'pompas', 'lee', 'baila', 'vaquita']) {
+    expect(String(clawd?.props.source)).toContain(`@keyframes turn-${name}`)
+  }
   await band.unmount()
 })
 

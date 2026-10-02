@@ -4,10 +4,9 @@
 // arrows for the week. Each has its number underneath in the 3x5 pixel font.
 //
 // The hourglass runs by itself over the cache's hour, so the band need not be
-// redrawn to keep it current; once it has run out Clawd reaches over to turn
-// it. At a quarter of the context or less a spare vial waits beside the
-// potion, and Clawd watches the mana run low; while the conversation is
-// compacted the potion fills up again, sparkling.
+// redrawn to keep it current. At a quarter of the context or less a spare
+// vial waits beside the potion; while the conversation is compacted the
+// potion fills up again, sparkling.
 
 import type { FigureScene, Figures } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
@@ -174,10 +173,4 @@ export const aventura: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: aventuraSvg,
-  cue: f =>
-    f.cacheLeft !== null && f.cacheLeft <= 0
-      ? { act: 'reach', label: { es: 'Hay que dar vuelta el reloj de arena', en: 'Time to turn the hourglass' } }
-      : f.contextLeft !== null && f.contextLeft <= 25
-        ? { act: 'watch', label: { es: 'Se acaba el maná', en: 'The mana is running out' } }
-        : null,
 }
