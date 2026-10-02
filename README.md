@@ -29,11 +29,11 @@ cozy-clawd is an unofficial fan project. It isn't affiliated with or endorsed by
   - A candle burns down over the one-hour prompt cache and goes out when the cache expires.
   - A cookie jar shows what's left of the five-hour usage limit.
   - A moon wanes as you use the weekly limit.
-- **Scenes to choose from.** The `/clawd-escena` command and the `/clawd` pane each switch the scene. For more information, see [Choose a scene](#choose-a-scene).
+- **Scenes to choose from.** The `/cozy-clawd-scene` command and the `/cozy-clawd` pane each switch the scene. For more information, see [Choose a scene](#choose-a-scene).
 - **A compact button.** When 25% or less of the context is free, a **Compactar** (Compact) button appears next to the scene. It asks for confirmation before it compacts the conversation.
-- **Spanish or English.** The band, the `/clawd` pane, and the commands speak Spanish or English. For more information, see [Choose the language](#choose-the-language).
+- **Spanish or English.** The band, the `/cozy-clawd` pane, and the commands speak Spanish or English. For more information, see [Choose the language](#choose-the-language).
 
-The band draws in the Code tab of the Claude desktop app. In the terminal, the mod leaves Claude Code's own spinner as it is; the `/clawd` pane shows the current state as text.
+The band draws in the Code tab of the Claude desktop app. In the terminal, the mod leaves Claude Code's own spinner as it is; the `/cozy-clawd` pane shows the current state as text.
 
 ## Requirements
 
@@ -66,14 +66,14 @@ Replace `PATH_TO_COZY_CLAWD` with the folder where you cloned the repository.
 
 The figures on the right of the band are drawn as a scene. To choose the scene, use one of the following:
 
-- Run the `/clawd-escena` command with the scene's name:
+- Run the `/cozy-clawd-scene` command with the scene's name:
 
   ```text
-  /clawd-escena SCENE_NAME
+  /cozy-clawd-scene SCENE_NAME
   ```
 
-  Replace `SCENE_NAME` with a name from the following table. Run `/clawd-escena` with no name to see the current scene and the ones available.
-- Open the `/clawd` pane, which shows each scene with your session's figures, and select **Usar** (Use) under the one you want. In the terminal, the pane has an **Escena** (Scene) picker instead.
+  Replace `SCENE_NAME` with a name from the following table. Run `/cozy-clawd-scene` with no name to see the current scene and the ones available.
+- Open the `/cozy-clawd` pane, which shows each scene with your session's figures, and select **Usar** (Use) under the one you want. In the terminal, the pane has an **Escena** (Scene) picker instead.
 
 The band switches to the new scene at once, and later sessions start with it.
 
@@ -97,9 +97,9 @@ The mod speaks Spanish or English. Claude Code doesn't tell a mod which language
 3. Your system's language: on Windows, the first of your preferred languages, then the regional format; on macOS, the first of your preferred languages. The desktop app usually starts without the locale variables, so this is what it goes by.
 4. English, when none of these names Spanish or English.
 
-To choose the language yourself, open the `/clawd` pane and select **Español** or **English** next to **Idioma** (Language). To go back to the automatic language, select **Automático** (Automatic). In the terminal, the pane has an **Idioma** picker instead. Later sessions start with the language you chose.
+To choose the language yourself, open the `/cozy-clawd` pane and select **Español** or **English** next to **Idioma** (Language). To go back to the automatic language, select **Automático** (Automatic). In the terminal, the pane has an **Idioma** picker instead. Later sessions start with the language you chose.
 
-The command names (`/clawd`, `/clawd-escena`) and the scene names stay the same in both languages.
+The command names (`/cozy-clawd`, `/cozy-clawd-scene`) and the scene names stay the same in both languages.
 
 ## Development
 
@@ -107,7 +107,7 @@ The mod is a Claude Code plugin of function hooks:
 
 | Path | Contents |
 | --- | --- |
-| `hooks/register.tsx` | The hooks module: Clawd's scenes, how the mod follows the turn, the band, and the `/clawd` pane. |
+| `hooks/register.tsx` | The hooks module: Clawd's scenes, how the mod follows the turn, the band, and the `/cozy-clawd` pane. |
 | `hooks/idioma.ts` | The languages the mod speaks, and how it tells which one you use. |
 | `hooks/escenas/index.ts` | The scenes the session figures can be drawn as, and the figures in words. |
 | `hooks/escenas/pixels.ts` | What the figure scenes share: their layout, the pixel font of the numbers, the cache's countdown, and the refill while compacting. |

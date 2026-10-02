@@ -23,8 +23,8 @@ export type Stats = {
 // The languages the mod speaks.
 export type Lang = 'es' | 'en'
 
-// The language the person picked in the /clawd pane, or `auto` to follow the
-// one Claude Code shows them.
+// The language the person picked in the /cozy-clawd pane, or `auto` to
+// follow the one Claude Code shows them.
 export type LangChoice = 'auto' | Lang
 
 declare module 'claude-code' {

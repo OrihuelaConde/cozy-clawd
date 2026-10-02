@@ -66,7 +66,7 @@ test('the compact button shows at 25% free, asks before compacting, and No backs
   await band.unmount()
 })
 
-test('/clawd-escena names the scenes and turns down one that does not exist', async ($, on) => {
+test('/cozy-clawd-scene names the scenes and turns down one that does not exist', async ($, on) => {
   mock.env(on, SPANISH)
 
   const listed = await $.command.run(typed(''))
@@ -108,9 +108,9 @@ test('a new session starts with the scene picked last', async ($, on) => {
   expect(listed.text).toMatch(/Escena: mateada\. Hay: estante, mateada, balcon, ventana, aventura, gamer, cyberpunk, steampunk/)
 })
 
-// `/clawd-escena` as typed in the composer, with what follows it.
+// `/cozy-clawd-scene` as typed in the composer, with what follows it.
 const typed = (args: string) =>
-  ({ command: 'clawd-escena', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } }) as const
+  ({ command: 'cozy-clawd-scene', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } }) as const
 
 // What Clawd is doing, as the band's Clawd image says it.
 const clawdOf = async (band: { findAll: (q: { type: 'Svg' }) => Promise<{ props: { alt?: unknown } }[]> }) =>

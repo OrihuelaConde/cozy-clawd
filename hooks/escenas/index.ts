@@ -29,7 +29,7 @@ export type Figures = {
 }
 
 export type FigureScene = {
-  // What /clawd-escena takes and the plugin's store keeps.
+  // What /cozy-clawd-scene takes and the plugin's store keeps.
   name: string
   // The name the picker shows.
   label: Words

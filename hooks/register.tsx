@@ -8,6 +8,9 @@ import { DEFAULT_LANG, LANG_NAMES, LANGS, langOf } from './idioma'
 import type { Lang, LangChoice, Words } from './idioma'
 
 const PANE = 'clawd'
+// The slash commands: the pane, and the scene by name.
+const PANE_COMMAND = 'cozy-clawd'
+const SCENE_COMMAND = 'cozy-clawd-scene'
 const mode = atom({ plugin: 'cozy-clawd', key: 'mode' } as const, 'idle')
 const tool = atom({ plugin: 'cozy-clawd', key: 'tool' } as const, null)
 const stats = atom({ plugin: 'cozy-clawd', key: 'stats' } as const, { contextLeft: null, fiveHour: null, week: null, cacheAt: null })
@@ -841,7 +844,7 @@ const CACHE_TTL_MIN = 60
 // What the commands, the band's button and the pane say, in each language.
 const TEXTS = {
   es: {
-    clawdCommand: 'Abrí el panel para elegir la escena y el idioma de la franja',
+    paneCommand: 'Abrí el panel para elegir la escena y el idioma de la franja',
     sceneCommand: 'Elegí la escena de la derecha de la franja',
     sceneHint: '[escena]',
     paneTitle: 'Escenas',
@@ -863,7 +866,7 @@ const TEXTS = {
     auto: (name: string) => `Automático (${name})`,
   },
   en: {
-    clawdCommand: "Open the panel to pick the band's scene and language",
+    paneCommand: "Open the panel to pick the band's scene and language",
     sceneCommand: "Pick the scene on the band's right",
     sceneHint: '[scene]',
     paneTitle: 'Scenes',
@@ -1095,8 +1098,8 @@ async function langNow($: EngineInterface): Promise<Lang> {
 // when it changes.
 async function registerCommands($: EngineInterface) {
   const t = TEXTS[await langNow($)]
-  await $.command.register({ name: 'clawd', description: t.clawdCommand })
-  await $.command.register({ name: 'clawd-escena', description: t.sceneCommand, argumentHint: t.sceneHint })
+  await $.command.register({ name: PANE_COMMAND, description: t.paneCommand })
+  await $.command.register({ name: SCENE_COMMAND, description: t.sceneCommand, argumentHint: t.sceneHint })
 }
 
 // Switches the language as the person picked it in the pane: in the
@@ -1182,14 +1185,14 @@ export const register: Register = on => {
     return result
   })
 
-  on('command.run', { command: 'clawd' }, async $ => {
+  on('command.run', { command: PANE_COMMAND }, async $ => {
     const t = TEXTS[await langNow($)]
     await $.ui.open({ id: PANE, title: t.paneTitle })
 
     return { text: t.paneOpened }
   })
 
-  on('command.run', { command: 'clawd-escena' }, async ($, e) => {
+  on('command.run', { command: SCENE_COMMAND }, async ($, e) => {
     const t = TEXTS[await langNow($)]
     const names = FIGURE_SCENES.map(s => s.name).join(', ')
     const shown = figureSceneNamed(await read($, escena)).name
