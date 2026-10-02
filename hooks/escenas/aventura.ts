@@ -64,13 +64,14 @@ const potion = (left: number | null, x: number, isCompacting: boolean) => {
     ${percentText(left, x)}`
 }
 
-// The sand in the hourglass's bulbs: the top one's four rows, the bottom one's three.
-const topSand = (x: number) => `${px(x + 6, 0, 4, 2)}${px(x + 7, 2, 2, 2)}`
-const bottomSand = (x: number) => `${px(x + 7, 5, 2, 1)}${px(x + 6, 6, 4, 2)}`
+// The sand in the hourglass's bulbs: the top one's four rows, the last in the
+// neck, and the bottom one's three. The glass is centred on x 7.
+const topSand = (x: number) => `${px(x + 5, 0, 5, 2)}${px(x + 6, 2, 3, 1)}${px(x + 7, 3)}`
+const bottomSand = (x: number) => `${px(x + 6, 5, 3, 1)}${px(x + 5, 6, 5, 2)}`
 
 // Cache: an hourglass whose sand runs by itself over the cache's hour, the top
-// bulb draining and the bottom one filling; it has run out once the cache
-// expires.
+// bulb draining and the bottom one filling, one grain at a time falling
+// through the neck; it has run out once the cache expires.
 const hourglass = (left: number | null, ttl: number, x: number) => {
   const isOut = left !== null && left <= 0
   const timing = left === null || isOut ? '' : `animation-duration: ${ttl}s; animation-delay: -${ttl - left}s`
@@ -78,15 +79,16 @@ const hourglass = (left: number | null, ttl: number, x: number) => {
     ? `<g fill="${SAND}">${topSand(x)}</g>`
     : isOut
       ? `<g fill="${SAND}">${bottomSand(x)}</g>`
-      : `<g fill="${SAND}"><g class="drain" style="${timing}">${topSand(x)}</g><g class="pile" style="${timing}">${bottomSand(x)}</g><g class="trickle">${px(x + 7, 4)}</g></g>`
+      : `<g fill="${SAND}"><g class="drain" style="${timing}">${topSand(x)}</g><g class="pile" style="${timing}">${bottomSand(x)}</g><g class="fall">${px(x + 7, 4)}</g></g>`
   return `
     <g fill="${GLASS}" opacity="0.6">
-      ${px(x + 5, 0, 1, 2)}${px(x + 10, 0, 1, 2)}${px(x + 6, 2)}${px(x + 9, 2)}${px(x + 6, 5)}${px(x + 9, 5)}
-      ${px(x + 5, 6, 1, 2)}${px(x + 10, 6, 1, 2)}
+      ${px(x + 4, 0, 1, 2)}${px(x + 10, 0, 1, 2)}${px(x + 5, 2)}${px(x + 9, 2)}
+      ${px(x + 6, 3, 1, 2)}${px(x + 8, 3, 1, 2)}
+      ${px(x + 5, 5)}${px(x + 9, 5)}${px(x + 4, 6, 1, 2)}${px(x + 10, 6, 1, 2)}
     </g>
     ${sand}
-    <g fill="${WOOD}">${px(x + 3, -1, 10, 1)}${px(x + 3, 8, 10, 1)}</g>
-    <g fill="${WOOD_DARK}">${px(x + 3, 0, 1, 8)}${px(x + 12, 0, 1, 8)}</g>
+    <g fill="${WOOD}">${px(x + 2, -1, 11, 1)}${px(x + 2, 8, 11, 1)}</g>
+    <g fill="${WOOD_DARK}">${px(x + 2, 0, 1, 8)}${px(x + 12, 0, 1, 8)}</g>
     ${left === null ? pixelText('--', x) : isOut ? pixelText('0m', x) : countdown(left, x)}`
 }
 
@@ -153,8 +155,8 @@ const aventuraSvg = (f: Figures) =>
     .pile { animation-name: pile; animation-timing-function: steps(3); animation-fill-mode: forwards; }
     @keyframes drain { from { clip-path: inset(0 0 0 0); } to { clip-path: inset(4px 0 0 0); } }
     @keyframes pile { from { clip-path: inset(3px 0 0 0); } to { clip-path: inset(0 0 0 0); } }
-    .trickle { animation: trickle 0.4s steps(1) infinite; }
-    @keyframes trickle { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0.4; } }
+    .fall { animation: fall 1.8s steps(3) infinite; }
+    @keyframes fall { 0% { transform: translate(0, 0); opacity: 1; } 100% { transform: translate(0, 3px); opacity: 0.5; } }
     .glint { animation: glint 2.6s steps(1) infinite; }
     @keyframes glint { 0%, 79.9% { opacity: 0; } 80%, 89.9% { opacity: 1; } 90%, 100% { opacity: 0; } }`,
     `
