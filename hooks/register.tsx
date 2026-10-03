@@ -440,21 +440,23 @@ const shortName = (tool: string) => (tool.startsWith('mcp__') ? tool.split('__')
 // What the band shows for a mode, and for the tool when one runs. In the
 // waiting mode `tool` says what is awaited: `answer` (a form a connector
 // asked for) or anything else, a tool waiting for the person's approval.
-// While Clawd waits on the person it passes the time with a pastime picked
-// for that wait (`since`, when the wait began).
+// While Clawd waits on the person it passes the time with one pastime after
+// another, from the moment the wait began (`since`) to `now`.
 // `pick` names the scene for the compact size (hooks/compact.ts).
-const sceneFor = (m: ClawdMode, tool: string | null, since = 0): { scene: Scene; label: Words; pick: ScenePick } => {
-  const waitPick: ScenePick = { kind: 'pastime', key: waitPastime(since).name }
+const sceneFor = (m: ClawdMode, tool: string | null, since = 0, now = since): { scene: Scene; label: Words; pick: ScenePick } => {
+  const turns = waitTurns(since, now)
   if (m === 'waiting') {
     return {
-      scene: waitScene(since),
+      scene: roundScene(turns),
       label: tool === 'answer' ? wordsOf(t => t.states.waitingForAnswer) : wordsOf(t => t.states.waitingForApproval),
-      pick: waitPick,
+      pick: { kind: 'round', turns },
     }
   }
   if ((m === 'tool-use' || m === 'tool-input') && tool !== null) {
     const [kind, label] = TOOLS[tool] ?? ['other', wordsOf(t => t.tools.using(shortName(tool)))]
-    return kind === 'wait' ? { scene: waitScene(since), label, pick: waitPick } : { scene: toolScenes[kind], label, pick: { kind: 'tool', key: kind } }
+    return kind === 'wait'
+      ? { scene: roundScene(turns), label, pick: { kind: 'round', turns } }
+      : { scene: toolScenes[kind], label, pick: { kind: 'tool', key: kind } }
   }
   const scene = scenes[m] ?? scenes.requesting
   return { scene, label: scene.label, pick: { kind: 'mode', key: m } }
@@ -782,38 +784,50 @@ const pastimeScene = (p: Pastime): Scene => ({
     ${BLINK}`,
 })
 
-// Clawd between turns with the prompt cache warm: at rest, and every so
-// often a pastime picked at random, all in one image so no redraw is needed
-// to change them. The round goes by the clock (`atS`, in seconds), so a
-// redraw takes it up where it was rather than from the start.
-const waitingScene = (atS: number): Scene => ({
+// A round of rest and pastimes, all in one image so no redraw is needed to
+// change them: `turns` says when each shows.
+const roundScene = (turns: string): Scene => ({
   label: wordsOf(t => t.states.waiting),
   body: [pastimeBody(REST, `turn-${REST.name}`), ...PASTIMES.map(p => pastimeBody(p, `turn-${p.name}`))].join(''),
   extra: '',
-  css: `${waitingTurns(atS)}
+  css: `${turns}
     ${[REST, ...PASTIMES].map(p => p.css).join('')}
     ${BLINK}`,
 })
 
-// The round's CSS at `atS`: when each of the rest and the pastimes shows, the
-// same in either size.
-const waitingTurns = (atS: number) => {
-  const slot = REST_S + PASTIME_S
-  const cycle = PASTIMES.length * ROUND_SHUFFLES * slot
-  const order = roundOrder(Math.floor(atS / cycle))
-  const rests = order.map((_, k): [number, number] => [k * slot, k * slot + REST_S])
+// How long a round lasts, in seconds, with `restS` of rest before each pastime.
+const roundLength = (restS: number) => PASTIMES.length * ROUND_SHUFFLES * (restS + PASTIME_S)
+
+// A round's CSS `atS` seconds into it, the pastimes in `order`, each after
+// `restS` of rest: when each of the rest and the pastimes shows, the same in
+// either size.
+const roundTurns = (atS: number, order: readonly number[], restS: number) => {
+  const slot = restS + PASTIME_S
+  const cycle = roundLength(restS)
+  const rests = order.map((_, k): [number, number] => [k * slot, k * slot + restS])
   const turns = PASTIMES.map((_, i) =>
-    order.flatMap((p, k): [number, number][] => (p === i ? [[k * slot + REST_S, (k + 1) * slot]] : [])),
+    order.flatMap((p, k): [number, number][] => (p === i ? [[k * slot + restS, (k + 1) * slot]] : [])),
   )
   const at = atS % cycle
   return `${windowsCss(REST.name, rests, cycle, at)}
     ${PASTIMES.map((p, i) => windowsCss(p.name, turns[i] ?? [], cycle, at)).join('\n    ')}`
 }
 
-// What Clawd does while it waits on the person: one pastime, picked at
-// random for the wait that began at `since` (milliseconds).
-const waitPastime = (since: number) => PASTIMES[Math.floor(chance(Math.floor(since / 1000)) * PASTIMES.length)] ?? REST
-const waitScene = (since: number) => pastimeScene(waitPastime(since))
+// Clawd between turns with the prompt cache warm: at rest, and every so
+// often a pastime picked at random. The round goes by the clock (`atS`, in
+// seconds), so a redraw takes it up where it was rather than from the start.
+const waitingTurns = (atS: number) => roundTurns(atS, roundOrder(Math.floor(atS / roundLength(REST_S))), REST_S)
+const waitingScene = (atS: number): Scene => roundScene(waitingTurns(atS))
+
+// How long Clawd rests between pastimes while it waits on the person.
+const WAIT_REST_S = 3
+
+// While Clawd waits on the person it passes the time with one pastime after
+// another, a short rest between them, from the moment the wait began
+// (`since`, in milliseconds, which also picks their order) to `now`. It
+// starts with a pastime rather than a rest.
+const waitTurns = (since: number, now: number) =>
+  roundTurns(WAIT_REST_S + Math.max(0, now - since) / 1000, roundOrder(Math.floor(since / 1000)), WAIT_REST_S)
 
 // Each scene enters with a small hop of Clawd while its props fade in, so a
 // change of mode reads as a transition rather than a cut.
@@ -1481,7 +1495,7 @@ export const register: Register = on => {
     await read($, redraws)
     const isAsking = await read($, isConfirming)
     const figureScene = figureSceneNamed(await read($, sceneName))
-    const { scene, label, pick } = isIdle ? idleScene(figures, now) : sceneFor(drawnMode, await read($, tool), shownAt)
+    const { scene, label, pick } = isIdle ? idleScene(figures, now) : sceneFor(drawnMode, await read($, tool), shownAt, now)
     const isOngoing = !isIdle && drawnMode !== 'compacted'
 
     // The terminal's band: Clawd and the figures as pictures of block
@@ -1610,7 +1624,7 @@ export const register: Register = on => {
       const shownMode = await read($, mode)
       const now = await $.clock.now()
       const { label } =
-        shownMode === 'idle' ? idleScene(figuresOf(await read($, stats), now), now) : sceneFor(shownMode, await read($, tool), shownAt)
+        shownMode === 'idle' ? idleScene(figuresOf(await read($, stats), now), now) : sceneFor(shownMode, await read($, tool), shownAt, now)
       const isOngoing = shownMode !== 'idle' && shownMode !== 'compacted'
 
       return (

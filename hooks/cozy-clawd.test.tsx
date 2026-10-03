@@ -227,52 +227,33 @@ test('Tamaño in the terminal pane switches the band', async ($, on) => {
   await band.unmount()
 })
 
-// A number in [0, 1) for each whole number, as the band draws it (mulberry32).
-const chance = (n: number) => {
-  let t = Math.imul(n + 1, 0x6d2b79f5) >>> 0
-  t = Math.imul(t ^ (t >>> 15), t | 1)
-  t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
-  return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-}
-
-// The pastimes in the band's order, and a moment for a wait to begin at
-// that has Clawd take up `name`.
-const PASTIME_NAMES = ['gaze', 'whistle', 'juggle', 'yoyo', 'bubbles', 'read', 'dance', 'ladybug']
-const waitStartFor = (name: string) => {
-  let n = 2000
-  while (PASTIME_NAMES[Math.floor(chance(n) * PASTIME_NAMES.length)] !== name) {
-    n++
-  }
-  return n * 1000
-}
-
-test('the compact band paints the characters its scenes are drawn with', async ($, on) => {
-  // Notes while whistling and dancing, bubbles: each a character in its cell.
-  const waits = (
-    [
-      ['whistle', '♪♫', 'Bash'],
-      ['bubbles', 'o°', 'Edit'],
-      ['dance', '♪', 'Write'],
-    ] as const
-  )
-    .map(([name, chars, tool]) => ({ at: waitStartFor(name), chars, tool }))
-    .sort((a, b) => a.at - b.at)
-  let now = waits[0]?.at ?? 0
-  const clock = mock.clock(on, { now })
+// While Clawd waits on the person it takes up one pastime after another, a
+// pastime from the start. Notes while whistling and dancing, bubbles: each a
+// character in its cell, so the terminal's frames show which pastimes came up.
+test('waiting on the person, Clawd takes up its pastimes one after another', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
   mock.env(on, SPANISH)
-  on('classic.PermissionRequest', () => ({}))
-  for (const wait of waits) {
-    await clock.advance(wait.at - now)
-    now = wait.at
-    // Each wait for another tool, so the band takes up a pastime anew.
-    await $.classic.PermissionRequest({ tool_name: wait.tool, tool_input: {} } as never)
-    const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 160, maxRows: 20, isWorking: true } })
-    const clawd = await band.find({ type: 'Raster', key: 'clawd' })
-    for (const char of wait.chars) {
-      expect(textOf(String(clawd?.props.cells))).toContain(char)
+  on('classic.Elicitation', () => ({}))
+  const painted: string[] = []
+  on('ui.blit', ($, e) => {
+    if (e.key === 'clawd' && 'cells' in e) {
+      painted.push(textOf(e.cells))
     }
-    await band.unmount()
+    return { value: {} }
+  })
+  await $.classic.Elicitation({ mcp_server_name: 'test', message: 'Fill in' } as never)
+
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 160, maxRows: 20, isWorking: true } })
+  const first = textOf(String((await band.find({ type: 'Raster', key: 'clawd' }))?.props.cells))
+  // Sixteen pastimes of nine seconds, three of rest before each.
+  for (let s = 0; s < 16 * 12; s++) {
+    await clock.advance(1_000)
   }
+  const seen = [first, ...painted].join('')
+  for (const char of '♪♫o°') {
+    expect(seen).toContain(char)
+  }
+  await band.unmount()
 })
 
 test('in Hindi the terminal band speaks English, and the desktop band Hindi', async ($, on) => {

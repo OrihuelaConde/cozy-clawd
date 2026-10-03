@@ -33,8 +33,8 @@ const code = readFileSync(join(root, 'hooks', 'register.tsx'), 'utf8')
 const body = code.slice(code.indexOf('const BODY'), code.indexOf('// Each mode stays on screen'))
 const scenesFile = join(outDir, 'scenes.gen.ts')
 const languageUrl = pathToFileURL(join(root, 'hooks', 'language.ts')).href
-writeFileSync(scenesFile, `import { wordsOf } from '${languageUrl}'\ntype ClawdMode = string\n${body}\nexport { scenes, toolScenes, cacheScenes, REST, PASTIMES, pastimeScene, waitingScene, svgFor, SCALE, VIEW_W, VIEW_H }\n`)
-const { scenes, toolScenes, cacheScenes, REST, PASTIMES, pastimeScene, waitingScene, svgFor, SCALE, VIEW_W, VIEW_H } = await import(pathToFileURL(scenesFile).href + '?t=' + Date.now())
+writeFileSync(scenesFile, `import { wordsOf } from '${languageUrl}'\ntype ClawdMode = string\n${body}\nexport { scenes, toolScenes, cacheScenes, REST, PASTIMES, pastimeScene, waitingScene, roundScene, waitTurns, svgFor, SCALE, VIEW_W, VIEW_H }\n`)
+const { scenes, toolScenes, cacheScenes, REST, PASTIMES, pastimeScene, waitingScene, roundScene, waitTurns, svgFor, SCALE, VIEW_W, VIEW_H } = await import(pathToFileURL(scenesFile).href + '?t=' + Date.now())
 const { FIGURE_SCENES, figuresAlt } = await import(pathToFileURL(join(root, 'hooks', 'scenes', 'index.ts')).href + '?t=' + Date.now())
 
 const uri = svg => 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64')
@@ -51,6 +51,7 @@ const sceneRows = [
   ['rest', pastimeScene(REST)],
   ...PASTIMES.map(p => [`pastime:${p.name}`, pastimeScene(p)]),
   ['rest, a pastime now and then', waitingScene(0)],
+  ['waiting on the person, a pastime after another', roundScene(waitTurns(0, 0))],
 ]
   .map(([name, scene]) => `
   <div class="row">

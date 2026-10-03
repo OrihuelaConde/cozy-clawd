@@ -19,7 +19,7 @@ cozy-clawd is an unofficial fan project. It isn't affiliated with or endorsed by
   | Running a command | Clawd types at a monitor with green code raining down. |
   | Searching or fetching the web | A desk globe turns on its stand. |
   | Launching a subagent | A small Clawd runs off while the big one waves. |
-  | Waiting for your approval or answer | Clawd passes the time with one of its pastimes, picked at random. |
+  | Waiting for your approval or answer | Clawd passes the time with its pastimes, one after another in a random order, with a short rest between them. |
   | Compacting the conversation | Loose sheets are pressed into a golden block. |
   | Right after compacting | Clawd hops for joy among sparkles. |
   | Any other tool | Clawd hammers away. |
