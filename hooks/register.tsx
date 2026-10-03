@@ -1408,6 +1408,24 @@ export const register: Register = on => {
     return next(e)
   })
 
+  // The person allowed the tool Clawd waits on: it runs now. No event says
+  // so but the decision the engine records for the operator's collector,
+  // `tool_decision` (`source` `user_temporary` or `user_permanent`), which
+  // it raises with no collector set up and with telemetry off, on every
+  // surface. A decision of the rules or the mode comes with no ask.
+  on('telemetry.log', { to: 'collector' }, async ($, e, next) => {
+    const { decision, source } = e.attributes
+    if (e.event === 'tool_decision' && decision === 'accept' && String(source).startsWith('user_')) {
+      // What Clawd shows next: the wait may still be on its way to the band.
+      const asked = pending ?? current
+      if (asked.mode === 'waiting' && asked.tool !== 'answer') {
+        await show($, 'tool-use', asked.tool)
+      }
+    }
+
+    return next(e)
+  })
+
   // A connector asks the person to fill in a form.
   on('classic.Elicitation', async ($, e, next) => {
     await show($, 'waiting', 'answer')

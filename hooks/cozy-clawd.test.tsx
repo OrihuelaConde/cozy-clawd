@@ -116,6 +116,50 @@ test('collapsed and opened again, the terminal band moves on', async ($, on) => 
   await band.unmount()
 })
 
+// The decision the engine records for the operator's collector once a tool
+// call is settled.
+const decided = (source: string) => ({
+  to: 'collector' as const,
+  event: 'tool_decision',
+  attributes: { decision: 'accept', source, tool_name: 'Bash', tool_use_id: 'toolu_1' },
+  loggedAt: new Date(1_000_000).toISOString(),
+})
+
+test('asked to allow a tool, Clawd waits until the person allows it, and then the tool runs', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  mock.env(on, SPANISH)
+  on('classic.PermissionRequest', () => ({}))
+  on('telemetry.log', () => ({ value: undefined }))
+  await $.classic.PermissionRequest({ tool_name: 'Bash', tool_input: {} } as never)
+
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: true } })
+  expect(await clawdOf(band)).toBe('Clawd: Esperando tu aprobación')
+  await clock.advance(5_000)
+  // A rule's decision, for another call, leaves the person's ask open.
+  await $.telemetry.log(decided('config'))
+  expect(await clawdOf(band)).toBe('Clawd: Esperando tu aprobación')
+  await $.telemetry.log(decided('user_temporary'))
+  expect(await clawdOf(band)).toBe('Clawd: Ejecutando un comando')
+  await band.unmount()
+})
+
+test('allowed before the wait reaches the band, the tool runs without it', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  mock.env(on, SPANISH)
+  on('classic.PermissionRequest', () => ({}))
+  on('classic.Elicitation', () => ({}))
+  on('telemetry.log', () => ({ value: undefined }))
+  // A form shows first, so the ask waits its turn to show.
+  await $.classic.Elicitation({ mcp_server_name: 'test', message: 'Fill in' } as never)
+  await $.classic.PermissionRequest({ tool_name: 'Bash', tool_input: {} } as never)
+  await $.telemetry.log(decided('user_permanent'))
+  await clock.advance(5_000)
+
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: true } })
+  expect(await clawdOf(band)).toBe('Clawd: Ejecutando un comando')
+  await band.unmount()
+})
+
 test('the large size draws in the terminal the scenes the desktop shows', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.store(on, { size: 'large' })
