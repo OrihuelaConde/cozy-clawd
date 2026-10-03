@@ -1150,7 +1150,23 @@ const idleScene = (figures: Figures, now: number): { scene: Scene; label: Words;
 // frame at a time with $.ui.blit. A picture counts its animations' time from
 // when the band drew it, as the desktop starts an image over when it draws it
 // again; drawn again with the very same image, it carries on.
-type LivePicture = { requestId: string; key: string; picture: Picture; drawnAt: number; seenAt: number; background: number; cells: string }
+//
+// The engine keeps the band's last tree: collapsed (`[-]`) and opened again,
+// the band shows it without drawing anew, its pictures at the frame they had.
+// So a picture the terminal refuses (the band collapsed) is kept, tried now
+// and then (`refusedSince`), and moves on from where its clock is once the
+// terminal takes it again.
+type LivePicture = {
+  requestId: string
+  key: string
+  picture: Picture
+  drawnAt: number
+  seenAt: number
+  background: number
+  cells: string
+  refusedSince: number | null
+  triedAt: number
+}
 
 // The pictures on screen, by site and key, and the timer that moves them.
 const livePictures = new Map<string, LivePicture>()
@@ -1162,8 +1178,9 @@ let isPainting = false
 const FRAME_MS = 66
 
 // A picture the terminal still refuses this long after the band last drew it
-// is no longer on screen (the band collapsed, or another drawing took its place).
+// is no longer on screen (the band collapsed): it is tried once a second.
 const MOUNT_GRACE_MS = 2000
+const REFUSED_RETRY_MS = 1000
 
 // The languages whose texts Claude Code measures short (hooks/raster.ts). It
 // repaints a changed part of a row at the column it counts, so in a terminal a
@@ -1198,7 +1215,7 @@ function livePicture($: EngineInterface, requestId: string, key: string, picture
   const kept = livePictures.get(id)
   const drawnAt = kept?.picture === picture && kept.background === bg ? kept.drawnAt : now
   const cells = picture.paint((now - drawnAt) / 1000, bg)
-  livePictures.set(id, { requestId, key, picture, drawnAt, seenAt: now, background: bg, cells })
+  livePictures.set(id, { requestId, key, picture, drawnAt, seenAt: now, background: bg, cells, refusedSince: null, triedAt: now })
   frameTimer ??= $.clock.every(FRAME_MS, () => void paintFrames($))
   return cells
 }
@@ -1219,9 +1236,19 @@ const forgetPictures = (requestId: string, except: readonly string[] = []) => {
   }
 }
 
+// The band drew at `requestId`: what another site drew is gone.
+const forgetOtherSites = (requestId: string) => {
+  for (const [id, live] of livePictures) {
+    if (live.requestId !== requestId) {
+      livePictures.delete(id)
+    }
+  }
+}
+
 // Paints each picture at the moment its animations have reached and sends
-// the ones that changed. A site the terminal no longer shows is forgotten,
-// and with nothing left to paint the timer stops.
+// the ones that changed. One the terminal refuses (the band collapsed) gets
+// its frame once a second, until the terminal shows it again; with nothing
+// left to paint the timer stops.
 async function paintFrames($: EngineInterface) {
   if (isPainting) {
     return
@@ -1230,15 +1257,22 @@ async function paintFrames($: EngineInterface) {
   try {
     const now = await $.clock.now()
     for (const live of [...livePictures.values()]) {
-      const cells = live.picture.paint((now - live.drawnAt) / 1000, live.background)
-      if (cells === live.cells) {
+      const isRefused = live.refusedSince !== null
+      if (isRefused && now - live.triedAt < REFUSED_RETRY_MS) {
         continue
       }
+      const cells = live.picture.paint((now - live.drawnAt) / 1000, live.background)
+      // Shown again, a refused picture shows the frame it had: it takes this one whatever it is.
+      if (!isRefused && cells === live.cells) {
+        continue
+      }
+      live.triedAt = now
       const sent = await $.ui.blit({ requestId: live.requestId, key: live.key, cells }).catch(() => ({ deny: 'no blit here' }))
       if (sent.deny === undefined) {
         live.cells = cells
+        live.refusedSince = null
       } else if (now - live.seenAt > MOUNT_GRACE_MS) {
-        forgetPictures(live.requestId)
+        live.refusedSince ??= now
       }
     }
   } finally {
@@ -1467,6 +1501,7 @@ export const register: Register = on => {
       const labelRoom = room - clawd.columns - 1 - 2 - (controlsWidth > 0 ? controlsWidth + 1 : 0) - shelf.columns
       const fitsAll = labelRoom >= MIN_LABEL_COLUMNS && e.props.maxRows >= shelf.rows + (numbers?.rows ?? 0)
       const fitsClawd = room - clawd.columns - 1 >= MIN_LABEL_COLUMNS && e.props.maxRows >= clawd.rows
+      forgetOtherSites(e.requestId)
       forgetPictures(e.requestId, fitsAll ? ['clawd', 'figures', 'numbers'] : fitsClawd ? ['clawd'] : [])
 
       if (fitsAll) {

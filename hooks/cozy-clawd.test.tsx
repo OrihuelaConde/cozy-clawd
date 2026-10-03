@@ -86,6 +86,36 @@ test('the band paints Clawd and the scene in the terminal, and moves them by the
   await band.unmount()
 })
 
+test('collapsed and opened again, the terminal band moves on', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  mock.env(on, SPANISH)
+  on('session.usage', usageAt(30))
+  on('turn.step', answering)
+  // The terminal beneath the plugins: while the band is collapsed it takes no frame.
+  let isCollapsed = false
+  const taken: string[] = []
+  on('ui.blit', ($, e) => {
+    if (isCollapsed) {
+      return { deny: 'not mounted' }
+    }
+    taken.push(e.key)
+    return { value: {} }
+  })
+  await answer($)
+
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 160, maxRows: 20, isWorking: true } })
+  await clock.advance(1_000)
+  expect(taken).toContain('clawd')
+  isCollapsed = true
+  await clock.advance(10_000)
+  // Opened again, the band shows the tree it kept; its pictures move on from there.
+  isCollapsed = false
+  taken.length = 0
+  await clock.advance(2_000)
+  expect(taken).toContain('clawd')
+  await band.unmount()
+})
+
 test('the large size draws in the terminal the scenes the desktop shows', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.store(on, { size: 'large' })
