@@ -1,17 +1,20 @@
 // Renders every scene of Clawd and a few states of each figure scene as plain
 // images, the way the desktop app draws a non-interactive Svg, on the app's
-// dark background. Writes .preview/index.html; serve that folder to look at it.
+// dark background; beside each, the same scene as the terminal paints it in
+// block characters (hooks/raster.ts, run live in the page), each cell 9 by 18
+// pixels as in a terminal. Writes .preview/index.html; serve that folder to
+// look at it.
 //
 // Run from the repository root: node tools/preview.mjs
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { registerHooks } from 'node:module'
+import * as nodeModule from 'node:module'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 // The hooks modules import each other without an extension, as the engine
 // resolves them; Node needs the `.ts` spelled out.
-registerHooks({
+nodeModule.registerHooks({
   resolve(specifier, context, nextResolve) {
     const isBare = specifier.startsWith('.') && !/\.[cm]?[jt]sx?$/.test(specifier)
     const isFromTs = context.parentURL !== undefined && new URL(context.parentURL).pathname.endsWith('.ts')
@@ -34,6 +37,11 @@ const { FIGURE_SCENES, figuresAlt } = await import(pathToFileURL(join(root, 'hoo
 
 const uri = svg => 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64')
 
+// The scene in the terminal: a canvas the page paints with the band's own
+// renderer, where this Node can turn it into JavaScript (22.13 or later).
+const rasterJs = nodeModule.stripTypeScriptTypes?.(readFileSync(join(root, 'hooks', 'raster.ts'), 'utf8')) ?? ''
+const terminal = svg => (rasterJs === '' ? '' : `<canvas class="terminal" data-svg="${Buffer.from(svg).toString('base64')}"></canvas>`)
+
 const sceneRows = [
   ...Object.entries(scenes),
   ...Object.entries(toolScenes).map(([kind, scene]) => [`tool:${kind}`, scene]),
@@ -47,6 +55,7 @@ const sceneRows = [
     <img src="${uri(svgFor(scene))}" width="${VIEW_W * SCALE}" height="${VIEW_H * 2 * SCALE}">
     <b>${scene.label.es} / ${scene.label.en}…</b><small>${name}</small>
     <img src="${uri(svgFor(scene))}" width="${VIEW_W * SCALE * 3}" height="${VIEW_H * 2 * SCALE * 3}">
+    ${terminal(svgFor(scene))}
   </div>`)
   .join('')
 
@@ -66,6 +75,7 @@ const figureSections = FIGURE_SCENES.map(scene => {
     <img src="${uri(scene.svg(f))}" width="${w}" height="${h}" title="${figuresAlt(f, 'en')}">
     <small>${name}</small>
     <img src="${uri(scene.svg(f))}" width="${w * 2.5}" height="${h * 2.5}">
+    ${terminal(scene.svg(f))}
   </div>`)
     .join('')
   return `\n<h2>Figures: ${scene.label.en} (${scene.name})</h2>${rows}`
@@ -78,8 +88,47 @@ writeFileSync(join(outDir, 'index.html'), `<!doctype html><meta charset="utf-8">
   .row { display: flex; align-items: center; gap: 12px; margin: 8px 0; padding: 8px; background: #1f1e1d; border-radius: 8px; }
   b { font-size: 17px; }
   img { image-rendering: pixelated; }
+  .row { flex-wrap: wrap; }
 </style>
 <h2>Scenes</h2>${sceneRows}
-${figureSections}`)
+${figureSections}
+<script type="module">
+${rasterJs}
+// Each canvas plays its scene as the terminal would: a frame every 66 ms,
+// translucent pixels laid over the dark theme's background.
+const CELL_W = 9
+const CELL_H = 18
+const BACKGROUND = 0x1f1e1d
+const css = color => '#' + color.toString(16).padStart(6, '0')
+const players = [...document.querySelectorAll('canvas.terminal')].map(canvas => {
+  const svg = new TextDecoder().decode(Uint8Array.from(atob(canvas.dataset.svg), c => c.charCodeAt(0)))
+  const picture = compile(svg)
+  canvas.width = picture.columns * CELL_W
+  canvas.height = picture.rows * CELL_H
+  return { ctx: canvas.getContext('2d'), picture }
+})
+const start = performance.now()
+const paint = () => {
+  const t = (performance.now() - start) / 1000
+  for (const { ctx, picture } of players) {
+    const bytes = Uint8Array.from(atob(picture.paint(t, BACKGROUND)), c => c.charCodeAt(0))
+    const view = new DataView(bytes.buffer)
+    for (let i = 0; i < picture.columns * picture.rows; i++) {
+      const [glyph, fg, bg] = [0, 4, 8].map(k => view.getUint32(i * 12 + k, true))
+      const own = c => (c === 0x01000000 ? BACKGROUND : c)
+      const top = glyph === 0x20 ? BACKGROUND : glyph === 0x2584 ? own(bg) : own(fg)
+      const bottom = glyph === 0x20 ? BACKGROUND : glyph === 0x2580 ? own(bg) : own(fg)
+      const x = (i % picture.columns) * CELL_W
+      const y = Math.floor(i / picture.columns) * CELL_H
+      ctx.fillStyle = css(top)
+      ctx.fillRect(x, y, CELL_W, CELL_H / 2)
+      ctx.fillStyle = css(bottom)
+      ctx.fillRect(x, y + CELL_H / 2, CELL_W, CELL_H / 2)
+    }
+  }
+}
+paint()
+setInterval(paint, 66)
+</script>`)
 
 console.log(`Wrote ${join(outDir, 'index.html')}`)

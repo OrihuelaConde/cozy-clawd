@@ -6,6 +6,8 @@ import { DEFAULT_FIGURE_SCENE, FIGURE_SCENES, figureSceneNamed, figuresAlt } fro
 import type { Figures } from './scenes/index'
 import { DEFAULT_LANG, LANG_NAMES, LANGS, langOf } from './language'
 import type { Lang, LangChoice, Words } from './language'
+import { columnsOf, pictureOf } from './raster'
+import type { Picture } from './raster'
 
 const PANE = 'clawd'
 // The slash commands: the pane, and the scene by name.
@@ -1148,6 +1150,96 @@ const idleScene = (figures: Figures, now: number) => {
   return { scene, label: scene.label }
 }
 
+// The terminal draws no SVG: there the band paints Clawd and the scene of
+// figures as Rasters of block characters (hooks/raster.ts), and moves them a
+// frame at a time with $.ui.blit. A picture counts its animations' time from
+// when the band drew it, as the desktop starts an image over when it draws it
+// again; drawn again with the very same image, it carries on.
+type LivePicture = { requestId: string; key: string; picture: Picture; drawnAt: number; seenAt: number; background: number; cells: string }
+
+// The pictures on screen, by site and key, and the timer that moves them.
+const livePictures = new Map<string, LivePicture>()
+let frameTimer: Timer | null = null
+let isPainting = false
+
+// Some fifteen frames a second: the scenes' quickest motions take a fifth of
+// a second.
+const FRAME_MS = 66
+
+// A picture the terminal still refuses this long after the band last drew it
+// is no longer on screen (the band collapsed, or another drawing took its place).
+const MOUNT_GRACE_MS = 2000
+
+// What the label beside Clawd needs at least, in columns: the longest word
+// of its labels, "¡Conversación", so no word breaks in two.
+const MIN_LABEL_COLUMNS = 13
+
+// The colors the terminal's translucent pixels are laid over: the theme's
+// dark or light, dark where the theme names neither.
+const DARK_BACKGROUND = 0x1f1e1d
+const LIGHT_BACKGROUND = 0xffffff
+let background: number | null = null
+
+async function terminalBackground($: EngineInterface) {
+  if (background === null) {
+    const rows = await $.config.list().catch(() => [])
+    const theme = rows.find(row => row.key === 'theme')?.value
+    background = typeof theme === 'string' && theme.startsWith('light') ? LIGHT_BACKGROUND : DARK_BACKGROUND
+  }
+  return background
+}
+
+// Draws a picture in a terminal site: its frame now, which the tree carries,
+// and the ones after it from the frame timer.
+function livePicture($: EngineInterface, requestId: string, key: string, picture: Picture, now: number, bg: number) {
+  const id = `${requestId} ${key}`
+  const kept = livePictures.get(id)
+  const drawnAt = kept?.picture === picture && kept.background === bg ? kept.drawnAt : now
+  const cells = picture.paint((now - drawnAt) / 1000, bg)
+  livePictures.set(id, { requestId, key, picture, drawnAt, seenAt: now, background: bg, cells })
+  frameTimer ??= $.clock.every(FRAME_MS, () => void paintFrames($))
+  return cells
+}
+
+const forgetPictures = (requestId: string, except: readonly string[] = []) => {
+  for (const [id, live] of livePictures) {
+    if (live.requestId === requestId && !except.includes(live.key)) {
+      livePictures.delete(id)
+    }
+  }
+}
+
+// Paints each picture at the moment its animations have reached and sends
+// the ones that changed. A site the terminal no longer shows is forgotten,
+// and with nothing left to paint the timer stops.
+async function paintFrames($: EngineInterface) {
+  if (isPainting) {
+    return
+  }
+  isPainting = true
+  try {
+    const now = await $.clock.now()
+    for (const live of [...livePictures.values()]) {
+      const cells = live.picture.paint((now - live.drawnAt) / 1000, live.background)
+      if (cells === live.cells) {
+        continue
+      }
+      const sent = await $.ui.blit({ requestId: live.requestId, key: live.key, cells }).catch(() => ({ deny: 'no blit here' }))
+      if (sent.deny === undefined) {
+        live.cells = cells
+      } else if (now - live.seenAt > MOUNT_GRACE_MS) {
+        forgetPictures(live.requestId)
+      }
+    }
+  } finally {
+    isPainting = false
+  }
+  if (livePictures.size === 0) {
+    frameTimer?.cancel()
+    frameTimer = null
+  }
+}
+
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     detected = null
@@ -1218,6 +1310,18 @@ export const register: Register = on => {
       detected = null
       await redrawBand($)
       await registerCommands($)
+    }
+
+    return result
+  })
+
+  // The Theme row changed: the terminal's pictures lay their translucent
+  // pixels over its background.
+  on('config.set', { key: 'theme' }, async ($, e, next) => {
+    const result = await next(e)
+    if (result.deny === undefined) {
+      background = null
+      await redrawBand($)
     }
 
     return result
@@ -1307,11 +1411,11 @@ export const register: Register = on => {
   // animations, so the band reads only values that change on a new mode, a new
   // reading or a step of the cache running out.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.props.hasSurvey || e.surface === 'terminal') {
+    if (e.props.hasSurvey) {
+      forgetPictures(e.requestId)
       return next(e)
     }
 
-    const { Box, Button, Markdown, Svg, Text } = $.ui.resolve(e)
     const lang = await langNow($)
     const t = TEXTS[lang]
     const drawnMode = await read($, mode)
@@ -1326,6 +1430,72 @@ export const register: Register = on => {
     const { scene, label } = isIdle ? idleScene(figures, now) : sceneFor(drawnMode, await read($, tool), shownAt)
     const isOngoing = !isIdle && drawnMode !== 'compacted'
 
+    // The terminal's band: Clawd and the figures as pictures of block
+    // characters, Clawd's state beside it. Where both don't fit, Clawd with
+    // the figures in words; where Clawd doesn't either, words alone.
+    if (e.surface === 'terminal') {
+      const { Box, Button, Raster, Text } = $.ui.resolve(e)
+      const bg = await terminalBackground($)
+      const said = `${label[lang]}${isOngoing ? '…' : ''}`
+      const clawd = pictureOf(svgFor(scene))
+      const shelf = pictureOf(figureScene.svg(figures))
+      const controls = isAsking ? (
+        <Box flexDirection="row" alignItems="center" gap={1}>
+          <Text dimColor>{t.compactAsk}</Text>
+          <Button key="compact-yes" label={t.yes} variant="primary" onPress={() => compactNow($, e.props.isWorking)} />
+          <Button key="compact-no" label={t.no} onPress={() => update($, isConfirming, () => false)} />
+        </Box>
+      ) : (
+        isLow && <Button key="compact" label={t.compact} onPress={() => update($, isConfirming, () => true)} />
+      )
+      // A Button draws as `[ label ]` here.
+      const controlsWidth = isAsking ? columnsOf(t.compactAsk) + columnsOf(t.yes) + columnsOf(t.no) + 10 : isLow ? columnsOf(t.compact) + 4 : 0
+      const room = e.props.bodyColumns
+      const labelRoom = room - clawd.columns - 1 - 2 - (controlsWidth > 0 ? controlsWidth + 1 : 0) - shelf.columns
+      const fitsAll = labelRoom >= MIN_LABEL_COLUMNS && e.props.maxRows >= shelf.rows
+      const fitsClawd = room - clawd.columns - 1 >= MIN_LABEL_COLUMNS && e.props.maxRows >= clawd.rows
+      forgetPictures(e.requestId, fitsAll ? ['clawd', 'figures'] : fitsClawd ? ['clawd'] : [])
+
+      if (fitsAll) {
+        return (
+          <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap={2}>
+            <Box flexDirection="row" alignItems="center" gap={1}>
+              <Raster key="clawd" columns={clawd.columns} rows={clawd.rows} cells={livePicture($, e.requestId, 'clawd', clawd, now, bg)} />
+              <Box width={Math.min(columnsOf(said), labelRoom)}>
+                <Text bold wrap="wrap">
+                  {said}
+                </Text>
+              </Box>
+            </Box>
+            <Box flexDirection="row" alignItems="center" gap={1}>
+              {controls}
+              <Raster key="figures" columns={shelf.columns} rows={shelf.rows} cells={livePicture($, e.requestId, 'figures', shelf, now, bg)} />
+            </Box>
+          </Box>
+        )
+      }
+      const words = (
+        <Box flexDirection="column" gap={1} width={fitsClawd ? room - clawd.columns - 1 : room}>
+          <Text bold wrap="wrap">
+            {fitsClawd ? said : `Clawd: ${said}`}
+          </Text>
+          <Text dimColor wrap="wrap">
+            {figuresAlt(figures, lang)}
+          </Text>
+          {controls}
+        </Box>
+      )
+      return fitsClawd ? (
+        <Box flexDirection="row" alignItems="center" gap={1}>
+          <Raster key="clawd" columns={clawd.columns} rows={clawd.rows} cells={livePicture($, e.requestId, 'clawd', clawd, now, bg)} />
+          {words}
+        </Box>
+      ) : (
+        words
+      )
+    }
+
+    const { Box, Button, Markdown, Svg, Text } = $.ui.resolve(e)
     return (
       <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap={2}>
         <Box flexDirection="row" alignItems="center" gap={1}>

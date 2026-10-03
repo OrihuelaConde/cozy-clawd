@@ -33,12 +33,12 @@ cozy-clawd is an unofficial fan project. It isn't affiliated with or endorsed by
 - **A compact button.** When 25% or less of the context is free, a **Compactar** (Compact) button appears next to the scene. It asks for confirmation before it compacts the conversation.
 - **Spanish or English.** The band, the `/cozy-clawd` pane, and the commands speak Spanish or English. For more information, see [Choose the language](#choose-the-language).
 
-The band draws in the Code tab of the Claude desktop app. In the terminal, the mod leaves Claude Code's own spinner as it is; the `/cozy-clawd` pane shows the current state as text.
+The band draws in the Code tab of the Claude desktop app and in the terminal. The terminal draws no SVG images, so there the mod paints each scene in block characters, two pixels to a character cell, and moves it frame by frame. Clawd and the figures side by side take 9 rows and at least 105 columns, a few more while the **Compactar** button shows. A narrower terminal shows Clawd with the figures in words, and one under 39 columns shows words alone. Claude Code's own spinner stays as it is.
 
 ## Requirements
 
 - Claude Code 2.1.286 or later, with function hooks (mods) enabled.
-- The Claude desktop app, to see the band.
+- To see the band, the Claude desktop app or a terminal with 24-bit color (truecolor), such as Windows Terminal or iTerm2.
 
 ## Install
 
@@ -54,7 +54,7 @@ To load the mod in every session, add the repository folder to the `CLAUDE_CODE_
 
 Replace the path with the folder where you cloned the repository. To list several folders, separate them with your platform's path-list separator: `;` on Windows, `:` on macOS and Linux.
 
-To try the mod in a single terminal session instead, start Claude Code with the `--plugin-dir` flag:
+The variable reaches the desktop app and the terminal alike. To try the mod in a single terminal session instead, start Claude Code with the `--plugin-dir` flag:
 
 ```bash
 claude --plugin-dir PATH_TO_COZY_CLAWD
@@ -109,6 +109,7 @@ The mod is a Claude Code plugin of function hooks:
 | --- | --- |
 | `hooks/register.tsx` | The hooks module: Clawd's scenes, how the mod follows the turn, the band, and the `/cozy-clawd` pane. |
 | `hooks/language.ts` | The languages the mod speaks, and how it tells which one you use. |
+| `hooks/raster.ts` | How the terminal paints the scenes: a reader of the SVG and CSS they're drawn with that paints any moment of their animations in block characters. Also how many columns a text takes there. |
 | `hooks/scenes/index.ts` | The scenes the session figures can be drawn as, and the figures in words. |
 | `hooks/scenes/pixels.ts` | What the figure scenes share: their layout, the pixel font of the numbers, the cache's countdown, and the refill while compacting. |
 | `hooks/scenes/shelf.ts` | The `shelf` scene: a shelf of objects. |
@@ -121,7 +122,7 @@ The mod is a Claude Code plugin of function hooks:
 | `hooks/scenes/steampunk.ts` | The `steampunk` scene: brass and copper machines. |
 | `types/index.d.ts` | The contract for the values the mod keeps in the session's state. |
 | `hooks/cozy-clawd.test.tsx` | Tests that run against the engine. |
-| `tools/preview.mjs` | A script that renders Clawd's scenes and a few states of each figure scene to an HTML page. |
+| `tools/preview.mjs` | A script that renders Clawd's scenes and a few states of each figure scene to an HTML page, as images and as the terminal paints them. |
 
 To check the mod the way the engine reads it, run the following commands from the repository root:
 
@@ -143,6 +144,6 @@ node tools/preview.mjs
 python -m http.server 8765 --directory .preview
 ```
 
-Open `http://localhost:8765` in a browser. The page shows each scene at band size and enlarged.
+Open `http://localhost:8765` in a browser. The page shows each scene at band size, enlarged, and as the terminal paints it, with cells of 9 by 18 pixels. Generating the terminal's version takes Node.js 22.13 or later.
 
 > **Note:** The plugin API for function hooks is in early access and can change between Claude Code releases.

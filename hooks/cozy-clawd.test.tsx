@@ -1,5 +1,7 @@
 import { expect, mock, test, type TestBody } from 'claude-code/testing'
 
+import { columnsOf, compile } from './raster'
+
 // What a site's props carry beside its own: where it scrolls, and whose conversation it shows.
 const SITE = { scroll: { offset: 0, bodyRows: 10 }, view: {} }
 
@@ -47,6 +49,77 @@ test('the band shows Clawd on the desktop whether or not a turn runs', async ($,
   expect(await idle.find({ key: 'compact' })).toBeUndefined()
   await idle.unmount()
 })
+
+test('the band paints Clawd and the scene in the terminal, and moves them by the clock', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  mock.env(on, SPANISH)
+  on('session.usage', usageAt(30))
+  on('turn.step', answering)
+  // The terminal beneath the plugins, taking every frame the band sends.
+  const blits: { key: string; cells: string }[] = []
+  on('ui.blit', ($, e) => {
+    if ('cells' in e) {
+      blits.push({ key: e.key, cells: e.cells })
+    }
+    return { value: {} }
+  })
+  // A model request of the turn: Clawd works on the answer until the turn completes.
+  await answer($)
+
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 160, maxRows: 20, isWorking: true } })
+  const clawd = await band.find({ type: 'Raster', key: 'clawd' })
+  const figures = await band.find({ type: 'Raster', key: 'figures' })
+  expect([clawd?.props.columns, clawd?.props.rows]).toEqual([25, 8])
+  expect([figures?.props.columns, figures?.props.rows]).toEqual([64, 9])
+  expect(await band.find({ type: 'Text', text: 'Trabajando en la respuesta…' })).toBeDefined()
+
+  // Clawd stacks its blocks: a second on, its picture is not the one first drawn.
+  await clock.advance(1_000)
+  const moved = blits.filter(b => b.key === 'clawd')
+  expect(moved.length).toBeGreaterThan(0)
+  expect(moved[moved.length - 1]?.cells).not.toBe(clawd?.props.cells)
+  await band.unmount()
+})
+
+test('a narrow terminal shows Clawd with the figures in words, a narrower one words alone', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  mock.env(on, SPANISH)
+
+  const narrow = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 80, isWorking: false } })
+  expect(await narrow.find({ type: 'Raster', key: 'clawd' })).toBeDefined()
+  expect(await narrow.find({ type: 'Raster', key: 'figures' })).toBeUndefined()
+  expect(await narrow.find({ type: 'Text', text: /^Contexto libre sin datos/ })).toBeDefined()
+  await narrow.unmount()
+
+  const narrower = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 30, isWorking: false } })
+  expect(await narrower.find({ type: 'Raster' })).toBeUndefined()
+  expect(await narrower.find({ type: 'Text', text: 'Clawd: Esperando' })).toBeDefined()
+  await narrower.unmount()
+})
+
+test('a picture paints its image two pixels to a cell, each animation where the clock has it', () => {
+  const picture = compile(`<svg viewBox="0 0 2 2">
+    <style>
+      .blink { animation: blink 1s steps(1) infinite; }
+      @keyframes blink { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    </style>
+    <g fill="#FF0000"><rect x="0" y="0" width="1" height="1"/></g>
+    <g class="blink" fill="#00FF00"><rect x="1" y="0" width="1" height="2"/></g>
+  </svg>`)
+  const OWN = 0x01000000
+  expect([picture.columns, picture.rows]).toEqual([2, 1])
+  // The red pixel is the upper half of its cell; the green column fills the other.
+  expect(cellsOf(picture.paint(0, 0))).toEqual([0x2580, 0xff0000, OWN, 0x2588, 0x00ff00, 0x00ff00])
+  // Half a second on, the green column has blinked off.
+  expect(cellsOf(picture.paint(0.6, 0))).toEqual([0x2580, 0xff0000, OWN, 0x20, OWN, OWN])
+})
+
+// A Raster's cells as the words they pack: code point, foreground, background.
+const cellsOf = (cells: string) => {
+  const bytes = Uint8Array.from(atob(cells), c => c.charCodeAt(0))
+  const view = new DataView(bytes.buffer)
+  return Array.from({ length: bytes.length / 4 }, (_, i) => view.getUint32(i * 4, true))
+}
 
 test('the compact button shows at 25% free, asks before compacting, and No backs out', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
@@ -276,4 +349,12 @@ test('a new session speaks the language picked last', async ($, on) => {
   await $.session.start({ cwd: '/', surface: null, isInteractive: false })
 
   expect((await $.command.run(typed(''))).text).toMatch(/^Scene: shelf/)
+})
+
+test('a text takes a column a character, two for a wide one, none for a mark', () => {
+  expect(columnsOf('Esperando')).toBe(9)
+  expect(columnsOf('¡Conversación compactada!')).toBe(25)
+  expect(columnsOf('待機中')).toBe(6)
+  expect(columnsOf('대기 중')).toBe(7)
+  expect(columnsOf('Espera\u0301ndo')).toBe(9)
 })
