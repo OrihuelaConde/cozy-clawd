@@ -849,3 +849,8 @@ export const columnsOf = (text: string) => {
   }
   return columns
 }
+
+// Whether Claude Code counts the text shorter than a terminal draws it: it
+// lays out a spacing mark (Devanagari's ि or ा) as taking no column, where a
+// terminal gives it one.
+export const isMeasuredShort = (text: string) => /\p{Mc}/u.test(text)

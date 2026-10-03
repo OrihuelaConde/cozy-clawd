@@ -81,6 +81,17 @@ test('the band paints Clawd and the scene in the terminal, and moves them by the
   await band.unmount()
 })
 
+test('in Hindi the terminal band speaks English, and the desktop band Hindi', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  mock.env(on, { LANG: 'hi_IN.UTF-8' })
+  const terminal = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 160, maxRows: 20, isWorking: false } })
+  expect(await terminal.find({ type: 'Text', text: 'Waiting' })).toBeDefined()
+  await terminal.unmount()
+  const desktop = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
+  expect(await clawdOf(desktop)).toBe('Clawd: इंतज़ार कर रहा है')
+  await desktop.unmount()
+})
+
 test('a narrow terminal shows Clawd with the figures in words, a narrower one words alone', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.env(on, SPANISH)
@@ -136,6 +147,24 @@ test('the compact button shows at 25% free, asks before compacting, and No backs
   await band.press({ key: 'compact-no' })
   expect(await band.find({ key: 'compact-yes' })).toBeUndefined()
   expect(await band.find({ key: 'compact' })).toBeDefined()
+  await band.unmount()
+})
+
+test('Sí in the band compacts, and the band shows the compaction its own call raised', async ($, on) => {
+  const clock = mock.clock(on, { now: 1_000_000 })
+  mock.env(on, SPANISH)
+  on('session.usage', usageAt(80))
+  on('session.compact', () => ({ messages: [{ role: 'user', text: 'Summary', toolUses: [] }] }))
+  on('classic.SessionStart', () => ({}))
+  await $.classic.SessionStart({ source: 'resume' })
+
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
+  await band.press({ key: 'compact' })
+  await band.press({ key: 'compact-yes' })
+  expect(await clawdOf(band)).toBe('Clawd: Compactando la conversación')
+  expect(await band.find({ key: 'compact' })).toBeUndefined()
+  await clock.advance(1_500)
+  expect(await clawdOf(band)).toBe('Clawd: ¡Conversación compactada!')
   await band.unmount()
 })
 

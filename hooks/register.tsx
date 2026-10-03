@@ -1,12 +1,12 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, Timer } from 'claude-code'
+import type { EngineInterface, Register, SessionCompactResult, Timer } from 'claude-code'
 
 import type { ClawdMode, Stats } from '../types'
 import { DEFAULT_FIGURE_SCENE, FIGURE_SCENES, figureSceneNamed, figuresAlt } from './scenes/index'
 import type { Figures } from './scenes/index'
 import { DEFAULT_LANG, LANG_NAMES, LANGS, langOf, TEXTS, wordsOf } from './language'
 import type { Lang, LangChoice, Words } from './language'
-import { columnsOf, pictureOf } from './raster'
+import { columnsOf, isMeasuredShort, pictureOf } from './raster'
 import type { Picture } from './raster'
 
 const PANE = 'clawd'
@@ -960,7 +960,25 @@ async function compactNow($: EngineInterface, isWorking: boolean) {
     $.ui.toast(TEXTS[await langNow($)].waitToCompact)
     return
   }
-  await $.session.compact()
+  // The call runs every session.compact hook but this plugin's own, so the
+  // band shows the compaction from here.
+  await whileCompacting($, () => $.session.compact())
+}
+
+// Clawd compacting while `compact` runs, then celebrating once it is done,
+// or back to idle if a hook skipped it.
+async function whileCompacting($: EngineInterface, compact: () => Promise<SessionCompactResult>) {
+  await show($, 'compacting')
+  let isDone = false
+  try {
+    const result = await compact()
+    isDone = result.skip === undefined
+    return result
+  } finally {
+    // The fresh figures first, so the celebration shows the scene refilled.
+    await refreshStats($)
+    await (isDone ? celebrate($) : show($, 'idle'))
+  }
 }
 
 // Switches the scene the band draws on its right: in the session's state,
@@ -1118,6 +1136,13 @@ const FRAME_MS = 66
 // A picture the terminal still refuses this long after the band last drew it
 // is no longer on screen (the band collapsed, or another drawing took its place).
 const MOUNT_GRACE_MS = 2000
+
+// The languages whose texts Claude Code measures short (hooks/raster.ts). It
+// repaints a changed part of a row at the column it counts, so in a terminal a
+// row of such text comes out garbled; there the mod speaks English instead, as
+// Claude Code's own terminal UI does.
+const MEASURED_SHORT = new Set(LANGS.filter(l => isMeasuredShort(JSON.stringify(TEXTS[l]))))
+const langOn = (surface: string, lang: Lang) => (surface === 'terminal' && MEASURED_SHORT.has(lang) ? DEFAULT_LANG : lang)
 
 // What the label beside Clawd needs at least, in columns: the longest word
 // of its labels, "¡Conversación", so no word breaks in two.
@@ -1333,17 +1358,7 @@ export const register: Register = on => {
     if (e.agentId || e.trigger === 'precompute') {
       return next(e)
     }
-    await show($, 'compacting')
-    let isDone = false
-    try {
-      const result = await next(e)
-      isDone = result.skip === undefined
-      return result
-    } finally {
-      // The fresh figures first, so the celebration shows the scene refilled.
-      await refreshStats($)
-      await (isDone ? celebrate($) : show($, 'idle'))
-    }
+    return whileCompacting($, () => next(e))
   })
 
   on('turn.complete', async ($, e, next) => {
@@ -1365,14 +1380,15 @@ export const register: Register = on => {
       return next(e)
     }
 
-    const lang = await langNow($)
+    const lang = langOn(e.surface, await langNow($))
     const t = TEXTS[lang]
     const drawnMode = await read($, mode)
     // A turn that ended without telling (an interruption) leaves no stale mode.
     const isIdle = !e.props.isWorking && drawnMode !== 'compacting' && drawnMode !== 'compacted'
     const now = await $.clock.now()
     const figures = figuresOf(await read($, stats), now, drawnMode === 'compacting')
-    const isLow = figures.contextLeft !== null && figures.contextLeft <= COMPACT_AT
+    // No Compactar while a compaction runs.
+    const isLow = drawnMode !== 'compacting' && figures.contextLeft !== null && figures.contextLeft <= COMPACT_AT
     await read($, redraws)
     const isAsking = await read($, isConfirming)
     const figureScene = figureSceneNamed(await read($, sceneName))
@@ -1395,7 +1411,12 @@ export const register: Register = on => {
           <Button key="compact-no" label={t.no} onPress={() => update($, isConfirming, () => false)} />
         </Box>
       ) : (
-        isLow && <Button key="compact" label={t.compact} onPress={() => update($, isConfirming, () => true)} />
+        // A Button alone keeps to the top of the band's row; in a Box it centers.
+        isLow && (
+          <Box>
+            <Button key="compact" label={t.compact} onPress={() => update($, isConfirming, () => true)} />
+          </Box>
+        )
       )
       // A Button draws as `[ label ]` here.
       const controlsWidth = isAsking ? columnsOf(t.compactAsk) + columnsOf(t.yes) + columnsOf(t.no) + 10 : isLow ? columnsOf(t.compact) + 4 : 0
@@ -1474,12 +1495,12 @@ export const register: Register = on => {
 
   // The pane where the person picks the scene on the band's right. Where
   // images draw, a gallery: each scene with the session's figures as they are
-  // now, the one in use marked. The terminal, with no band, shows what Clawd is
+  // now, the one in use marked. The terminal, which draws no images, shows what Clawd is
   // doing in words and a picker of the scenes.
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
     isPaneFocused = e.props.isFocused
     await read($, redraws)
-    const lang = await langNow($)
+    const lang = langOn(e.surface, await langNow($))
     const t = TEXTS[lang]
     const choice = await read($, langChoice)
     const auto = LANG_NAMES[await detectedLang($)]

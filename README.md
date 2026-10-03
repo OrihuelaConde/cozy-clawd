@@ -99,6 +99,8 @@ The mod speaks English, French, German, Hindi, Indonesian, Italian, Japanese, Ko
 
 To choose the language yourself, open the `/cozy-clawd` pane and select the language by its own name, such as **Español** or **日本語**, next to **Language**. To go back to the automatic language, select **Automatic**. In the terminal, the pane has a **Language** picker instead. Later sessions start with the language you chose.
 
+In the terminal, the band and the pane speak English when the language is Hindi. Claude Code lays out Devanagari narrower than a terminal draws it, so Hindi text comes out garbled there.
+
 The command names (`/cozy-clawd`, `/cozy-clawd-scene`) and the scene names the `/cozy-clawd-scene` command takes stay the same in every language.
 
 ## Development
