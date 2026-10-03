@@ -238,6 +238,10 @@ const GLOBE = px(19, 0, 4, 1) + px(18, 1, 6, 2) + px(19, 3, 4, 1)
 // Land on one turn of the globe, as [x within its six columns, y].
 const LAND: [number, number][] = [[1, 0], [0, 1], [1, 1], [4, 1], [4, 2], [5, 2], [1, 2], [3, 3]]
 
+// Where the land shows as it turns: the globe's middle cells, all sky, so
+// each holds two colors; its rounded sides already hold the terminal's own.
+const LAND_WINDOW = px(20, 0, 2, 4)
+
 // A sheet of paper beside Clawd, x 18 to 23, its top at y 0.
 const PAPER = `<g fill="${WING}">${px(18, 0, 6, 4)}</g>`
 
@@ -307,7 +311,7 @@ const toolScenes: Record<string, Scene> = {
   // On the web: a desk globe turns on its stand.
   web: {
     extra: `
-      <defs><clipPath id="globe">${GLOBE}</clipPath></defs>
+      <defs><clipPath id="globe">${LAND_WINDOW}</clipPath></defs>
       <g fill="${SKY}">${GLOBE}</g>
       <g clip-path="url(#globe)"><g class="spin" fill="${LEAF}">
         ${[0, 6].map(dx => LAND.map(([x, y]) => px(18 + dx + x, y)).join('')).join('')}
@@ -357,8 +361,8 @@ function appear(name: string, from: number) {
 }
 
 const cacheScenes: Record<string, Scene> = {
-  // Clawd stretches its arms up in a big yawn, then nods off: two minutes or
-  // less of the cache are left.
+  // Clawd stretches its arms up in a big yawn, then nods off: a thirtieth of the
+  // cache's life or less is left, two minutes of an hour.
   yawn: {
     eyes: `<g class="drowsy">${OPEN_EYES}</g><g class="shut">${CLOSED_EYES}</g>`,
     extra: `
@@ -377,7 +381,8 @@ const cacheScenes: Record<string, Scene> = {
       @keyframes doze { 0%, 59.9% { opacity: 0; transform: translate(0, 0); } 60%, 79.9% { opacity: 1; transform: translate(0, 0); } 80%, 94.9% { opacity: 1; transform: translate(2px, -2px); } 95%, 100% { opacity: 0; } }`,
   },
   // Clawd keeps an anxious eye on the scene, a drop of sweat running down its
-  // side: ten minutes or less of the cache are left.
+  // side: a sixth of the cache's life or less is left, ten
+  // minutes of an hour.
   worry: {
     extra: `<g class="sweat" fill="${SKY}">${px(16, -2)}</g>`,
     css: `
@@ -455,17 +460,19 @@ export const PASTIMES: readonly Pastime[] = [
       @keyframes juggle-pump { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, -1px); } }
       ${hops('juggle-ball', JUGGLE)}`,
   },
-  // Plays with a yo-yo: down on its string and back up, spinning at the bottom.
+  // Plays with a yo-yo: down on its string and back up, spinning at the
+  // bottom. The hand holding the string is a pixel of Clawd's, so its cell
+  // holds two colors.
   {
     name: 'yoyo',
     eyes: `<g class="yoyo-look">${OPEN_EYES}</g>`,
     extra: `
+      <g fill="${BODY}">${px(17, 1)}</g>
       <g class="yoyo-up">
-        <g fill="${WING}">${px(17, 1)}</g>
         <g class="yoyo-toy" fill="${SHELL}">${px(17, 2, 2, 2)}</g>
       </g>
       <g class="yoyo-down">
-        <g fill="${WING}">${px(17, 1, 1, 3)}</g>
+        <g fill="${WING}">${px(17, 2, 1, 2)}</g>
         <g class="yoyo-toy" fill="${SHELL}">${px(17, 4, 2, 2)}</g>
       </g>`,
     css: `

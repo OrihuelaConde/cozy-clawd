@@ -1,21 +1,24 @@
-// The mate scene: the session's meters as things on a checked tablecloth
-// for a mate: a thermos of hot water for the context, the mate for the prompt
-// cache, a plate of medialunas for the five-hour limit, and a pack of yerba for
-// the week. Each has its number underneath in the 3x5 pixel font.
+// The mate scene: the session's meters as things on a tablecloth checked sky
+// blue and white, like Argentina's flag, for a mate: a thermos of hot water for
+// the context, the mate for the prompt cache, a plate of medialunas for the
+// five-hour limit, and a pack of yerba for the week. Each has its number
+// underneath in the 3x5 pixel font.
 //
-// The mate's steam fades by itself over the cache's hour, so the band need not
+// The mate's steam fades by itself over the cache's life, so the band need not
 // be redrawn to keep it current; once the cache expires the yerba is washed
 // out. While the conversation is compacted, the kettle boils and the thermos
 // fills up.
 
 import { wordsOf } from '../language'
 import type { MeterScene, Meters } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
+import { countdown, COUNTDOWN_CSS, HEIGHT, hourSteps, percentText, pixelText, px, refill, REFILL_CSS, runsLow, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the tablecloth, which takes rows 8 and 9.
 const CLOTH_Y = 8
 
-const CLOTH = '#B5483E'
+// The tablecloth's checks, the flag's sky blue and white.
+const CLOTH = '#74ACDF'
+const CLOTH_WHITE = '#F4F7FA'
 const CREAM = '#E8E6DC'
 const SHADOW = '#8C8A84'
 const STEEL = '#C8C8C8'
@@ -33,6 +36,7 @@ const PASTRY = '#D99A4E'
 const PASTRY_DARK = '#B5763A'
 const PACK = '#6B8E4E'
 const PACK_DARK = '#557341'
+const SEAL = '#B5483E'
 
 // A kettle ready to refill the thermos: round, its handle arched over the lid
 // and its spout rising to the left, steaming. Boiling, its lid rattles and the
@@ -58,8 +62,8 @@ const STRIP = 5
 // and the thermos steps aside for it. While the conversation is compacted the
 // kettle boils and the water rises to the top.
 const thermos = (left: number | null, x: number, isCompacting: boolean) => {
-  const rows = left === null ? 0 : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * STRIP))
-  const isLow = left !== null && left <= 25
+  const rows = left === null ? STRIP : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * STRIP))
+  const isLow = runsLow(left)
   const hasKettle = isLow || isCompacting
   const at = hasKettle ? x + ASIDE : x
   const water = isCompacting
@@ -76,7 +80,7 @@ const thermos = (left: number | null, x: number, isCompacting: boolean) => {
 }
 
 // Cache: the mate and its bombilla. It steams in a loop that fades by itself
-// over the cache's hour; once the cache has expired the yerba is washed out.
+// over the cache's life; once the cache has expired the yerba is washed out.
 const mate = (left: number | null, ttl: number, x: number) => {
   const isWashed = left !== null && left <= 0
   const gourd = `
@@ -122,10 +126,11 @@ const plate = (used: number | null, x: number) => {
 }
 
 // Weekly limit: a pack of yerba that gets flatter, from the top down, as the
-// week's limit is used.
+// week's limit is used, with yerba in it while any is left and flat and empty
+// once it's used up.
 const pack = (used: number | null, x: number) => {
   const left = used === null ? null : 100 - used
-  const rows = left === null ? 8 : Math.max(1, Math.round((left / 100) * 8))
+  const rows = left === null ? 8 : left <= 0 ? 1 : Math.max(2, Math.round((left / 100) * 8))
   const top = CLOTH_Y - rows
   // The label sits low on the pack, so it goes last as the pack flattens.
   const label = [4, 5].filter(y => y > top)
@@ -133,15 +138,16 @@ const pack = (used: number | null, x: number) => {
     <g fill="${PACK}">${px(x + 5, top, 6, rows)}</g>
     <g fill="${PACK_DARK}">${px(x + 5, top, 6, 1)}${px(x + 10, top, 1, rows)}</g>
     <g fill="${CREAM}">${label.map(y => px(x + 5, y, 5, 1)).join('')}</g>
-    <g fill="${CLOTH}">${label.length === 2 ? px(x + 7, 4) : ''}</g>
+    <g fill="${SEAL}">${label.length === 2 ? px(x + 7, 4) : ''}</g>
     ${percentText(left, x)}`
 }
 
-// A gingham strip: cells two pixels wide, the rows offset by one cell.
+// A gingham strip in sky blue and white: cells two pixels wide, the rows
+// offset by one cell.
 const tablecloth = () =>
   [0, 1]
     .map(row =>
-      Array.from({ length: WIDTH / 2 }, (_, i) => `<g fill="${(i + row) % 2 === 0 ? CLOTH : CREAM}">${px(i * 2, CLOTH_Y + row, 2, 1)}</g>`).join(''),
+      Array.from({ length: WIDTH / 2 }, (_, i) => `<g fill="${(i + row) % 2 === 0 ? CLOTH : CLOTH_WHITE}">${px(i * 2, CLOTH_Y + row, 2, 1)}</g>`).join(''),
     )
     .join('')
 
@@ -170,7 +176,7 @@ const mateSvg = (f: Meters) =>
 
 // The scene in the small size, on a row of the tablecloth: the thermos, its
 // strip of water as full as the context left (no kettle: while compacting the
-// strip fills up); the mate, its steam thinning over the cache's hour, the
+// strip fills up); the mate, its steam thinning over the cache's life, the
 // yerba washed out once it expires; the plate with three medialunas, two, one
 // or crumbs; and the pack of yerba, flatter as the week is used.
 const CENTERS = [4, 15.5, 26, 35.5]
@@ -214,7 +220,7 @@ const mateSmall = (f: Meters) => {
     <g fill="${PACK_DARK}">${px(37, top, 1, 7 - top)}</g>
     ${top <= 3 ? `<g fill="${CREAM}">${px(34, top + 2, 3, top === 1 ? 2 : 1)}</g>` : ''}`
 
-  const cloth = Array.from({ length: 10 }, (_, i) => `<g fill="${i % 2 === 0 ? CLOTH : CREAM}">${px(i * 4, 7, 2, 1)}</g><g fill="${i % 2 === 0 ? CREAM : CLOTH}">${px(i * 4 + 2, 7, 2, 1)}</g>`).join('')
+  const cloth = Array.from({ length: 10 }, (_, i) => `<g fill="${i % 2 === 0 ? CLOTH : CLOTH_WHITE}">${px(i * 4, 7, 2, 1)}</g><g fill="${i % 2 === 0 ? CLOTH_WHITE : CLOTH}">${px(i * 4 + 2, 7, 2, 1)}</g>`).join('')
 
   return smallSceneSvg(
     `

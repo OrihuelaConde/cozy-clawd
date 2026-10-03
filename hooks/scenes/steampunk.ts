@@ -4,7 +4,7 @@
 // airship's altitude for the week. Each has its number underneath in the 3x5
 // pixel font.
 //
-// The clock's minute hand goes round by itself over the cache's hour, so the
+// The clock's minute hand goes round by itself over the cache's life, so the
 // band need not be redrawn to keep it current; once the cache expires the
 // clock stops. At a quarter of the context or less the boiler runs cold;
 // while the conversation is compacted the boiler whistles and the sight glass
@@ -12,7 +12,7 @@
 
 import { wordsOf } from '../language'
 import type { MeterScene, Meters } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
+import { countdown, COUNTDOWN_CSS, HEIGHT, hourSteps, percentText, pixelText, px, refill, REFILL_CSS, runsLow, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the planks at y 9.
 const FLOOR_Y = 9
@@ -48,8 +48,8 @@ const GLASS_ROWS = 6
 // into the red; while the conversation is compacted it whistles hard and the
 // sight glass fills up.
 const boiler = (left: number | null, x: number, isCompacting: boolean) => {
-  const rows = left === null ? 0 : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * GLASS_ROWS))
-  const isLow = left !== null && left <= 25 && !isCompacting
+  const rows = left === null ? GLASS_ROWS : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * GLASS_ROWS))
+  const isLow = runsLow(left) && !isCompacting
   const water = isCompacting
     ? `<g style="${refill(GLASS_ROWS - rows)}">${px(x + 12, 8 - GLASS_ROWS, 1, GLASS_ROWS)}</g>`
     : rows > 0 ? px(x + 12, 8 - rows, 1, rows) : ''
@@ -203,14 +203,14 @@ const steampunkSvg = (f: Meters) =>
 // The scene in the small size, on the workshop's planks: the boiler, its
 // sight glass as full as the context left, its fire dying down at a quarter
 // or less, whistling and filling up while compacting; the pocket watch, its
-// minute hand going round over the cache's hour and stopped once it expires;
+// minute hand going round over the cache's life and stopped once it expires;
 // the scuttle of coal, emptier as the five-hour limit goes; and the airship,
 // coming down over the week.
 const CENTERS = [3.5, 14, 25, 36]
 
 const steampunkSmall = (f: Meters) => {
   const water = f.isCompacting ? 4 : ([0, 1, 2, 4][stageOf(f.contextLeft)] ?? 0)
-  const isLow = !f.isCompacting && f.contextLeft !== null && f.contextLeft <= 25
+  const isLow = !f.isCompacting && runsLow(f.contextLeft)
   const boiler = `
     <g fill="${COPPER_DARK}">${px(3, 0)}${px(5, 2, 1, 4)}</g>
     <g fill="${COPPER}">${px(2, 1, 3, 1)}${px(1, 2, 4, 4)}</g>

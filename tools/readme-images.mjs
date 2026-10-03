@@ -6,34 +6,37 @@
 // the band would show, ten a second. The terminal's band is painted with the
 // band's own renderer (hooks/raster.ts), a cell 9 by 18 pixels.
 //
-// Needs Playwright with its Chromium, and ffmpeg on the PATH. Run from the
-// repository root, after the preview (which writes .preview/scenes.gen.ts):
+// Needs Playwright 1.56.1 with its Chromium, and ffmpeg on the PATH. The
+// labels and buttons are set in the machine's own sans-serif and monospace
+// fonts. Run from the repository root:
 //
-//   npm install --no-save playwright
-//   node tools/preview.mjs
+//   npm install --no-save playwright@1.56.1
+//   npx playwright install chromium
 //   node tools/readme-images.mjs
 
-import { mkdirSync, rmSync } from 'node:fs'
-import { execFileSync } from 'node:child_process'
-import { registerHooks } from 'node:module'
-import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
-import { chromium } from 'playwright'
+import { clawdScenes, importMod, root } from './load.mjs'
 
-registerHooks({
-  resolve(specifier, context, nextResolve) {
-    const isBare = specifier.startsWith('.') && !/\.[cm]?[jt]sx?$/.test(specifier)
-    const isFromTs = context.parentURL !== undefined && new URL(context.parentURL).pathname.endsWith('.ts')
-    return nextResolve(isBare && isFromTs ? `${specifier}.ts` : specifier, context)
-  },
+import { execFileSync } from 'node:child_process'
+import { mkdirSync, rmSync } from 'node:fs'
+import { join } from 'node:path'
+
+// What the script needs besides Node.js, checked before it renders anything.
+try {
+  execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' })
+} catch {
+  console.error('The script needs ffmpeg on the PATH, to encode the GIFs: https://ffmpeg.org/download.html')
+  process.exit(1)
+}
+const { chromium } = await import('playwright').catch(() => {
+  console.error('The script needs Playwright: run `npm install --no-save playwright@1.56.1` and `npx playwright install chromium`.')
+  process.exit(1)
 })
 
-const root = process.cwd()
-const { scenes, toolScenes, cacheScenes, REST, PASTIMES, pastimeScene, svgFor, SCALE, VIEW_W, VIEW_H } = await import(pathToFileURL(join(root, '.preview', 'scenes.gen.ts')).href)
-const { METER_SCENES, meterSceneNamed, numbersLine } = await import(pathToFileURL(join(root, 'hooks', 'scenes', 'index.ts')).href)
-const { INK } = await import(pathToFileURL(join(root, 'hooks', 'scenes', 'pixels.ts')).href)
-const { compile, columnsOf } = await import(pathToFileURL(join(root, 'hooks', 'raster.ts')).href)
-const { smallScene, smallSvg } = await import(pathToFileURL(join(root, 'hooks', 'small.ts')).href)
+const { scenes, toolScenes, cacheScenes, REST, PASTIMES, pastimeScene, svgFor, SCALE, VIEW_W, VIEW_H } = await clawdScenes()
+const { METER_SCENES, meterSceneNamed, numbersLine } = await importMod('hooks', 'scenes', 'index.ts')
+const { INK } = await importMod('hooks', 'scenes', 'pixels.ts')
+const { compile, columnsOf } = await importMod('hooks', 'raster.ts')
+const { smallScene, smallSvg } = await importMod('hooks', 'small.ts')
 
 const outDir = join(root, 'docs', 'images')
 const framesDir = join(root, '.preview', 'frames')
@@ -73,10 +76,9 @@ const confirm = '<span class="ask">Compact?</span><span class="button primary">Y
 const tile = inner => `<div class="tile">${inner}</div>`
 
 const PAGE = `<!doctype html><meta charset="utf-8">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=block">
 <style>
   html, body { margin: 0; background: #262624; }
-  body { font-family: Inter, 'Liberation Sans', sans-serif; display: inline-block; }
+  body { font-family: Inter, system-ui, 'Segoe UI', 'Liberation Sans', sans-serif; display: inline-block; }
   iframe { display: block; border: 0; background: transparent; }
   #stage { display: inline-block; }
   .band { box-sizing: border-box; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -196,10 +198,8 @@ function terminalRows({ clawd, meters, numbers, label, t, elapsed }) {
 
 const terminalPage = await browser.newPage({ deviceScaleFactor: 2 })
 await terminalPage.setContent(`<!doctype html><meta charset="utf-8">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=block">
 <style>html, body { margin: 0; background: #1f1e1d; } canvas { display: block; }</style>
 <canvas id="terminal"></canvas>`)
-await terminalPage.evaluate(() => Promise.all([document.fonts.load('15px "JetBrains Mono"'), document.fonts.load('bold 15px "JetBrains Mono"')]))
 
 // Paints rows of cells on the page's canvas, a cell CELL_W by CELL_H: a block
 // character as its quarters in its two colors, anything else as the
@@ -231,7 +231,7 @@ const paintTerminal = ({ rows, cellW, cellH, background, foreground, own }) => {
         ctx.fillStyle = back
         ctx.fillRect(x * cellW, y * cellH, cellW, cellH)
         ctx.fillStyle = front
-        ctx.font = `${isBold ? 'bold ' : ''}15px "JetBrains Mono", "DejaVu Sans Mono", monospace`
+        ctx.font = `${isBold ? 'bold ' : ''}15px "JetBrains Mono", Consolas, Menlo, "DejaVu Sans Mono", monospace`
         ctx.fillText(String.fromCodePoint(glyph), x * cellW + cellW / 2, y * cellH + cellH / 2 + 1)
         return
       }

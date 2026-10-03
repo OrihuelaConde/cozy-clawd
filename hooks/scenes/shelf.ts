@@ -11,7 +11,7 @@
 
 import { wordsOf } from '../language'
 import type { MeterScene, Meters } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, INK, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, stageOf, WIDTH } from './pixels'
+import { countdown, COUNTDOWN_CSS, HEIGHT, INK, level, percentText, pixelText, px, refill, REFILL_CSS, runsLow, SCALE, sceneSvg, SLOT, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the shelf, whose top is at y 9; the numbers sit under it.
 const BOARD_Y = 9
@@ -86,9 +86,9 @@ const teapot = (x: number, isPouring: boolean) => `
 // less, when a teapot comes to stand beside it. While the conversation is
 // compacted the teapot pours and the mug fills up with hot tea.
 const mug = (left: number | null, x: number, isCompacting: boolean) => {
-  const rows = left === null ? 0 : level(left, MUG_ROWS)
-  const hasTeapot = isCompacting || (left !== null && left <= 25)
-  const isWarm = isCompacting || (left !== null && left > 25)
+  const rows = level(left, MUG_ROWS)
+  const hasTeapot = isCompacting || runsLow(left)
+  const isWarm = isCompacting || !runsLow(left)
   // The mug's left wall; the inside runs five columns from the next.
   const m = x + 3 + (hasTeapot ? ASIDE : 0)
   const fill = (top: number, h: number) => `<g fill="${TEA}">${px(m + 1, top, 5, h)}</g><g fill="${TEA_TOP}">${px(m + 1, top, 5, 1)}</g>`
@@ -112,8 +112,8 @@ const mug = (left: number | null, x: number, isCompacting: boolean) => {
 }
 
 // How many rows of wax the candle has, and how many it burns down in steps
-// over the cache's hour: five, so that with 100, 75, 50, 25 and 10 percent of
-// the hour left it stands at five different heights.
+// over the cache's life: five, so that with 100, 75, 50, 25 and 10 percent of
+// it left it stands at five different heights.
 const WAX_ROWS = 6
 const BURN = 5
 
@@ -181,11 +181,11 @@ const cookie = (x: number, y: number, i: number) => `
 // still free; with two or fewer left, crumbs lie on its bottom.
 const jar = (used: number | null, x: number) => {
   const left = used === null ? null : 100 - used
-  const count = left === null ? 0 : level(left, COOKIES.length)
+  const count = level(left, COOKIES.length)
   return `
     <g fill="${GLASS}" opacity="0.15">${px(x + 3, 2, 9, 6)}</g>
     ${COOKIES.slice(0, count).map(([dx, y], i) => cookie(x + dx, y, i)).join('')}
-    ${left === null ? '' : `<g fill="${COOKIE_DARK}">${(CRUMBS[count] ?? []).map(dx => px(x + dx, 7)).join('')}</g>`}
+    <g fill="${COOKIE_DARK}">${(CRUMBS[count] ?? []).map(dx => px(x + dx, 7)).join('')}</g>
     <g fill="${GLASS}">${px(x + 2, 2, 1, 6)}${px(x + 12, 2, 1, 6)}${px(x + 2, 8, 11, 1)}</g>
     <g fill="${WOOD}">${px(x + 4, 0, 7, 1)}</g><g fill="${WOOD_DARK}">${px(x + 7, -1)}${px(x + 3, 1, 9, 1)}</g>
     <g fill="#FFFFFF" opacity="0.5">${px(x + 11, 5, 1, 2)}</g>
@@ -200,7 +200,7 @@ const DISC: [number, number, number][] = [[1, 6, 8], [2, 5, 9], [3, 4, 10], [4, 
 // beside it.
 const moonLamp = (used: number | null, x: number) => {
   const left = used === null ? null : 100 - used
-  const lit = left === null ? 0 : level(left, 7)
+  const lit = level(left, 7)
   const firstLit = 11 - lit
   const part = (from: number, to: number) =>
     DISC.map(([y, a, b]) => (Math.min(b, to) >= Math.max(a, from) ? px(x + Math.max(a, from), y, Math.min(b, to) - Math.max(a, from) + 1, 1) : '')).join('')
@@ -252,7 +252,7 @@ const shelfSvg = (f: Meters) =>
 // and nothing. No teapot: the mug alone fills up while compacting.
 const smallShelfSvg = (f: Meters) => {
   const tea = [0, 1, 2, 4][stageOf(f.contextLeft)] ?? 0
-  const isWarm = f.isCompacting || (f.contextLeft !== null && f.contextLeft > 25)
+  const isWarm = f.isCompacting || !runsLow(f.contextLeft)
   const mugTea = f.isCompacting
     ? `<g class="refill"><g fill="${TEA}">${px(2, 2, 4, 4)}</g><g fill="${TEA_TOP}">${px(2, 2, 4, 1)}</g></g>`
     : tea > 0

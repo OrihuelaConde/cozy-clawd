@@ -16,8 +16,8 @@ In a terminal, the band comes in two sizes:
 
 | Size | Rows | Columns, at least | What it shows |
 | --- | --- | --- | --- |
-| Small, the default | 5 | 71 | Clawd as Claude Code draws it on its welcome screen, four pixels to a character cell, beside a smaller drawing of the scene, two pixels to a cell, with the meters' numbers in plain text under it. |
-| Large | 9 | 105 | The scenes the desktop app shows, two pixels to a character cell. |
+| Small, the default | 5 | 75 | Clawd as Claude Code draws it on its welcome screen, four pixels to a character cell, beside a smaller drawing of the scene, two pixels to a cell, with the meters' numbers in plain text under it. |
+| Large | 9 | 109 | The scenes the desktop app shows, two pixels to a character cell. |
 
 The small drawings are simpler than the large ones. Each meter shows four steps: more than half left, half or less, a quarter or less, and nothing. A few extras of the large drawings don't fit, such as the shelf's teapot and the mate's kettle.
 
@@ -47,4 +47,4 @@ In tmux, Claude Code paints in 256 colors at most, unless the `CLAUDE_CODE_TMUX_
 
 ## Hindi in a terminal
 
-In a terminal, the band and the `/cozy-clawd` panel speak English when the language is Hindi, because Hindi text comes out garbled there. The commands' replies and their descriptions in the menu stay in Hindi. For more information, see [Languages](languages.md#hindi-in-a-terminal).
+In a terminal, the band, the `/cozy-clawd` panel, and the commands' replies and menu descriptions speak English when the language is Hindi, because Hindi text comes out garbled there. For more information, see [Languages](languages.md#hindi-in-a-terminal).

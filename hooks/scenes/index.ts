@@ -7,6 +7,7 @@ import { balconyScene } from './balcony'
 import { cyberpunkScene } from './cyberpunk'
 import { gamerScene } from './gamer'
 import { TEXTS, type Lang, type Words } from '../language'
+import { minutesLeft } from './pixels'
 import { mateScene } from './mate'
 import { shelfScene } from './shelf'
 import { steampunkScene } from './steampunk'
@@ -59,7 +60,7 @@ export const meterSceneNamed = (name: unknown) => METER_SCENES.find(s => s.name 
 export const numbersLine = (f: Meters, centers: readonly number[], columns: number, elapsed: number) => {
   const pct = (n: number | null) => (n === null ? '--' : `${Math.round(n)}%`)
   const left = f.cacheLeft === null ? null : f.cacheLeft - elapsed
-  const minutes = left === null ? '--' : left <= 0 ? '0m' : `${String(Math.floor(Math.min(left, 3600 - 0.001) / 60)).padStart(2, '0')}m`
+  const minutes = left === null ? '--' : left <= 0 ? '0m' : `${String(minutesLeft(left)).padStart(2, '0')}m`
   const texts = [pct(f.contextLeft), minutes, pct(f.fiveHour === null ? null : 100 - f.fiveHour), pct(f.week === null ? null : 100 - f.week)]
   const line = Array<string>(columns).fill(' ')
   texts.forEach((text, i) => {
@@ -77,6 +78,6 @@ export const numbersLine = (f: Meters, centers: readonly number[], columns: numb
 export const metersAlt = (f: Meters, lang: Lang) => {
   const words = TEXTS[lang].meters
   const pct = (n: number | null) => (n === null ? words.none : `${Math.round(n)}%`)
-  const cache = f.cacheLeft === null ? words.none : f.cacheLeft > 0 ? words.minutes(Math.ceil(f.cacheLeft / 60)) : words.expired
+  const cache = f.cacheLeft === null ? words.none : f.cacheLeft > 0 ? words.minutes(minutesLeft(f.cacheLeft)) : words.expired
   return words.line(pct(f.contextLeft), cache, pct(f.fiveHour === null ? null : 100 - f.fiveHour), pct(f.week === null ? null : 100 - f.week))
 }

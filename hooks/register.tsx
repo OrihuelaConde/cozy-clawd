@@ -1,13 +1,13 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register, SessionCompactResult, Timer } from 'claude-code'
+import type { EngineInterface, Register, SessionCompactResult, SessionUsage, Timer } from 'claude-code'
 
 import type { ClawdMode, Size, Stats } from '../types'
 import { smallScene, smallSvg } from './small'
 import type { ScenePick } from './small'
 import { DEFAULT_METER_SCENE, METER_SCENES, meterSceneNamed, metersAlt, numbersLine } from './scenes/index'
 import type { Meters } from './scenes/index'
-import { INK } from './scenes/pixels'
-import { DEFAULT_LANG, LANG_NAMES, LANGS, langOf, TEXTS, wordsOf } from './language'
+import { INK, LOW_AT } from './scenes/pixels'
+import { DEFAULT_LANG, ENGLISH_NAMES, LANG_NAMES, LANGS, langOf, TEXTS, wordsOf } from './language'
 import type { Lang, LangChoice, Words } from './language'
 import { columnsOf, isMeasuredShort, pictureOf, textCells } from './raster'
 import type { Picture } from './raster'
@@ -18,7 +18,12 @@ const PANEL_COMMAND = 'cozy-clawd'
 const SCENE_COMMAND = 'cozy-clawd-scene'
 const mode = atom({ plugin: 'cozy-clawd', key: 'mode' } as const, 'idle')
 const tool = atom({ plugin: 'cozy-clawd', key: 'tool' } as const, null)
-const stats = atom({ plugin: 'cozy-clawd', key: 'stats' } as const, { contextLeft: null, fiveHour: null, week: null, cacheAt: null })
+// Claude Code keeps the prompt cache an hour or five minutes (cacheTtlOf);
+// an hour until the session says otherwise.
+const HOUR_S = 60 * 60
+const FIVE_MINUTES_S = 5 * 60
+const NO_STATS: Stats = { contextLeft: null, fiveHour: null, week: null, fiveHourResetsAt: null, weekResetsAt: null, cacheAt: null, cacheTtl: HOUR_S }
+const stats = atom({ plugin: 'cozy-clawd', key: 'stats' } as const, NO_STATS)
 const isConfirming = atom({ plugin: 'cozy-clawd', key: 'isConfirming' } as const, false)
 const redraws = atom({ plugin: 'cozy-clawd', key: 'redraws' } as const, 0)
 const sceneName = atom({ plugin: 'cozy-clawd', key: 'sceneName' } as const, DEFAULT_METER_SCENE.name)
@@ -464,8 +469,8 @@ const sceneFor = (m: ClawdMode, tool: string | null, since = 0, now = since): { 
 
 // What Clawd does as the prompt cache runs out, between waiting and sleeping.
 const cacheScenes: Record<'worry' | 'yawn', Scene> = {
-  // Clawd stretches its arms up in a big yawn, then nods off: two minutes or
-  // less of the cache are left.
+  // Clawd stretches its arms up in a big yawn, then nods off: a thirtieth of the
+  // cache's life or less is left, two minutes of an hour.
   yawn: {
     label: wordsOf(t => t.states.yawning),
     eyes: `<g class="drowsy">${px(5, 1.5, 1, 0.5)}${px(12, 1.5, 1, 0.5)}</g><g class="shut">${CLOSED_EYES}</g>`,
@@ -487,7 +492,8 @@ const cacheScenes: Record<'worry' | 'yawn', Scene> = {
       @keyframes doze { 0%, 59.9% { opacity: 0; transform: translate(0, 0.5px); } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(1px, -0.5px); } }`,
   },
   // Clawd keeps an anxious eye on the scene, a drop of sweat running down its
-  // side: ten minutes or less of the cache are left.
+  // side: a sixth of the cache's life or less is left, ten
+  // minutes of an hour.
   worry: {
     label: wordsOf(t => t.states.worried),
     extra: `<g class="sweat" fill="${SKY}">${px(15, 0, 1, 0.5)}</g>`,
@@ -855,12 +861,9 @@ const svgFor = (scene: Scene) => `<svg xmlns="http://www.w3.org/2000/svg" viewBo
 // a mode can last a few milliseconds and never be seen.
 const MIN_MS = 1500
 
-// The compact button shows once this much of the context, or less, is free.
-const COMPACT_AT = 25
-
-// How long the prompt cache keeps a conversation after its last request:
-// Claude Code's requests use the one-hour cache.
-const CACHE_TTL_MIN = 60
+// The compact button shows once this much of the context, or less, is free:
+// where the scenes show the context low.
+const COMPACT_AT = LOW_AT
 
 // The picks of the panel's language row, in its order.
 const LANG_CHOICES: readonly LangChoice[] = ['auto', ...LANGS]
@@ -872,6 +875,9 @@ let current: Shown = { mode: 'idle', tool: null }
 let shownAt = 0
 let pending: Shown | null = null
 let timer: Timer | null = null
+
+// Whether the main turn runs: from its first model request until it completes.
+let isTurnRunning = false
 
 const same = (a: Shown, b: Shown) => a.mode === b.mode && a.tool === b.tool
 
@@ -919,37 +925,150 @@ async function show($: EngineInterface, nextMode: ClawdMode, nextTool: string | 
   await apply($, next)
 }
 
-// With this little of the prompt cache left, in seconds, Clawd frets; with
-// this little, it yawns.
-const WORRY_S = 10 * 60
-const YAWN_S = 2 * 60
+// With this share of the prompt cache's life left Clawd frets, ten minutes
+// of an hour; with this share, two minutes of an hour, it yawns.
+const worryS = (ttl: number) => ttl / 6
+const yawnS = (ttl: number) => ttl / 30
 
-// The cache's candle and minutes run down by themselves; the band is drawn
-// again only as the cache runs out: when Clawd starts to fret, when it
-// yawns, and when the cache expires, to put the candle out.
-let cacheTimers: Timer[] = []
+// The meters as the session's state holds them; a state written by an
+// older version of the mod lacks what it did not keep.
+async function statsNow($: EngineInterface): Promise<Stats> {
+  return { ...NO_STATS, ...(await read($, stats)) }
+}
 
-// Reads the context window and the usage limits as the engine last saw them.
-// After an answer the cache starts over, and its last minutes are scheduled anew.
-async function refreshStats($: EngineInterface, isAnswer = false) {
-  const usage = await $.session.usage()
-  const limit = (kind: string) => usage.rateLimits.find(r => r.kind === kind)?.percentUsed ?? null
+// The cache's candle and minutes run down by themselves, and the meters of
+// the usage limits stay as they were read; the band is drawn again only as
+// the cache runs out (when Clawd starts to fret, when it yawns, and when the
+// cache expires, to put the candle out) and as a limit's window starts over.
+// After a hot reload, which cancels the old module's timers, they are
+// scheduled again from the state, which stays.
+let statTimers: Timer[] = []
+
+async function scheduleRedraws($: EngineInterface, s: Stats) {
+  for (const t of statTimers) {
+    t.cancel()
+  }
+  statTimers = []
   const now = await $.clock.now()
-  await update($, stats, s => ({
-    contextLeft: usage.context.percent === undefined ? null : 100 - usage.context.percent,
-    fiveHour: limit('five_hour'),
-    week: limit('seven_day'),
-    cacheAt: isAnswer ? now : s.cacheAt,
-  }))
-  if (isAnswer) {
-    for (const t of cacheTimers) {
-      t.cancel()
-    }
-    cacheTimers = []
-    for (const leftS of [WORRY_S, YAWN_S, 0]) {
-      cacheTimers.push($.clock.after((CACHE_TTL_MIN * 60 - leftS) * 1000 + 500, () => redrawBand($)))
+  const cacheAt = s.cacheAt
+  const cacheSteps = cacheAt === null ? [] : [s.cacheTtl - worryS(s.cacheTtl), s.cacheTtl - yawnS(s.cacheTtl), s.cacheTtl].map(atS => cacheAt + atS * 1000)
+  for (const at of [...cacheSteps, s.fiveHourResetsAt, s.weekResetsAt]) {
+    if (at !== null && at > now) {
+      statTimers.push($.clock.after(at - now + 500, () => redrawBand($)))
     }
   }
+}
+
+// An environment variable Claude Code reads as on.
+const isOn = (value: string | undefined) => value !== undefined && /^(1|true|yes|on)$/i.test(value.trim())
+
+const ttlNamed = (value: unknown) => (value === '1h' ? HOUR_S : value === '5m' ? FIVE_MINUTES_S : null)
+
+// How long the prompt cache keeps the main conversation, in seconds, as
+// Claude Code picks it: five minutes when FORCE_PROMPT_CACHING_5M is on;
+// the one CLAUDE_CODE_PROMPT_CACHE_TTL, or else the promptCacheTtl setting,
+// names; an hour when ENABLE_PROMPT_CACHING_1H is on (on Bedrock,
+// ENABLE_PROMPT_CACHING_1H_BEDROCK). Otherwise an hour on a Claude
+// subscription within its usage limits and five minutes on anything else.
+// No event names the length itself (only a model switch's), so the mod
+// tells a subscription by its usage limits, which only a subscription
+// reports, and a request past them by a limit used up. Before any answer
+// of this session the limits have no reading yet: null, unknown.
+async function cacheTtlOf($: EngineInterface, usage: SessionUsage | null, isAnswer: boolean): Promise<number | null> {
+  if (isOn(await $.env.get('FORCE_PROMPT_CACHING_5M').catch(() => undefined))) {
+    return FIVE_MINUTES_S
+  }
+  const named =
+    ttlNamed(await $.env.get('CLAUDE_CODE_PROMPT_CACHE_TTL').catch(() => undefined)) ??
+    ttlNamed((await $.settings.read().catch(() => ({}) as Record<string, unknown>)).promptCacheTtl)
+  if (named !== null) {
+    return named
+  }
+  const isBedrock = isOn(await $.env.get('CLAUDE_CODE_USE_BEDROCK').catch(() => undefined))
+  if (
+    isOn(await $.env.get('ENABLE_PROMPT_CACHING_1H').catch(() => undefined)) ||
+    (isBedrock && isOn(await $.env.get('ENABLE_PROMPT_CACHING_1H_BEDROCK').catch(() => undefined)))
+  ) {
+    return HOUR_S
+  }
+  const limits = (usage?.rateLimits ?? []).filter(r => r.kind === 'five_hour' || r.kind === 'seven_day')
+  if (limits.length === 0) {
+    return isAnswer ? FIVE_MINUTES_S : null
+  }
+  return limits.some(r => r.percentUsed >= 100) ? FIVE_MINUTES_S : HOUR_S
+}
+
+// Whether Claude Code caches no prompt at all.
+async function isCacheOff($: EngineInterface) {
+  return isOn(await $.env.get('DISABLE_PROMPT_CACHING').catch(() => undefined))
+}
+
+// The context left in a window the engine has no reading of yet (a new
+// session, or one just compacted or cleared, until its next response): an
+// estimate of what the next request will send, as /context makes it
+// without asking the API; null where the host has none.
+async function estimatedContextLeft($: EngineInterface, window: number) {
+  const usage = await $.session.usage({ breakdown: 'summary' }).catch(() => null)
+  const tokens = usage?.context.breakdown?.totalTokens
+  return tokens === undefined || window <= 0 ? null : Math.max(0, 100 - (tokens / window) * 100)
+}
+
+// When a limit's window starts over, from the engine's timestamp.
+const resetOf = (resetsAt: string | undefined) => {
+  const at = resetsAt === undefined ? NaN : Date.parse(resetsAt)
+  return Number.isNaN(at) ? null : at
+}
+
+// Reads the context window and the usage limits as the engine last saw them,
+// leaving the meters as they were when it can't. After an answer the cache
+// starts over, as long as Claude Code says it keeps it, and its last minutes
+// are scheduled anew.
+async function refreshStats($: EngineInterface, isAnswer = false) {
+  const usage = await $.session.usage().catch(() => null)
+  const now = await $.clock.now()
+  const ttl = isAnswer ? await cacheTtlOf($, usage, true) : null
+  const isOff = isAnswer && (await isCacheOff($))
+  const percent = usage?.context.percent
+  const contextLeft = usage === null ? undefined : percent !== undefined ? 100 - percent : await estimatedContextLeft($, usage.context.window)
+  const limit = (kind: string) => usage?.rateLimits.find(r => r.kind === kind)
+  await update($, stats, old => {
+    const s = { ...NO_STATS, ...old }
+    return {
+      ...s,
+      ...(usage === null
+        ? {}
+        : {
+            contextLeft: contextLeft ?? null,
+            fiveHour: limit('five_hour')?.percentUsed ?? null,
+            week: limit('seven_day')?.percentUsed ?? null,
+            fiveHourResetsAt: resetOf(limit('five_hour')?.resetsAt),
+            weekResetsAt: resetOf(limit('seven_day')?.resetsAt),
+          }),
+      ...(isAnswer ? { cacheAt: isOff ? null : now, cacheTtl: ttl ?? s.cacheTtl } : {}),
+    }
+  })
+  await scheduleRedraws($, await statsNow($))
+}
+
+// The conversation the session shows changed: after /clear its cache is not
+// the old one's; a conversation resumed or forked was answered when the
+// engine says, and its cache likely expired or not as the engine reckons it.
+// From that the cache's length, unknown before an answer, may follow: still
+// warm after more than five minutes, it keeps an hour; expired within the
+// hour, five minutes.
+async function restartCache($: EngineInterface, source: string, sinceS: number | undefined, isExpired: boolean | undefined) {
+  const now = await $.clock.now()
+  const usage = await $.session.usage().catch(() => null)
+  const ruled = await cacheTtlOf($, usage, false)
+  await update($, stats, old => {
+    const s = { ...NO_STATS, ...old }
+    if (source === 'clear' || sinceS === undefined) {
+      return { ...s, cacheAt: null }
+    }
+    const told = isExpired === false && sinceS > FIVE_MINUTES_S ? HOUR_S : isExpired === true && sinceS < HOUR_S ? FIVE_MINUTES_S : null
+    return { ...s, cacheAt: now - sinceS * 1000, cacheTtl: told ?? ruled ?? s.cacheTtl }
+  })
+  await scheduleRedraws($, await statsNow($))
 }
 
 async function redrawBand($: EngineInterface) {
@@ -975,21 +1094,36 @@ async function endCelebration($: EngineInterface) {
   }
 }
 
-// Compacting in the middle of a turn would cut it short: the button only says so.
-async function compactNow($: EngineInterface, isWorking: boolean) {
-  await update($, isConfirming, () => false)
-  if (isWorking) {
-    $.ui.toast(TEXTS[await langNow($)].waitToCompact)
+// Whether a press of Yes is compacting already: a second press before the
+// band draws again compacts nothing more.
+let isCompactPressed = false
+
+// Compacting in the middle of a turn would cut it short: the button only
+// says so, in the language of the band pressed.
+async function compactNow($: EngineInterface, isWorking: boolean, lang: Lang) {
+  if (isCompactPressed) {
     return
   }
-  // The call runs every session.compact hook but this plugin's own, so the
-  // band shows the compaction from here.
-  await whileCompacting($, () => $.session.compact())
+  isCompactPressed = true
+  try {
+    await update($, isConfirming, () => false)
+    if (isWorking) {
+      $.ui.toast(TEXTS[lang].waitToCompact)
+      return
+    }
+    // The call runs every session.compact hook but this plugin's own, so the
+    // band shows the compaction from here.
+    await whileCompacting($, () => $.session.compact())
+  } finally {
+    isCompactPressed = false
+  }
 }
 
 // Clawd compacting while `compact` runs, then celebrating once it is done,
-// or back to idle if a hook skipped it.
+// or back to idle if a hook skipped it. A compaction from anywhere answers
+// the compact button's question.
 async function whileCompacting($: EngineInterface, compact: () => Promise<SessionCompactResult>) {
+  await update($, isConfirming, () => false)
   await show($, 'compacting')
   let isDone = false
   try {
@@ -1019,7 +1153,7 @@ let isPanelFocused = false
 
 // The scene the last pick left in the store, for a new session.
 async function loadMeterScene($: EngineInterface) {
-  const stored = await $.store.get('scene')
+  const stored = await $.store.get('scene').catch(() => undefined)
   if (typeof stored === 'string') {
     await update($, sceneName, () => meterSceneNamed(stored).name)
   }
@@ -1054,13 +1188,22 @@ const WINDOWS_LOCALES = [
   ['HKCU\\Control Panel\\International', 'LocaleName'],
 ] as const
 
+// How long the session's start waits on a system command for the language.
+const LOCALE_TIMEOUT_MS = 3000
+
 // The language the operating system shows the person, as a code (`es-AR`):
 // on Windows read from the registry, on macOS the first of AppleLanguages;
-// null where neither answers.
+// null where neither answers. Each command is run by its full path, from its
+// own folder, never looked up in the project's: a project could hold a
+// program by that name.
 async function systemLocale($: EngineInterface): Promise<string | null> {
   if ((await $.env.get('OS').catch(() => undefined)) === 'Windows_NT') {
+    const root = (await $.env.get('SystemRoot').catch(() => undefined)) ?? 'C:\\Windows'
+    const system32 = `${root}\\System32`
     for (const [key, value] of WINDOWS_LOCALES) {
-      const found = await $.process.run(['reg.exe', 'query', key, '/v', value]).catch(() => null)
+      const found = await $.process
+        .run([`${system32}\\reg.exe`, 'query', key, '/v', value], { cwd: system32, timeoutMs: LOCALE_TIMEOUT_MS })
+        .catch(() => null)
       const code = found?.exitCode === 0 ? /REG_\w+\s+([a-z]{2,3}\b[-\w]*)/i.exec(found.stdout)?.[1] : undefined
       if (code) {
         return code
@@ -1068,7 +1211,8 @@ async function systemLocale($: EngineInterface): Promise<string | null> {
     }
     return null
   }
-  const found = await $.process.run(['defaults', 'read', '-g', 'AppleLanguages']).catch(() => null)
+  // Anywhere but macOS there is no such program, and the call fails at once.
+  const found = await $.process.run(['/usr/bin/defaults', 'read', '-g', 'AppleLanguages'], { cwd: '/', timeoutMs: LOCALE_TIMEOUT_MS }).catch(() => null)
 
   return found?.exitCode === 0 ? /[a-z]{2,3}\b[-\w]*/i.exec(found.stdout)?.[0] ?? null : null
 }
@@ -1085,10 +1229,18 @@ async function langNow($: EngineInterface): Promise<Lang> {
   return choice === 'auto' ? await detectedLang($) : choice
 }
 
+// The language the commands speak: as the band does, unless the session
+// draws in a terminal, where Claude Code would measure their text short.
+async function commandLang($: EngineInterface): Promise<Lang> {
+  const lang = await langNow($)
+  const surfaces: readonly string[] = await $.session.surfaces().catch(() => [])
+  return surfaces.includes('terminal') ? langOn('terminal', lang) : lang
+}
+
 // Declares the commands, their menu lines in the language spoken now; again
 // when it changes.
 async function registerCommands($: EngineInterface) {
-  const t = TEXTS[await langNow($)]
+  const t = TEXTS[await commandLang($)]
   await $.command.register({ name: PANEL_COMMAND, description: t.panelCommand })
   await $.command.register({ name: SCENE_COMMAND, description: t.sceneCommand, argumentHint: t.sceneHint })
 }
@@ -1131,29 +1283,34 @@ async function loadSize($: EngineInterface) {
   }
 }
 
-// What the scene on the right shows: the meters, the cache's seconds left
-// right now, and whether the conversation is being compacted.
+// A percent as the meters show it, whole, so the number and the drawing agree.
+const whole = (n: number | null) => (n === null ? null : Math.round(n))
+
+// What the scene on the right shows: the meters, whole percents; the cache's
+// seconds left right now; a limit whose window has started over since it was
+// read, unused; and whether the conversation is being compacted.
 const metersOf = (s: Stats, now: number, isCompacting = false): Meters => ({
-  contextLeft: s.contextLeft,
-  fiveHour: s.fiveHour,
-  week: s.week,
-  cacheLeft: s.cacheAt === null ? null : Math.max(0, (s.cacheAt + CACHE_TTL_MIN * 60_000 - now) / 1000),
-  cacheTtl: CACHE_TTL_MIN * 60,
+  contextLeft: whole(s.contextLeft),
+  fiveHour: s.fiveHourResetsAt !== null && now >= s.fiveHourResetsAt ? 0 : whole(s.fiveHour),
+  week: s.weekResetsAt !== null && now >= s.weekResetsAt ? 0 : whole(s.week),
+  cacheLeft: s.cacheAt === null ? null : Math.max(0, (s.cacheAt + s.cacheTtl * 1000 - now) / 1000),
+  cacheTtl: s.cacheTtl,
   isCompacting,
 })
 
 // What Clawd does with nothing to do, as the prompt cache runs out: at rest
 // with a pastime now and then (`now` sets where in their round), worried with
-// ten minutes or less left, yawning with two or less, and asleep once the
-// cache has expired.
+// a sixth of the cache's life or less left (ten minutes of an hour), yawning
+// with a thirtieth or less (two minutes), and asleep once the cache has
+// expired.
 const idleScene = (meters: Meters, now: number): { scene: Scene; label: Words; pick: ScenePick } => {
   const left = meters.cacheLeft
   const [scene, pick]: [Scene, ScenePick] =
-    left === null || left > WORRY_S
+    left === null || left > worryS(meters.cacheTtl)
       ? [waitingScene(now / 1000), { kind: 'round', turns: waitingTurns(now / 1000) }]
       : left <= 0
         ? [scenes.idle, { kind: 'mode', key: 'idle' }]
-        : left <= YAWN_S
+        : left <= yawnS(meters.cacheTtl)
           ? [cacheScenes.yawn, { kind: 'cache', key: 'yawn' }]
           : [cacheScenes.worry, { kind: 'cache', key: 'worry' }]
   return { scene, label: scene.label, pick }
@@ -1164,6 +1321,12 @@ const idleScene = (meters: Meters, now: number): { scene: Scene; label: Words; p
 // frame at a time with $.ui.blit. A picture counts its animations' time from
 // when the band drew it, as the desktop starts an image over when it draws it
 // again; drawn again with the very same image, it carries on.
+//
+// A frame is painted only when a picture's animations say what it shows may
+// have changed (Picture.nextChange), and sent only when it did: most of
+// their time the scenes hold still. A frame on its way holds back only its
+// own picture's next one, and one the terminal never answers is taken as
+// lost after a while.
 //
 // The engine keeps the band's last tree: collapsed (`[-]`) and opened again,
 // the band shows it without drawing anew, its pictures at the frame they had.
@@ -1177,24 +1340,36 @@ type LivePicture = {
   drawnAt: number
   seenAt: number
   background: number
+  // The frame the terminal shows, as far as the band knows; '' when unknown.
   cells: string
+  // When the picture's animations may next change what it shows.
+  dueAt: number
+  // When the frame on its way was sent.
+  sendingSince: number | null
   refusedSince: number | null
   triedAt: number
 }
 
-// The pictures on screen, by site and key, and the timer that moves them.
+// The pictures on screen, by site and key, and the timer that moves them,
+// with when it is due.
 const livePictures = new Map<string, LivePicture>()
 let frameTimer: Timer | null = null
-let isPainting = false
+let frameDueAt = Infinity
 
-// Some fifteen frames a second: the scenes' quickest motions take a fifth of
-// a second.
+// Some fifteen frames a second at most: the scenes' quickest motions take a
+// fifth of a second.
 const FRAME_MS = 66
 
 // A picture the terminal still refuses this long after the band last drew it
 // is no longer on screen (the band collapsed): it is tried once a second.
 const MOUNT_GRACE_MS = 2000
 const REFUSED_RETRY_MS = 1000
+
+// A frame the terminal has not answered this long after it was sent is lost.
+const BLIT_TIMEOUT_MS = 2000
+
+// A frame timer this long past due never fired: the engine refused it.
+const STALLED_MS = 1000
 
 // The languages whose texts Claude Code measures short (hooks/raster.ts). It
 // repaints a changed part of a row at the column it counts, so in a terminal a
@@ -1203,21 +1378,49 @@ const REFUSED_RETRY_MS = 1000
 const MEASURED_SHORT = new Set(LANGS.filter(l => isMeasuredShort(JSON.stringify(TEXTS[l]))))
 const langOn = (surface: string, lang: Lang) => (surface === 'terminal' && MEASURED_SHORT.has(lang) ? DEFAULT_LANG : lang)
 
-// What the label beside Clawd needs at least, in columns: the longest word
-// of its labels, "¡Conversación", so no word breaks in two.
-const MIN_LABEL_COLUMNS = 13
+// A language's own name, or in the terminal, where Claude Code would measure
+// it short, its name in English.
+const langName = (surface: string, lang: Lang) => (langOn(surface, lang) === lang ? LANG_NAMES[lang] : ENGLISH_NAMES[lang])
+
+// What the label beside Clawd needs at least, in columns, in each language:
+// the longest word of its labels, so no word breaks in two, and the `…` after
+// it. A language written without spaces (Japanese) breaks between any two
+// characters.
+const minLabelColumns = (lang: Lang) => {
+  const t = TEXTS[lang]
+  const labels = [...Object.values(t.states), ...Object.values(t.tools).filter(v => typeof v === 'string')]
+  const isSpaced = labels.some(label => label.includes(' '))
+  const pieces = labels.flatMap(label => (isSpaced ? label.split(' ') : [...label]))
+  return Math.max(...pieces.map(columnsOf)) + 1
+}
+const MIN_LABEL_COLUMNS = Object.fromEntries(LANGS.map(lang => [lang, minLabelColumns(lang)])) as Record<Lang, number>
+
+// The engine draws the band's collapse mark, `[-]`, over its top right
+// corner: the band leaves those columns, and one more beside them, clear.
+const MARK_COLUMNS = 4
 
 // The colors the terminal's translucent pixels are laid over: the theme's
-// dark or light, dark where the theme names neither.
+// dark or light. Auto takes the terminal's own, as COLORFGBG tells it and
+// as Claude Code reads it (its last color, 0 to 15: dark up to 6, and 8);
+// dark where nothing tells.
 const DARK_BACKGROUND = 0x1f1e1d
 const LIGHT_BACKGROUND = 0xffffff
 let background: number | null = null
+
+const isLightTerminal = (colors: string | undefined) => {
+  const last = colors?.split(';').pop()
+  const n = last === undefined || last === '' ? NaN : Number(last)
+  return Number.isInteger(n) && n >= 0 && n <= 15 && n > 6 && n !== 8
+}
 
 async function terminalBackground($: EngineInterface) {
   if (background === null) {
     const rows = await $.config.list().catch(() => [])
     const theme = rows.find(row => row.key === 'theme')?.value
-    background = typeof theme === 'string' && theme.startsWith('light') ? LIGHT_BACKGROUND : DARK_BACKGROUND
+    const isLight =
+      typeof theme === 'string' &&
+      (theme.startsWith('light') || (theme === 'auto' && isLightTerminal(await $.env.get('COLORFGBG').catch(() => undefined))))
+    background = isLight ? LIGHT_BACKGROUND : DARK_BACKGROUND
   }
   return background
 }
@@ -1228,18 +1431,26 @@ function livePicture($: EngineInterface, requestId: string, key: string, picture
   const id = `${requestId} ${key}`
   const kept = livePictures.get(id)
   const drawnAt = kept?.picture === picture && kept.background === bg ? kept.drawnAt : now
-  const cells = picture.paint((now - drawnAt) / 1000, bg)
-  livePictures.set(id, { requestId, key, picture, drawnAt, seenAt: now, background: bg, cells, refusedSince: null, triedAt: now })
-  frameTimer ??= $.clock.every(FRAME_MS, () => void paintFrames($))
+  const t = (now - drawnAt) / 1000
+  const cells = picture.paint(t, bg)
+  const dueAt = drawnAt + picture.nextChange(t) * 1000
+  livePictures.set(id, { requestId, key, picture, drawnAt, seenAt: now, background: bg, cells, dueAt, sendingSince: null, refusedSince: null, triedAt: now })
+  scheduleFrames($, now)
   return cells
 }
 
 // The meters' numbers under a small scene, as a line of text with each
 // centered under its meter: the pixel font can't be read at that size. The
-// cache's minutes count down by the clock.
+// cache's minutes count down by the clock, a minute at a time.
 const numbersPicture = (f: Meters, centers: readonly number[], columns: number): Picture => {
   const color = parseInt(INK.slice(1), 16)
-  return { columns, rows: 1, paint: t => textCells(numbersLine(f, centers, columns, t), color) }
+  const left = f.cacheLeft
+  return {
+    columns,
+    rows: 1,
+    paint: t => textCells(numbersLine(f, centers, columns, t), color),
+    nextChange: t => (left === null || left - t <= 0 ? Infinity : left - 60 * (Math.ceil((left - t) / 60) - 1)),
+  }
 }
 
 const forgetPictures = (requestId: string, except: readonly string[] = []) => {
@@ -1259,43 +1470,104 @@ const forgetOtherSites = (requestId: string) => {
   }
 }
 
-// Paints each picture at the moment its animations have reached and sends
-// the ones that changed. One the terminal refuses (the band collapsed) gets
-// its frame once a second, until the terminal shows it again; with nothing
-// left to paint the timer stops.
-async function paintFrames($: EngineInterface) {
-  if (isPainting) {
-    return
+// Sets the frame timer for the soonest picture that has something to do: a
+// frame due, a refused one to try again, a frame on its way to give up on.
+// A frame on its way wakes the timer at its picture's next change as usual,
+// since frames land long before that, or else when it is taken as lost. It
+// keeps a timer due no later, unless that one is long past due, which the
+// engine never fired; with nothing left to paint, it stops.
+function scheduleFrames($: EngineInterface, now: number) {
+  let due = Infinity
+  for (const live of livePictures.values()) {
+    const at =
+      live.sendingSince !== null
+        ? Math.min(live.dueAt > now ? live.dueAt : Infinity, live.sendingSince + BLIT_TIMEOUT_MS)
+        : live.refusedSince !== null
+          ? live.triedAt + REFUSED_RETRY_MS
+          : live.cells === ''
+            ? now
+            : live.dueAt
+    due = Math.min(due, at)
   }
-  isPainting = true
-  try {
-    const now = await $.clock.now()
-    for (const live of [...livePictures.values()]) {
-      const isRefused = live.refusedSince !== null
-      if (isRefused && now - live.triedAt < REFUSED_RETRY_MS) {
-        continue
-      }
-      const cells = live.picture.paint((now - live.drawnAt) / 1000, live.background)
-      // Shown again, a refused picture shows the frame it had: it takes this one whatever it is.
-      if (!isRefused && cells === live.cells) {
-        continue
-      }
-      live.triedAt = now
-      const sent = await $.ui.blit({ requestId: live.requestId, key: live.key, cells }).catch(() => ({ deny: 'no blit here' }))
-      if (sent.deny === undefined) {
-        live.cells = cells
-        live.refusedSince = null
-      } else if (now - live.seenAt > MOUNT_GRACE_MS) {
-        live.refusedSince ??= now
-      }
-    }
-  } finally {
-    isPainting = false
-  }
-  if (livePictures.size === 0) {
+  if (due === Infinity) {
     frameTimer?.cancel()
     frameTimer = null
+    frameDueAt = Infinity
+    return
   }
+  // A moment past the change, so the frame painted is the one after it.
+  due = Math.max(due + 2, now + FRAME_MS)
+  if (frameTimer !== null && frameDueAt <= due && now < frameDueAt + STALLED_MS) {
+    return
+  }
+  frameTimer?.cancel()
+  frameDueAt = due
+  try {
+    frameTimer = $.clock.after(due - now, () => void paintFrames($))
+  } catch {
+    frameTimer = null
+    frameDueAt = Infinity
+  }
+}
+
+// Paints each picture whose animations have moved, and sends the frames
+// that changed. One the terminal refuses (the band collapsed) gets its
+// frame once a second, until the terminal shows it again.
+async function paintFrames($: EngineInterface) {
+  frameTimer = null
+  frameDueAt = Infinity
+  const now = await $.clock.now()
+  for (const [id, live] of [...livePictures]) {
+    if (livePictures.get(id) !== live) {
+      continue
+    }
+    if (live.sendingSince !== null) {
+      if (now - live.sendingSince < BLIT_TIMEOUT_MS) {
+        continue
+      }
+      // Whether it landed or not, the next frame goes whatever it is.
+      live.sendingSince = null
+      live.cells = ''
+    }
+    const isRefused = live.refusedSince !== null
+    if (isRefused ? now - live.triedAt < REFUSED_RETRY_MS : now < live.dueAt && live.cells !== '') {
+      continue
+    }
+    const t = (now - live.drawnAt) / 1000
+    const cells = live.picture.paint(t, live.background)
+    live.dueAt = live.drawnAt + live.picture.nextChange(t) * 1000
+    // Shown again, a refused picture shows the frame it had: it takes this one whatever it is.
+    if (!isRefused && cells === live.cells) {
+      continue
+    }
+    live.triedAt = now
+    live.sendingSince = now
+    void sendFrame($, id, live, cells, now)
+  }
+  scheduleFrames($, now)
+}
+
+// Sends one picture's frame. Should the band draw another picture there while
+// the frame is on its way, the frame may land over it: the picture there now
+// sends its own again.
+async function sendFrame($: EngineInterface, id: string, live: LivePicture, cells: string, sentAt: number) {
+  const sent = await $.ui.blit({ requestId: live.requestId, key: live.key, cells }).catch(() => ({ deny: 'no blit here' }))
+  const now = await $.clock.now()
+  const there = livePictures.get(id)
+  if (there !== live) {
+    if (there !== undefined) {
+      there.cells = ''
+    }
+  } else if (live.sendingSince === sentAt) {
+    live.sendingSince = null
+    if (sent.deny === undefined) {
+      live.cells = cells
+      live.refusedSince = null
+    } else if (sentAt - live.seenAt > MOUNT_GRACE_MS) {
+      live.refusedSince ??= sentAt
+    }
+  }
+  scheduleFrames($, now)
 }
 
 export const register: Register = on => {
@@ -1311,7 +1583,7 @@ export const register: Register = on => {
     return next(e)
   })
 
-  // The first click on Usar or a language, in a panel without the keyboard,
+  // The first click on Use or a language, in a panel without the keyboard,
   // arrives as a focus move and no press (see isPanelFocused), so it picks the
   // scene or the language here. Tab and
   // the arrows move the ring only in a panel that holds the keyboard.
@@ -1337,14 +1609,14 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: PANEL_COMMAND }, async $ => {
-    const t = TEXTS[await langNow($)]
+    const t = TEXTS[await commandLang($)]
     await $.ui.open({ id: PANEL, title: t.panelTitle })
 
     return { text: t.panelOpened }
   })
 
   on('command.run', { command: SCENE_COMMAND }, async ($, e) => {
-    const t = TEXTS[await langNow($)]
+    const t = TEXTS[await commandLang($)]
     const names = METER_SCENES.map(s => s.name).join(', ')
     const shown = meterSceneNamed(await read($, sceneName)).name
     const name = e.args.trim().toLowerCase()
@@ -1389,13 +1661,16 @@ export const register: Register = on => {
   // Each model request of the main turn: working until pieces arrive, then
   // thinking, writing or calling a tool as the pieces say. A tool call shows
   // its tool from its first piece, the same as while it runs, so the scene
-  // does not restart between the two.
+  // does not restart between the two. A request that got no response (it
+  // failed, or was cut short) leaves the cache as it was.
   on('turn.step', async function* ($, e, next) {
     if (e.agentId) {
       return yield* next(e)
     }
+    isTurnRunning = true
     await show($, 'requesting')
-    for await (const chunk of next(e)) {
+    const stream = next(e)
+    for await (const chunk of stream) {
       if (chunk.kind === 'thinking') {
         await show($, 'thinking')
       } else if (chunk.kind === 'text') {
@@ -1405,21 +1680,33 @@ export const register: Register = on => {
       }
       yield chunk
     }
-    await refreshStats($, true)
+    const result = await stream.result
+    await refreshStats($, result.stopReason !== null)
+
+    return result
   })
 
+  // A tool runs: the main turn's, or a subagent's while the main turn runs.
+  // A subagent left working in the background after the turn shows nothing.
   on('tool.call', async ($, e, next) => {
-    await show($, 'tool-use', e.tool)
+    if (!e.agentId || isTurnRunning) {
+      await show($, 'tool-use', e.tool)
+    }
 
     return next(e)
   })
 
   // The engine is about to ask the person to allow a tool: Clawd waits with a
   // pastime until the next thing happens (the tool runs, or the turn moves on).
+  // A hook beneath that answers for the person (the settings' own, another
+  // plugin's) leaves nothing to ask.
   on('classic.PermissionRequest', async ($, e, next) => {
-    await show($, 'waiting', e.tool_name)
+    const result = await next(e)
+    if (result.decision === undefined) {
+      await show($, 'waiting', e.tool_name)
+    }
 
-    return next(e)
+    return result
   })
 
   // The person allowed the tool Clawd waits on: it runs now. No event says
@@ -1447,9 +1734,24 @@ export const register: Register = on => {
     return next(e)
   })
 
+  // The person answered the form (or turned it down): the tool that asked
+  // goes on.
+  on('classic.ElicitationResult', async ($, e, next) => {
+    const asked = pending ?? current
+    if (asked.mode === 'waiting' && asked.tool === 'answer') {
+      await show($, 'tool-use')
+    }
+
+    return next(e)
+  })
+
   // The session started over (a resume, a /clear, after a compaction): the
-  // context and the limits read differently now.
+  // context and the limits read differently now, and after a /clear, a resume
+  // or a fork the prompt cache is another conversation's.
   on('classic.SessionStart', async ($, e, next) => {
+    if (e.source === 'clear' || e.source === 'resume' || e.source === 'fork') {
+      await restartCache($, e.source, e.seconds_since_last_response, e.prompt_cache_likely_expired)
+    }
     await refreshStats($)
 
     return next(e)
@@ -1464,7 +1766,13 @@ export const register: Register = on => {
     return whileCompacting($, () => next(e))
   })
 
+  // The main turn is over; a subagent's run, inside it or in the
+  // background, ends nothing on screen.
   on('turn.complete', async ($, e, next) => {
+    if (e.agentId) {
+      return next(e)
+    }
+    isTurnRunning = false
     await show($, 'idle')
     await refreshStats($)
 
@@ -1489,8 +1797,8 @@ export const register: Register = on => {
     // A turn that ended without telling (an interruption) leaves no stale mode.
     const isIdle = !e.props.isWorking && drawnMode !== 'compacting' && drawnMode !== 'compacted'
     const now = await $.clock.now()
-    const meters = metersOf(await read($, stats), now, drawnMode === 'compacting')
-    // No Compactar while a compaction runs.
+    const meters = metersOf(await statsNow($), now, drawnMode === 'compacting')
+    // No Compact while a compaction runs.
     const isLow = drawnMode !== 'compacting' && meters.contextLeft !== null && meters.contextLeft <= COMPACT_AT
     await read($, redraws)
     const isAsking = await read($, isConfirming)
@@ -1516,7 +1824,7 @@ export const register: Register = on => {
       const controls = isAsking ? (
         <Box flexDirection="row" alignItems="center" gap={1}>
           <Text dimColor>{t.compactAsk}</Text>
-          <Button key="compact-yes" label={t.yes} variant="primary" onPress={() => compactNow($, e.props.isWorking)} />
+          <Button key="compact-yes" label={t.yes} variant="primary" onPress={() => compactNow($, e.props.isWorking, lang)} />
           <Button key="compact-no" label={t.no} onPress={() => update($, isConfirming, () => false)} />
         </Box>
       ) : (
@@ -1529,16 +1837,17 @@ export const register: Register = on => {
       )
       // A Button draws as `[ label ]` here.
       const controlsWidth = isAsking ? columnsOf(t.compactAsk) + columnsOf(t.yes) + columnsOf(t.no) + 10 : isLow ? columnsOf(t.compact) + 4 : 0
-      const room = e.props.bodyColumns
+      const room = e.props.bodyColumns - MARK_COLUMNS
+      const minLabel = MIN_LABEL_COLUMNS[lang]
       const labelRoom = room - clawd.columns - 1 - 2 - (controlsWidth > 0 ? controlsWidth + 1 : 0) - shelf.columns
-      const fitsAll = labelRoom >= MIN_LABEL_COLUMNS && e.props.maxRows >= shelf.rows + (numbers?.rows ?? 0)
-      const fitsClawd = room - clawd.columns - 1 >= MIN_LABEL_COLUMNS && e.props.maxRows >= clawd.rows
+      const fitsAll = labelRoom >= minLabel && e.props.maxRows >= shelf.rows + (numbers?.rows ?? 0)
+      const fitsClawd = room - clawd.columns - 1 >= minLabel && e.props.maxRows >= clawd.rows
       forgetOtherSites(e.requestId)
-      forgetPictures(e.requestId, fitsAll ? ['clawd', 'meters', 'numbers'] : fitsClawd ? ['clawd'] : [])
+      forgetPictures(e.requestId, fitsAll ? ['clawd', 'meters', ...(numbers === null ? [] : ['numbers'])] : fitsClawd ? ['clawd'] : [])
 
       if (fitsAll) {
         return (
-          <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap={2}>
+          <Box flexDirection="row" alignItems="center" justifyContent="space-between" gap={2} paddingRight={MARK_COLUMNS}>
             <Box flexDirection="row" alignItems="center" gap={1}>
               <Raster key="clawd" columns={clawd.columns} rows={clawd.rows} cells={livePicture($, e.requestId, 'clawd', clawd, now, bg)} />
               <Box width={Math.min(columnsOf(said), labelRoom)}>
@@ -1569,12 +1878,12 @@ export const register: Register = on => {
         </Box>
       )
       return fitsClawd ? (
-        <Box flexDirection="row" alignItems="center" gap={1}>
+        <Box flexDirection="row" alignItems="center" gap={1} paddingRight={MARK_COLUMNS}>
           <Raster key="clawd" columns={clawd.columns} rows={clawd.rows} cells={livePicture($, e.requestId, 'clawd', clawd, now, bg)} />
           {words}
         </Box>
       ) : (
-        words
+        <Box paddingRight={MARK_COLUMNS}>{words}</Box>
       )
     }
 
@@ -1589,7 +1898,7 @@ export const register: Register = on => {
           {isAsking ? (
             <Box flexDirection="row" alignItems="center" gap={1}>
               <Text dimColor>{t.compactAsk}</Text>
-              <Button key="compact-yes" label={t.yes} variant="primary" onPress={() => compactNow($, e.props.isWorking)} />
+              <Button key="compact-yes" label={t.yes} variant="primary" onPress={() => compactNow($, e.props.isWorking, lang)} />
               <Button key="compact-no" label={t.no} onPress={() => update($, isConfirming, () => false)} />
             </Box>
           ) : (
@@ -1616,15 +1925,15 @@ export const register: Register = on => {
     const lang = langOn(e.surface, await langNow($))
     const t = TEXTS[lang]
     const choice = await read($, langChoice)
-    const auto = LANG_NAMES[await detectedLang($)]
-    const choiceName = (c: LangChoice) => (c === 'auto' ? t.auto(auto) : LANG_NAMES[c])
+    const auto = langName(e.surface, await detectedLang($))
+    const choiceName = (c: LangChoice) => (c === 'auto' ? t.auto(auto) : langName(e.surface, c))
     const shown = meterSceneNamed(await read($, sceneName)).name
     if (e.surface === 'terminal') {
       const { Box, Select, Text } = $.ui.resolve(e)
       const shownMode = await read($, mode)
       const now = await $.clock.now()
       const { label } =
-        shownMode === 'idle' ? idleScene(metersOf(await read($, stats), now), now) : sceneFor(shownMode, await read($, tool), shownAt, now)
+        shownMode === 'idle' ? idleScene(metersOf(await statsNow($), now), now) : sceneFor(shownMode, await read($, tool), shownAt, now)
       const isOngoing = shownMode !== 'idle' && shownMode !== 'compacted'
 
       return (
@@ -1656,7 +1965,7 @@ export const register: Register = on => {
     }
 
     const { Box, Button, Svg, Text } = $.ui.resolve(e)
-    const meters = metersOf(await read($, stats), await $.clock.now())
+    const meters = metersOf(await statsNow($), await $.clock.now())
 
     return (
       <Box flexDirection="column" gap={1} paddingY={1}>

@@ -3,14 +3,14 @@
 // prompt cache, a chest of gold for the five-hour limit, and a quiver of
 // arrows for the week. Each has its number underneath in the 3x5 pixel font.
 //
-// The hourglass runs by itself over the cache's hour, so the band need not be
+// The hourglass runs by itself over the cache's life, so the band need not be
 // redrawn to keep it current. At a quarter of the context or less a spare
 // vial waits beside the potion; while the conversation is compacted the
 // potion fills up again, sparkling.
 
 import { wordsOf } from '../language'
 import type { MeterScene, Meters } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
+import { countdown, COUNTDOWN_CSS, HEIGHT, hourSteps, level, percentText, pixelText, px, refill, REFILL_CSS, runsLow, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the stone floor at y 9.
 const FLOOR_Y = 9
@@ -44,8 +44,8 @@ const potionRows = (x: number, rows: number) =>
 // or less a spare vial stands by; while the conversation is compacted the
 // potion fills up again with sparkles over it.
 const potion = (left: number | null, x: number, isCompacting: boolean) => {
-  const rows = left === null ? 0 : level(left, POTION.length)
-  const isLow = left !== null && left <= 25
+  const rows = level(left, POTION.length)
+  const isLow = runsLow(left)
   const mana = isCompacting
     ? `<g style="${refill(POTION.length - rows)}">${potionRows(x, POTION.length)}</g>`
     : potionRows(x, rows)
@@ -69,7 +69,7 @@ const potion = (left: number | null, x: number, isCompacting: boolean) => {
 const topSand = (x: number) => `${px(x + 5, 0, 5, 2)}${px(x + 6, 2, 3, 1)}${px(x + 7, 3)}`
 const bottomSand = (x: number) => `${px(x + 6, 5, 3, 1)}${px(x + 5, 6, 5, 2)}`
 
-// Cache: an hourglass whose sand runs by itself over the cache's hour, the top
+// Cache: an hourglass whose sand runs by itself over the cache's life, the top
 // bulb draining and the bottom one filling, one grain at a time falling
 // through the neck; it has run out once the cache expires.
 const hourglass = (left: number | null, ttl: number, x: number) => {
@@ -169,7 +169,7 @@ const adventureSvg = (f: Meters) =>
 
 // The scene in the small size, on the stone floor: the mana potion, as full
 // as the context left, a spare vial beside it at a quarter or less, filling up
-// while compacting; the hourglass, its sand running over the cache's hour;
+// while compacting; the hourglass, its sand running over the cache's life;
 // the chest, its heap of gold going with the five-hour limit; and the quiver,
 // losing its arrows over the week.
 const CENTERS = [4, 15, 25.5, 35]
@@ -179,7 +179,7 @@ const SMALL_FLASK: readonly (readonly [number, number, number])[] = [[6, 3, 5], 
 
 const adventureSmall = (f: Meters) => {
   const mana = f.isCompacting ? 5 : ([0, 1, 3, 5][stageOf(f.contextLeft)] ?? 0)
-  const isLow = !f.isCompacting && f.contextLeft !== null && f.contextLeft <= 25
+  const isLow = !f.isCompacting && runsLow(f.contextLeft)
   const inside = (rows: readonly (readonly [number, number, number])[]) => rows.map(([y, a, b]) => px(a, y, b - a + 1, 1)).join('')
   const potion = `
     <g fill="${CORK}">${px(4, 0)}</g>

@@ -75,7 +75,7 @@ test('the band paints Clawd and the scene in the terminal, and moves them by the
   expect([clawd?.props.columns, clawd?.props.rows]).toEqual([15, 5])
   expect([meters?.props.columns, meters?.props.rows]).toEqual([40, 4])
   expect([numbers?.props.columns, numbers?.props.rows]).toEqual([40, 1])
-  expect(textOf(String(numbers?.props.cells)).split(/ +/).filter(Boolean)).toEqual(['70%', '59m', '--', '--'])
+  expect(textOf(String(numbers?.props.cells)).split(/ +/).filter(Boolean)).toEqual(['70%', '60m', '80%', '60%'])
   expect(await band.find({ type: 'Text', text: 'Trabajando en la respuesta…' })).toBeDefined()
 
   // Clawd stacks its blocks: a second on, its picture is not the one first drawn.
@@ -212,7 +212,7 @@ test('a small scene draws every moment of its meters', () => {
   }
 })
 
-test('Tamaño in the terminal panel switches the band', async ($, on) => {
+test('the size picker in the terminal panel switches the band', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.store(on)
   mock.env(on, SPANISH)
@@ -310,13 +310,20 @@ const cellsOf = (cells: string) => {
   return Array.from({ length: bytes.length / 4 }, (_, i) => view.getUint32(i * 4, true))
 }
 
-test('the compact button shows at 25% free, asks before compacting, and No backs out', async ($, on) => {
+test('the compact button shows at 25% free, not at 26%, asks before compacting, and No backs out', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.env(on, SPANISH)
-  on('session.usage', () => ({ value: { startedAt: 0, context: { window: 200_000, tokens: 160_000, percent: 80 }, rateLimits: [] } }))
+  let used = 74
+  on('session.usage', () => usageAt(used)())
   on('classic.SessionStart', () => ({}))
   await $.classic.SessionStart({ source: 'resume' })
 
+  const roomy = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
+  expect(await roomy.find({ key: 'compact' })).toBeUndefined()
+  await roomy.unmount()
+
+  used = 75
+  await $.classic.SessionStart({ source: 'resume' })
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
   await band.press({ key: 'compact' })
   expect(await band.find({ key: 'compact-yes' })).toBeDefined()
@@ -359,7 +366,7 @@ test('/cozy-clawd-scene names the scenes and turns down one that does not exist'
   expect(same.text).toMatch(/ya es shelf/)
 })
 
-test('Usar in the panel switches the band to that scene', async ($, on) => {
+test('the panel\'s Use button switches the band to that scene', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.store(on)
   mock.env(on, SPANISH)
@@ -371,8 +378,9 @@ test('Usar in the panel switches the band to that scene', async ($, on) => {
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
   const meters = (await band.findAll({ type: 'Svg' })).find(svg => String(svg.props.alt).startsWith('Contexto libre'))
-  // The mate scene's checked tablecloth.
-  expect(meters?.props.source).toContain('#B5483E')
+  // The mate scene's tablecloth, checked sky blue and white: no other scene
+  // has its sky blue.
+  expect(meters?.props.source).toContain('#74ACDF')
   await band.unmount()
 })
 
@@ -396,7 +404,11 @@ const typed = (args: string) =>
 const clawdOf = async (band: { findAll: (q: { type: 'Svg' }) => Promise<{ props: { alt?: unknown } }[]> }) =>
   (await band.findAll({ type: 'Svg' })).map(svg => String(svg.props.alt)).find(alt => alt.startsWith('Clawd: '))
 
-// Picks a scene the way the person does: Usar in the panel.
+// What the band's scene of meters says it shows.
+const metersOf = async (band: { findAll: (q: { type: 'Svg' }) => Promise<{ props: { alt?: unknown } }[]> }) =>
+  (await band.findAll({ type: 'Svg' })).map(svg => String(svg.props.alt)).find(alt => !alt.startsWith('Clawd: '))
+
+// Picks a scene the way the person does: with its Use button in the panel.
 const useScene = async ($: Parameters<TestBody>[0], name: string) => {
   const panel = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANEL_PROPS })
   await panel.press({ key: `use-${name}` })
@@ -415,7 +427,18 @@ const answer = async ($: Parameters<TestBody>[0]) => {
   }
 }
 
-const usageAt = (percent: number) => () => ({ value: { startedAt: 0, context: { window: 200_000, tokens: percent * 2_000, percent }, rateLimits: [] } })
+// The usage limits of a Claude subscription, a fifth of the five hours and
+// two fifths of the week used: on one, Claude Code keeps the prompt cache an
+// hour.
+const PLAN = [
+  { kind: 'five_hour', percentUsed: 20 },
+  { kind: 'seven_day', percentUsed: 40 },
+]
+
+// The context's fill as the engine reports it after an answer, percent used,
+// on a subscription unless the limits say otherwise.
+const usageAt = (percent: number, rateLimits: { kind: string; percentUsed: number }[] = PLAN) => () =>
+  ({ value: { startedAt: 0, context: { window: 200_000, tokens: percent * 2_000, percent }, rateLimits } })
 
 test('as the prompt cache runs out Clawd frets at ten minutes, yawns at two and sleeps once it expires', async ($, on) => {
   const clock = mock.clock(on, { now: 1_000_000 })
@@ -441,8 +464,18 @@ test('as the prompt cache runs out Clawd frets at ten minutes, yawns at two and 
 test('after a compaction Clawd celebrates a moment, then sleeps', async ($, on) => {
   const clock = mock.clock(on, { now: 1_000_000 })
   mock.env(on, SPANISH)
-  on('session.usage', usageAt(10))
-  on('session.compact', () => ({ messages: [{ role: 'user', text: 'Summary', toolUses: [] }] }))
+  // As the engine reports it: just compacted, the context has no reading until
+  // the next answer, only the local estimate of what it holds.
+  let isCompacted = false
+  on('session.usage', (_$, e) =>
+    isCompacted
+      ? ({ value: { startedAt: 0, context: { window: 200_000, ...(e.breakdown ? { breakdown: { totalTokens: 20_000 } } : {}) }, rateLimits: PLAN } } as never)
+      : usageAt(90)(),
+  )
+  on('session.compact', () => {
+    isCompacted = true
+    return { messages: [{ role: 'user', text: 'Summary', toolUses: [] }] }
+  })
 
   // The event as the engine raises it for /compact; the test has no transcript to build it from.
   await $.session.compact({ trigger: 'manual', messages: [{ role: 'user', text: 'hello', toolUses: [] }] } as never)
@@ -451,6 +484,8 @@ test('after a compaction Clawd celebrates a moment, then sleeps', async ($, on) 
   expect(await clawdOf(band)).toBe('Clawd: Compactando la conversación')
   await clock.advance(1_500)
   expect(await clawdOf(band)).toBe('Clawd: ¡Conversación compactada!')
+  // The context shows as the estimate has it, not as no reading.
+  expect(await metersOf(band)).toMatch(/^Contexto libre 90%/)
   await clock.advance(2_300)
   expect(await clawdOf(band)).toBe('Clawd: ¡Conversación compactada!')
   await clock.advance(100)
@@ -528,18 +563,23 @@ test('the Language row of /config can name a language in its own words', async (
 
 test('on Windows with no locale variables, the registry\'s display language counts', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
-  mock.env(on, { OS: 'Windows_NT' })
+  mock.env(on, { OS: 'Windows_NT', SystemRoot: 'D:\\WINDOWS' })
   const asked: string[][] = []
+  const cwds: (string | undefined)[] = []
   // reg.exe's answer, as Windows prints the person's language list.
   on('process.run', (_$, e) => {
     asked.push([...e.argv])
+    cwds.push(e.init?.cwd)
     const stdout = '\r\nHKEY_CURRENT_USER\\Control Panel\\International\\User Profile\r\n    Languages    REG_MULTI_SZ    es-AR\\0en-US\r\n\r\n'
     return { value: { exitCode: 0, stdout, stderr: '' } as never }
   })
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
   expect(await clawdOf(band)).toBe('Clawd: Esperando')
-  expect(asked[0]).toEqual(['reg.exe', 'query', 'HKCU\\Control Panel\\International\\User Profile', '/v', 'Languages'])
+  // Windows' own reg.exe, by its full path, run from its own folder: never one
+  // the project's folder holds.
+  expect(asked[0]).toEqual(['D:\\WINDOWS\\System32\\reg.exe', 'query', 'HKCU\\Control Panel\\International\\User Profile', '/v', 'Languages'])
+  expect(cwds[0]).toBe('D:\\WINDOWS\\System32')
   await band.unmount()
 })
 

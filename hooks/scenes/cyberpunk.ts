@@ -4,7 +4,7 @@
 // five-hour limit, and signal bars for the week. Each has its number
 // underneath in the 3x5 pixel font.
 //
-// The sign's tubes go out by themselves over the cache's hour, so the band
+// The sign's tubes go out by themselves over the cache's life, so the band
 // need not be redrawn to keep it current; once the cache expires the sign is
 // dark. At a quarter of the context or less the cell's charge flickers pink
 // beside a loose charging cable; while the conversation is compacted the
@@ -12,7 +12,7 @@
 
 import { wordsOf } from '../language'
 import type { MeterScene, Meters } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
+import { countdown, COUNTDOWN_CSS, HEIGHT, hourSteps, level, percentText, pixelText, px, refill, REFILL_CSS, runsLow, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the rooftop at y 9.
 const ROOF_Y = 9
@@ -40,8 +40,8 @@ const CHARGE_ROWS = 6
 // it; while the conversation is compacted the cable is plugged in, a bolt
 // flashes over the cell and the charge rises.
 const powerCell = (left: number | null, x: number, isCompacting: boolean) => {
-  const rows = left === null ? 0 : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * CHARGE_ROWS))
-  const isLow = left !== null && left <= 25
+  const rows = left === null ? CHARGE_ROWS : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * CHARGE_ROWS))
+  const isLow = runsLow(left)
   const charge = isCompacting
     ? `<g fill="${CYAN}" style="${refill(CHARGE_ROWS - rows)}">${px(x + 6, 8 - CHARGE_ROWS, 4, CHARGE_ROWS)}</g>`
     : rows > 0 ? `<g fill="${isLow ? PINK : CYAN}"${isLow ? ' class="flicker"' : ''}>${px(x + 6, 8 - rows, 4, rows)}</g>` : ''
@@ -65,7 +65,7 @@ const chopsticks = (x: number) => `${px(x + 9, 3)}${px(x + 10, 2)}${px(x + 11, 1
 const steam = (x: number) => `${px(x + 4, 2)}${px(x + 5, 1)}${px(x + 4, 0)}${px(x + 7, 2)}${px(x + 8, 1)}${px(x + 7, 0)}`
 
 // Cache: a neon sign of a bowl of noodles whose tubes go out by themselves
-// over the cache's hour: the steam first, then the chopsticks, then the bowl
+// over the cache's life: the steam first, then the chopsticks, then the bowl
 // flickers; once the cache has expired the sign is dark but for a spark.
 const neonSign = (left: number | null, ttl: number, x: number) => {
   const isOut = left !== null && left <= 0
@@ -105,7 +105,7 @@ const BARS: [number, number][] = [[3, 2], [6, 4], [9, 6], [12, 8]]
 // free; the last one blinks pink.
 const signal = (used: number | null, x: number) => {
   const left = used === null ? null : 100 - used
-  const lit = left === null ? BARS.length : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * BARS.length))
+  const lit = level(left, BARS.length)
   const isLow = lit === 1
   return `
     ${BARS.map(([bx, h], i) => `<g fill="${i < lit ? (isLow ? PINK : CYAN) : BAR_OFF}"${i < lit && isLow ? ' class="flicker"' : ''}>${px(x + bx, 9 - h, 2, h)}</g>`).join('')}
@@ -174,14 +174,14 @@ const cyberpunkSvg = (f: Meters) =>
 // The scene in the small size, on the rooftop in the rain: the power cell,
 // charged as far as the context left, flickering pink beside a loose cable at
 // a quarter or less, plugged in and charging while compacting; the neon bowl
-// of noodles, its tubes going out over the cache's hour; the stack of credit
+// of noodles, its tubes going out over the cache's life; the stack of credit
 // chips, lower as the five-hour limit goes; and the signal bars, dropping
 // over the week.
 const CENTERS = [4, 15, 26, 36]
 
 const cyberpunkSmall = (f: Meters) => {
   const charge = f.isCompacting ? 4 : ([0, 1, 2, 4][stageOf(f.contextLeft)] ?? 0)
-  const isLow = !f.isCompacting && f.contextLeft !== null && f.contextLeft <= 25
+  const isLow = !f.isCompacting && runsLow(f.contextLeft)
   const cell = `
     <g fill="${METAL_LIGHT}">${px(4, 0)}</g>
     <g fill="${METAL}">${px(2, 1, 5, 6)}</g>

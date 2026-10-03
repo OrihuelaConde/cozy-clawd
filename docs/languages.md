@@ -23,7 +23,7 @@ To go back to the language the mod picks, select **Automatic**. The option names
 
 ## Hindi in a terminal
 
-In a terminal, the band and the panel speak English when the language is Hindi. Claude Code lays out Devanagari narrower than a terminal draws it, so a row of Hindi text comes out garbled there. The commands' replies and their descriptions in the menu stay in Hindi, and the desktop app shows Hindi throughout.
+In a terminal, the band, the panel, and the commands' replies and menu descriptions speak English when the language is Hindi, and the panel's language picker names Hindi in English. Claude Code lays out Devanagari narrower than a terminal draws it, so a row of Hindi text comes out garbled there. The desktop app shows Hindi throughout.
 
 ## Improve a translation
 

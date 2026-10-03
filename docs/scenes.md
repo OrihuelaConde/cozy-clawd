@@ -6,11 +6,18 @@ When 25% or less of the context is left, each scene shows it in its own way, and
 
 ## What the meters measure
 
-The meters assume you sign in to Claude Code with a Claude subscription:
+- **Context.** The percentage of the context window left. Before Claude's first answer in a session, and after a compaction or `/clear`, Claude Code has no reading yet, so the meter shows an estimate of what the next request sends, as `/context` counts it.
+- **Prompt cache.** The minutes left on the prompt cache, counted down from Claude's last answer. The mod doesn't read the cache itself; it counts down the length Claude Code keeps the cache for, by the same rules:
+  - An hour when you sign in with a Claude subscription and stay within its usage limits.
+  - Five minutes with an API key, or once you use up a usage limit.
+  - The length you set with the `CLAUDE_CODE_PROMPT_CACHE_TTL` environment variable or the `promptCacheTtl` setting, `1h` or `5m`.
+  - An hour with the `ENABLE_PROMPT_CACHING_1H` environment variable, or on Amazon Bedrock with `ENABLE_PROMPT_CACHING_1H_BEDROCK`.
+  - Five minutes with `FORCE_PROMPT_CACHING_5M`, whatever else is set.
 
-- **Context.** The percentage of the context window left.
-- **Prompt cache.** The mod doesn't read the cache itself. It counts an hour down from Claude's last answer, because Claude Code keeps the prompt cache for an hour when you sign in with a Claude subscription and aren't on extra usage. Otherwise, the cache lasts five minutes, so the countdown runs long.
-- **Five-hour and weekly limits.** What's left of your subscription's usage limits. With an API key, Claude Code reports no usage limits, so these meters show `--`.
+  With `DISABLE_PROMPT_CACHING`, nothing is cached and the meter shows `--`. After `/clear`, the count waits for the next answer. When you resume a conversation, the count goes on from that conversation's last answer.
+- **Five-hour and weekly limits.** What's left of your subscription's usage limits, as of Claude's last answer. When a limit's window starts over, its meter fills up again without waiting for the next answer. With an API key, Claude Code reports no usage limits, so these meters show `--`.
+
+Until the context or a usage limit has a reading, its meter shows `--` and draws full.
 
 ## Choose a scene
 
@@ -39,11 +46,11 @@ A wooden shelf on iron brackets. A mug of tea shows the context left; at 25% or 
 
 ## Mate
 
-<img src="images/scenes/mate.gif" width="432" alt="A thermos, a mate, a plate of medialunas, and a pack of yerba on a checked tablecloth">
+<img src="images/scenes/mate.gif" width="432" alt="A thermos, a mate, a plate of medialunas, and a pack of yerba on a sky blue and white checked tablecloth">
 
 **Name:** `mate`
 
-A checked tablecloth set for mate. A thermos's strip of water shows the context left, and at 25% or less a steaming kettle waits beside it; while the conversation is compacted, the kettle boils and the thermos fills up. The mate's steam fades as the prompt cache runs out, and the yerba washes out when the cache expires. A plate holds a medialuna for every quarter of the five-hour limit left, and a pack of yerba flattens as you use the weekly limit.
+A tablecloth checked sky blue and white, like the Argentine flag, set for mate. A thermos's strip of water shows the context left, and at 25% or less a steaming kettle waits beside it; while the conversation is compacted, the kettle boils and the thermos fills up. The mate's steam fades as the prompt cache runs out, and the yerba washes out when the cache expires. A plate holds a medialuna for every quarter of the five-hour limit left, and a pack of yerba flattens as you use the weekly limit.
 
 ## Balcony
 

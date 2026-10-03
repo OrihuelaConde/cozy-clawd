@@ -36,6 +36,21 @@ export const wordsOf = (pick: (t: Texts) => string) => Object.fromEntries(LANGS.
 // Each language by its own name, as the picker shows it.
 export const LANG_NAMES: Words = wordsOf(t => t.name)
 
+// Each language by its name in English, as the terminal's picker shows a
+// name Claude Code would measure short (register.tsx, `langName`).
+export const ENGLISH_NAMES: Words = {
+  es: 'Spanish',
+  en: 'English',
+  fr: 'French',
+  de: 'German',
+  it: 'Italian',
+  pt: 'Portuguese',
+  id: 'Indonesian',
+  hi: 'Hindi',
+  ja: 'Japanese',
+  ko: 'Korean',
+}
+
 // The language the mod falls back on when nothing names one.
 export const DEFAULT_LANG: Lang = 'en'
 
@@ -48,7 +63,7 @@ const NAMES: readonly [Lang, RegExp][] = [
   ['fr', /^fr([-_.@]|$)|^(french|fran[cç]ais|franc[eé]s)/],
   ['de', /^de([-_.@]|$)|^(german|deutsch|alem[aá]n)/],
   ['it', /^it([-_.@]|$)|^(italian|italiano)/],
-  ['pt', /^pt([-_.@]|$)|^(portuguese|portugu[eê]s)/],
+  ['pt', /^pt([-_.@]|$)|^(portuguese|portugu[eéê]s)/],
   ['id', /^(id|in)([-_.@]|$)|^(indonesian|bahasa indonesia|indonesio)/],
   ['hi', /^hi([-_.@]|$)|^(hindi|हिन्दी|हिंदी)/],
   ['ja', /^ja([-_.@]|$)|^(japanese|日本語|japon[eé]s)/],

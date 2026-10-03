@@ -16,8 +16,13 @@ export type Stats = {
   // Percent used of the five-hour and seven-day usage limits.
   fiveHour: number | null
   week: number | null
+  // When each of those windows starts over, in milliseconds since the epoch.
+  fiveHourResetsAt: number | null
+  weekResetsAt: number | null
   // When the last main request was answered: the prompt cache counts from it.
   cacheAt: number | null
+  // How long the prompt cache keeps the conversation, in seconds.
+  cacheTtl: number
 }
 
 // The languages the mod speaks: those the Claude desktop app shows.
@@ -39,7 +44,8 @@ declare module 'claude-code' {
       stats: Stats
       // The compact button asked "are you sure?" and waits for the answer.
       isConfirming: boolean
-      // Bumped when the cache expires: a write that redraws the band.
+      // Bumped as the cache runs out and as a usage limit starts over: a
+      // write that redraws the band.
       redraws: number
       // The name of the scene the band draws on its right.
       sceneName: string

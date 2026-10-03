@@ -2,3 +2,6 @@
 .preview/
 # Playwright, installed without saving to render the documentation's images.
 node_modules/
+# The engine's types for the editor, written when it loads the mod, among
+# them the schemas of your connectors' tools.
+.claude-plugin/types/

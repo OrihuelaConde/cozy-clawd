@@ -2,7 +2,7 @@
 // its number underneath; the 3x5 pixel font of the numbers; and the cache's
 // minutes, which count down by themselves. Square pixels, three CSS pixels each.
 // Also what their small drawings share: the image's size, a meter's steps,
-// and the cache's hour in steps.
+// and the cache's life in steps.
 
 import type { Meters } from './index'
 
@@ -52,15 +52,33 @@ export const pixelText = (text: string, slotX: number) => {
   return `<g fill="${INK}">${[...text].map((ch, i) => glyph(ch, x0 + i * 4, DIGITS_Y)).join('')}</g>`
 }
 
+// The percent of the context left at which every scene shows it low (a
+// kettle, a teapot, a blinking heart) and the band offers to compact.
+export const LOW_AT = 25
+
+// Whether a meter's percent left runs low.
+export const runsLow = (left: number | null) => left !== null && left <= LOW_AT
+
+// What a meter with no reading draws: full, its number `--`. Before the
+// first answer the context is all but free, and an API key has no usage
+// limits to use up.
+export const FULL = 100
+
 // How many of a meter's `n` steps the percent left fills: one as soon as
 // there is anything, all only near full. From five steps up, 100, 75, 50, 25,
-// 10 and 0 each fill a different number.
-export const level = (left: number, n: number) => (left <= 0 ? 0 : Math.min(n, Math.ceil((left / 100) * n - 1e-9)))
+// 10 and 0 each fill a different number. No reading fills them all.
+export const level = (left: number | null, n: number) => {
+  const shown = left ?? FULL
+  return shown <= 0 ? 0 : Math.min(n, Math.ceil((shown / 100) * n - 1e-9))
+}
 
-// A meter's step in a small scene, from the percent left: 3 above half,
-// 2 above a quarter, 1 above nothing, and 0 at nothing or before the first
-// reading.
-export const stageOf = (left: number | null) => (left === null || left <= 0 ? 0 : left > 50 ? 3 : left > 25 ? 2 : 1)
+// A meter's step in a small scene, from the percent left: 3 above half or
+// with no reading, 2 above a quarter, 1 above nothing, and 0 at nothing.
+export const stageOf = (left: number | null) => (left === null ? 3 : left <= 0 ? 0 : left > 50 ? 3 : left > LOW_AT ? 2 : 1)
+
+// The cache's whole minutes left, as both the drawing and the words count
+// them: a minute begun counts, so an hour reads 60 and its last seconds 1.
+export const minutesLeft = (left: number) => Math.max(0, Math.ceil(left / 60 - 1e-9))
 
 // A small scene's image: 40 pixels across and eight down, two to a cell,
 // its pixels below a style.
@@ -78,7 +96,7 @@ export const hops = (name: string, points: readonly (readonly [number, number])[
     .map(([x, y], i) => `${((i / points.length) * 100).toFixed(2)}% { transform: translate(${x}px, ${y}px); }`)
     .join(' ')} 100% { transform: translate(${points[0]?.[0] ?? 0}px, ${points[0]?.[1] ?? 0}px); } }`
 
-// The steps of the cache's hour in a small scene, each a group shown in its
+// The steps of the cache's life in a small scene, each a group shown in its
 // turn by itself (hourSteps).
 const HOUR_CSS = `
     .h3, .h2, .h1 { animation-timing-function: steps(1); animation-fill-mode: forwards; }
@@ -108,14 +126,16 @@ export const hourSteps = (f: Meters, steps: readonly [string, string, string], e
 // A meter's percent, or dashes before the first reading.
 export const percentText = (n: number | null, slotX: number) => pixelText(n === null ? '--' : `${Math.round(n)}%`, slotX)
 
-// The cache's minutes counting down by themselves: each digit is a window over
-// a strip of glyphs, 9 down to 0, rolled one glyph per step by an animation
-// whose negative delay starts it at the minutes left. The digits stop at 00.
-// Needs COUNTDOWN_CSS in the scene's style.
+// The cache's minutes counting down by themselves, as minutesLeft counts
+// them: each digit is a window over a strip of glyphs, 9 (6 for the tens)
+// down to 0, rolled one glyph per step by an animation whose negative delay
+// starts it at the minutes left. The digits read 00 for a minute after the
+// cache expires, by when the band has drawn the scene expired. Needs
+// COUNTDOWN_CSS in the scene's style.
 export const countdown = (left: number, slotX: number) => {
   const x0 = slotX + Math.floor((SLOT - 11) / 2)
-  // A whole hour left reads 59m: the tens digit rolls 5 down to 0.
-  const shown = Math.min(left, 3600 - 0.001)
+  // The seconds whose whole minutes are the minutes left: a minute ahead.
+  const shown = Math.min(left + 60 - 0.001, 70 * 60 - 0.001)
   const digit = (x: number, count: number, step: number) => {
     const period = count * step
     const delay = (((period - shown - 0.001) % period) + period) % period
@@ -124,13 +144,13 @@ export const countdown = (left: number, slotX: number) => {
       <g style="animation: roll${count} ${period}s steps(${count}) -${delay.toFixed(3)}s infinite">${strip}</g></svg>`
   }
   return `<g fill="${INK}">
-    ${digit(x0, 6, 600)}${digit(x0 + 4, 10, 60)}${glyph('m', x0 + 8, DIGITS_Y)}
+    ${digit(x0, 7, 600)}${digit(x0 + 4, 10, 60)}${glyph('m', x0 + 8, DIGITS_Y)}
   </g>`
 }
 
 export const COUNTDOWN_CSS = `
     @keyframes roll10 { from { transform: translateY(0); } to { transform: translateY(-60px); } }
-    @keyframes roll6 { from { transform: translateY(0); } to { transform: translateY(-36px); } }`
+    @keyframes roll7 { from { transform: translateY(0); } to { transform: translateY(-42px); } }`
 
 // A meter refilling while the conversation is compacted: the group holding it
 // full is uncovered from the bottom up, from `short` rows below the top, over

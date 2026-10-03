@@ -3,14 +3,14 @@
 // cache, cans of energy drink for the five-hour limit, and a gamepad's battery
 // for the week. Each has its number underneath in the 3x5 pixel font.
 //
-// The arcade's little hero walks to the flag by itself over the cache's hour,
+// The arcade's little hero walks to the flag by itself over the cache's life,
 // so the band need not be redrawn to keep it current; once the cache expires
 // it is game over. At a quarter of the context or less the last heart blinks;
 // while the conversation is compacted the hearts heal back to full.
 
 import { wordsOf } from '../language'
 import type { MeterScene, Meters } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, percentText, pixelText, px, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
+import { countdown, COUNTDOWN_CSS, HEIGHT, hourSteps, level, percentText, pixelText, px, runsLow, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the desk's lit edge at y 9.
 const DESK_Y = 9
@@ -53,32 +53,36 @@ const HEARTS = [2, 6, 10]
 const health = (x: number, halves: number) =>
   HEARTS.map((hx, i) => (halves >= 2 * i + 1 ? heartLeft(x + hx, 2) : '') + (halves >= 2 * i + 2 ? heartRight(x + hx, 2) : '')).join('')
 
+// That health with a glint on each heart it reaches, so the glint blinks and
+// heals with it.
+const glinting = (x: number, halves: number) => `${health(x, halves)}
+  <g fill="${HEART_LIGHT}">${HEARTS.filter((_, i) => halves >= 2 * i + 1).map(hx => px(x + hx, 2)).join('')}</g>`
+
 // Context: a monitor showing three hearts of health, half a heart for every
 // sixth of the context left. At a quarter or less what is left blinks; while
 // the conversation is compacted the hearts heal back to full, from the left.
 const monitor = (left: number | null, x: number, isCompacting: boolean) => {
-  const halves = left === null ? 0 : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * 6))
-  const isLow = left !== null && left <= 25
+  const halves = left === null ? 6 : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * 6))
+  const isLow = runsLow(left)
   // How many columns of the hearts' eleven the health leaves bare.
   const last = halves === 0 ? null : (HEARTS[Math.ceil(halves / 2) - 1] ?? 0) + (halves % 2 === 1 ? 1 : 2)
   const bare = last === null ? 11 : 11 - (last - HEARTS[0]! + 1)
   const hearts = isCompacting
-    ? `<g style="animation: heal${bare} 2s steps(${Math.max(1, bare)}) both">${health(x, 6)}</g>`
-    : `<g${isLow ? ' class="lowhp"' : ''}>${health(x, halves)}</g>`
+    ? `<g style="animation: heal${bare} 2s steps(${Math.max(1, bare)}) both">${glinting(x, 6)}</g>`
+    : `<g${isLow ? ' class="lowhp"' : ''}>${glinting(x, halves)}</g>`
   return `
     <g fill="${BEZEL}">${px(x, 0, 15, 7)}${px(x + 7, 7)}${px(x + 5, 8, 5, 1)}</g>
     <g fill="${SCREEN}">${px(x + 1, 1, 13, 5)}</g>
     <g fill="${HEART_EMPTY}">${health(x, 6)}</g>
     <g fill="${HEART}">${hearts}</g>
-    <g fill="${HEART_LIGHT}">${HEARTS.filter((_, i) => isCompacting || halves >= 2 * i + 1).map(hx => px(x + hx, 2)).join('')}</g>
     ${percentText(left, x)}`
 }
 
-// Where the arcade's hero stands as the hour goes by, from the screen's left.
+// Where the arcade's hero stands as the cache's life goes by, from the screen's left.
 const STRIDES = 5
 
 // Cache: an arcade cabinet whose little hero walks to the flag by itself over
-// the cache's hour; once the cache expires the screen goes dark and the coin
+// the cache's life; once the cache expires the screen goes dark and the coin
 // slot blinks for another token.
 const arcade = (left: number | null, ttl: number, x: number) => {
   const isOver = left !== null && left <= 0
@@ -128,7 +132,7 @@ const cans = (used: number | null, x: number) => {
 // week still free; the last one blinks red.
 const gamepad = (used: number | null, x: number) => {
   const left = used === null ? null : 100 - used
-  const cells = left === null ? 4 : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * 4))
+  const cells = level(left, 4)
   const isLow = cells === 1
   return `
     <g fill="${SHELL}">${px(x + 3, 0, 10, 1)}${px(x + 3, 3, 10, 1)}${px(x + 3, 1, 1, 2)}${px(x + 12, 1, 1, 2)}${px(x + 13, 1, 1, 2)}</g>
@@ -172,7 +176,7 @@ const gamerSvg = (f: Meters) =>
 // The scene in the small size, on the desk's RGB strip: the monitor, a
 // heart of health for each step of the context left, the last one blinking
 // at a quarter or less, healing while compacting; the arcade cabinet, its
-// hero walking to the flag over the cache's hour, game over once it expires;
+// hero walking to the flag over the cache's life, game over once it expires;
 // the cans of energy drink, crushed as the five-hour limit goes; and the
 // gamepad's battery, running down over the week.
 const CENTERS = [4.5, 15.5, 25.5, 36]

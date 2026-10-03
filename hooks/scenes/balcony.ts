@@ -3,14 +3,14 @@
 // feeder for the five-hour limit, and a jar of honey for the week. Each has its
 // number underneath in the 3x5 pixel font.
 //
-// The daisy wilts by itself over the cache's hour, so the band need not be
+// The daisy wilts by itself over the cache's life, so the band need not be
 // redrawn to keep it current. At a quarter of the context or less a rain cloud
 // gathers over the watering can; while the conversation is compacted it rains
 // and the can fills up.
 
 import { wordsOf } from '../language'
 import type { MeterScene, Meters } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, hops, hourSteps, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
+import { countdown, COUNTDOWN_CSS, HEIGHT, hops, hourSteps, level, percentText, pixelText, px, refill, REFILL_CSS, runsLow, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the floor tiles at y 9.
 const FLOOR_Y = 9
@@ -68,8 +68,8 @@ const cloud = (x: number, isRaining: boolean) => `
 // quarter or less a rain cloud gathers over it; while the conversation is
 // compacted the cloud rains and the can fills up.
 const wateringCan = (left: number | null, x: number, isCompacting: boolean) => {
-  const rows = left === null ? 0 : level(left, CAN_ROWS)
-  const isLow = left !== null && left <= 25
+  const rows = level(left, CAN_ROWS)
+  const isLow = runsLow(left)
   const water = isCompacting
     ? `<g style="${refill(CAN_ROWS - rows)}">${px(x + 6, 8 - CAN_ROWS, 5, CAN_ROWS)}</g>`
     : rows > 0 ? px(x + 6, 8 - rows, 5, rows) : ''
@@ -88,7 +88,7 @@ const bloom = (cx: number, cy: number, petal: string, heart: string, petalOpacit
   <g fill="${petal}" opacity="${petalOpacity}">${px(cx, cy - 2)}${px(cx - 1, cy - 1, 3, 1)}${px(cx - 2, cy, 2, 1)}${px(cx + 1, cy, 2, 1)}${px(cx - 1, cy + 1, 3, 1)}${px(cx, cy + 2)}</g>
   <g fill="${heart}">${px(cx, cy)}</g>`
 
-// The daisy in its four stages over the cache's hour: upright, nodding,
+// The daisy in its four stages over the cache's life: upright, nodding,
 // drooping, wilted; each a group shown for its quarter.
 const daisy = (x: number, timing: string) => `
   <g class="stage0" style="${timing}">
@@ -115,7 +115,7 @@ const pot = (x: number) => `
   <g fill="${POT_DARK}">${px(x + 5, 5, 7, 1)}${px(x + 10, 6, 1, 3)}</g>
   <g fill="${SOIL}">${px(x + 6, 5, 5, 1)}</g>`
 
-// Cache: a daisy in a pot. It wilts by itself over the cache's hour, one stage
+// Cache: a daisy in a pot. It wilts by itself over the cache's life, one stage
 // a quarter, and stays wilted, with a fallen petal, once the cache expires.
 const flowerPot = (left: number | null, ttl: number, x: number) => {
   if (left === null) {
@@ -228,7 +228,7 @@ const balconySvg = (f: Meters) =>
 // The scene in the small size, on the tiles: the watering can, as full as
 // the context left, a rain cloud over it at a quarter or less that rains into
 // it while compacting; the daisy, upright, nodding, wilting and fallen over
-// the cache's hour; the feeder, its seeds going with the five-hour limit, the
+// the cache's life; the feeder, its seeds going with the five-hour limit, the
 // bluebird pecking at it; and the jar of honey, emptying over the week, the
 // bee buzzing around it.
 const CENTERS = [5, 13, 23, 33]
@@ -239,7 +239,7 @@ const BEE_PATH: [number, number][] = [[0, 0], [1, 1], [1, 3], [0, 4], [1, 2], [-
 
 const balconySmall = (f: Meters) => {
   const water = f.isCompacting ? 3 : ([0, 1, 2, 3][stageOf(f.contextLeft)] ?? 0)
-  const isLow = f.isCompacting || (f.contextLeft !== null && f.contextLeft <= 25)
+  const isLow = f.isCompacting || runsLow(f.contextLeft)
   const can = `
     <g fill="${CAN_DARK}">${px(4, 3, 3, 3)}${px(8, 3, 1, 2)}</g>
     ${water > 0 ? `<g${f.isCompacting ? ' class="fill"' : ''} fill="${WATER}">${px(4, 6 - water, 3, water)}</g>` : ''}

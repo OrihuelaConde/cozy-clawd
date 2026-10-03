@@ -92,18 +92,18 @@ Each step of a turn has its own scene, and each family of tools has its own prop
 
 Between turns, Clawd rests, breathing slowly, blinking, and glancing around. For 9 seconds of every 39, it takes up a pastime picked at random: looking around, whistling, juggling, playing with a yo-yo, blowing soap bubbles, reading, dancing, or following a ladybug. While Claude waits for your approval or your answer, Clawd goes through its pastimes one after another, in random order, with a short rest between them.
 
-When 10 minutes or less are left on the prompt cache, Clawd frets with a drop of sweat. With 2 minutes or less, it yawns. Once the cache expires, Clawd falls asleep.
+When 10 minutes or less are left on an hour's prompt cache, Clawd frets with a drop of sweat. With 2 minutes or less, it yawns. A five-minute cache gets the same shares of its life: 50 and 10 seconds. Once the cache expires, Clawd falls asleep.
 
 ## Read the meters
 
 The right side of the band shows four meters of your session, each an object with its number underneath in a pixel font. From left to right, they show the following:
 
 1. The context window left, as a percentage.
-2. The minutes left on the prompt cache: an hour, counted down from Claude's last answer.
+2. The minutes left on the prompt cache, counted down from Claude's last answer.
 3. What's left of your five-hour usage limit.
 4. What's left of your weekly usage limit.
 
-The meters assume you sign in with a Claude subscription, where Claude Code keeps the prompt cache for an hour. With an API key, the cache lasts five minutes, so the countdown runs long, and the two usage-limit meters show `--`; for more information, see [What the meters measure](docs/scenes.md#what-the-meters-measure).
+The cache meter counts down the length Claude Code keeps the cache for: an hour when you sign in with a Claude subscription, and five minutes with an API key or once you use up a usage limit. With an API key, Claude Code reports no usage limits, so the two usage-limit meters show `--`. For more information, see [What the meters measure](docs/scenes.md#what-the-meters-measure).
 
 Each scene draws the meters as objects of its own. The images in this README show the `balcony` scene: a watering can, a daisy in a pot, a bird feeder, and a jar of honey. Until you choose a scene, the band shows the `shelf` scene. For all eight, see [Choose a scene](#choose-a-scene).
 
@@ -136,7 +136,7 @@ Replace `SCENE_NAME` with the name of a scene, such as `balcony`. To see the cur
 <table>
   <tr>
     <td align="center"><a href="docs/scenes.md#shelf"><img src="docs/images/scenes/shelf.gif" width="288" alt="A mug of tea, a candle in a brass holder, a cookie jar, and a moon lamp on a wooden shelf"></a><br><b>Shelf</b> <code>shelf</code> (default)</td>
-    <td align="center"><a href="docs/scenes.md#mate"><img src="docs/images/scenes/mate.gif" width="288" alt="A thermos, a mate, a plate of medialunas, and a pack of yerba on a checked tablecloth"></a><br><b>Mate</b> <code>mate</code></td>
+    <td align="center"><a href="docs/scenes.md#mate"><img src="docs/images/scenes/mate.gif" width="288" alt="A thermos, a mate, a plate of medialunas, and a pack of yerba on a sky blue and white checked tablecloth"></a><br><b>Mate</b> <code>mate</code></td>
   </tr>
   <tr>
     <td align="center"><a href="docs/scenes.md#balcony"><img src="docs/images/scenes/balcony.gif" width="288" alt="A watering can, a daisy, a bird feeder, and a jar of honey on a balcony"></a><br><b>Balcony</b> <code>balcony</code></td>
@@ -158,7 +158,7 @@ For what each object shows, see [Scenes](docs/scenes.md).
 
 A terminal can't show the images the desktop app draws, so there the mod paints each scene in block characters and animates it frame by frame. The scenes, the cache's countdown, and the **Compact** button work as they do in the desktop app.
 
-In a terminal, the band comes in two sizes. The small size, the default, has drawings of its own and takes 5 rows and at least 71 columns. The large size shows the desktop app's drawings and takes 9 rows and at least 105 columns. To change the size, use the **Size** picker in the `/cozy-clawd` panel. In the following image, the small size is above and the large size is below:
+In a terminal, the band comes in two sizes. The small size, the default, has drawings of its own and takes 5 rows and at least 75 columns. The large size shows the desktop app's drawings and takes 9 rows and at least 109 columns. To change the size, use the **Size** picker in the `/cozy-clawd` panel. In the following image, the small size is above and the large size is below:
 
 <p align="center">
   <img src="docs/images/terminal.gif" alt="A terminal shows the band in two sizes as Clawd thinks, reads a file, runs a command, edits a file, writes, and juggles. Above, the small size: Clawd as on Claude Code's welcome screen, beside a small balcony with the meters' numbers as text. Below, the large size, with the desktop app's drawings in block characters">
@@ -182,7 +182,7 @@ With fewer than 24-bit colors, Claude Code approximates the scenes' colors, whic
 
 ### The band shows words instead of pictures
 
-The terminal is too narrow, or too short, for the drawings. The small size needs 5 rows and at least 71 columns, and the large size needs 9 rows and at least 105 columns, plus a few columns while the **Compact** button shows. Enlarge the window, or choose the compact size in the `/cozy-clawd` panel.
+The terminal is too narrow, or too short, for the drawings. The small size needs 5 rows and at least 75 columns, and the large size needs 9 rows and at least 109 columns, plus a few columns while the **Compact** button shows. Enlarge the window, or choose the small size in the `/cozy-clawd` panel.
 
 ## What the mod does on your machine
 

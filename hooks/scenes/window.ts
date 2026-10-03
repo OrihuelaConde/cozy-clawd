@@ -3,7 +3,7 @@
 // cache, a cup of cocoa for the five-hour limit, and a ball of yarn for the
 // week. Each has its number underneath in the 3x5 pixel font.
 //
-// The moon crosses the window by itself over the cache's hour and sets as the
+// The moon crosses the window by itself over the cache's life and sets as the
 // cache expires, so the band need not be redrawn to keep it current; then only
 // the stars are left. At a quarter of the context or less a spare candle
 // waits beside the stub; while the conversation is compacted the candle grows
@@ -11,7 +11,7 @@
 
 import { wordsOf } from '../language'
 import type { MeterScene, Meters } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, level, percentText, pixelText, px, refill, REFILL_CSS, rise, RISE_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
+import { countdown, COUNTDOWN_CSS, HEIGHT, hourSteps, level, percentText, pixelText, px, refill, REFILL_CSS, rise, RISE_CSS, runsLow, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the desk at y 9.
 const DESK_Y = 9
@@ -63,7 +63,7 @@ const wax = (x: number, rows: number) => `
 // compacted the candle grows back to its full height, its flame riding the top.
 const candle = (left: number | null, x: number, isCompacting: boolean) => {
   const rows = left === null ? CANDLE_ROWS : Math.max(left > 0 ? 1 : 0, Math.round((left / 100) * CANDLE_ROWS))
-  const isLow = left !== null && left <= 25
+  const isLow = runsLow(left)
   const short = CANDLE_ROWS - rows
   const holder = `
     <g fill="${BRASS}">${px(x + 3, 8, 9, 1)}${px(x + 12, 7)}${px(x + 13, 6, 1, 2)}</g>
@@ -76,11 +76,10 @@ const candle = (left: number | null, x: number, isCompacting: boolean) => {
       ${holder}
       ${percentText(left, x)}`
   }
-  if (left === null || rows === 0) {
+  if (rows === 0) {
     return `
-      ${rows > 0 ? wax(x, rows) : ''}
-      <g fill="${WICK}">${px(x + 7, 6 - rows)}</g>
-      ${rows === 0 ? `<g class="smoke" fill="${STAR}" opacity="0.4">${px(x + 7, 4)}${px(x + 8, 3)}${px(x + 7, 2)}</g>` : ''}
+      <g fill="${WICK}">${px(x + 7, 6)}</g>
+      <g class="smoke" fill="${STAR}" opacity="0.4">${px(x + 7, 4)}${px(x + 8, 3)}${px(x + 7, 2)}</g>
       ${holder}${spare}
       ${percentText(left, x)}`
   }
@@ -95,7 +94,7 @@ const candle = (left: number | null, x: number, isCompacting: boolean) => {
 // four, split by a mullion at x 7 and a transom at y 3.
 const PANES = { x: 3, y: -1, w: 9, h: 9 }
 
-// Where the moon's top left corner sits in the slot as the hour goes by, an
+// Where the moon's top left corner sits in the slot as the cache's life goes by, an
 // equal share of it at each: up and across the top panes, clear of the cross,
 // then down the right ones and below the sill at the end.
 const MOON_START: [number, number] = [3, 0]
@@ -114,7 +113,7 @@ const moonDisc = (x: number, y: number) => `
 
 const STARS: [number, number][] = [[9, -1], [11, 1], [4, 1], [5, 5], [10, 6]]
 
-// Cache: the moon crossing a window by itself over the cache's hour, the
+// Cache: the moon crossing a window by itself over the cache's life, the
 // night deepening behind it; it sets as the cache expires and leaves the stars.
 const nightWindow = (left: number | null, ttl: number, x: number) => {
   const isOver = left !== null && left <= 0
@@ -227,7 +226,7 @@ const windowSvg = (f: Meters) =>
 
 // The scene in the small size, on the desk: the candle, as tall as the
 // context left, a spare one beside it at a quarter or less, growing back
-// while compacting; the window, the moon crossing it over the cache's hour
+// while compacting; the window, the moon crossing it over the cache's life
 // and gone once it expires; the cup of cocoa, its steam thinning with the
 // five-hour limit; and the ball of yarn, smaller as the week is used.
 const CENTERS = [3, 13, 24, 33]
@@ -242,7 +241,7 @@ const BALLS: readonly (readonly [number, number, number])[][] = [
 
 const windowSmall = (f: Meters) => {
   const wax = f.isCompacting ? 3 : ([0, 1, 2, 3][stageOf(f.contextLeft)] ?? 0)
-  const isLow = !f.isCompacting && f.contextLeft !== null && f.contextLeft <= 25
+  const isLow = !f.isCompacting && runsLow(f.contextLeft)
   const top = 6 - wax
   const candle = `
     <g fill="${BRASS}">${px(1, 6, 5, 1)}</g><g fill="${BRASS_DARK}">${px(1, 6)}${px(5, 6)}</g>

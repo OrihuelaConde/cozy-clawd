@@ -21,11 +21,13 @@ In the code, the scenes that draw the four meters on the right of the band are *
 | `hooks/scenes/index.ts` | The meter scenes, in the order the panel offers them, and the meters in words. |
 | `hooks/scenes/pixels.ts` | What the meter scenes share: their layout, the pixel font of the numbers, the cache's countdown, and the refill while compacting. |
 | `hooks/scenes/NAME.ts` | One file per meter scene, named after it, such as `shelf.ts`. For what each scene draws, see [Scenes](docs/scenes.md). |
-| `hooks/cozy-clawd.test.tsx` | Tests that run against the engine. |
+| `hooks/*.test.tsx` | Tests that run against the engine: the band and the panel in `cozy-clawd.test.tsx`, what Clawd shows as a session moves on in `clawd.test.tsx`, the meters in `meters.test.tsx`, and how the terminal paints and lays out the band in `terminal.test.tsx`. |
 | `types/index.d.ts` | The contract for the values the mod keeps in the session's state. |
 | `.claude-plugin/plugin.json` | The plugin's manifest. |
-| `tools/preview.mjs` | A script that renders Clawd's scenes and a few states of each meter scene to an HTML page, as images and as the terminal paints the large size. |
+| `tools/preview.mjs` | A script that renders Clawd's scenes and a few states of each meter scene to an HTML page, as images and as the terminal paints them in both sizes. |
+| `tools/serve.mjs` | A script that serves the preview page to your own machine. |
 | `tools/readme-images.mjs` | A script that renders the documentation's GIFs to `docs/images/`. |
+| `tools/load.mjs` | What the scripts share: the Node.js version they need, and how they load the mod's modules and Clawd's scenes. |
 | `docs/` | The user documentation that the README links to, and its images. |
 
 ## Load the mod from a clone
@@ -65,11 +67,19 @@ claude plugin test .
 
 The first command checks the plugin, and the second runs the tests.
 
+To type-check the mod, run TypeScript's compiler with the repository's `tsconfig.json`:
+
+```bash
+npx -p typescript tsc -p .
+```
+
+The `tsconfig.json` extends the engine's types, which Claude Code writes to `.claude-plugin/types/` when it loads the mod. Load the mod from your clone once before you run the compiler.
+
 ## Preview the scenes
 
-The preview page shows Clawd's scenes and each meter scene without running a session: each at band size, enlarged, and as the terminal paints the large size, with cells of 9 by 18 pixels. The small size isn't on the page; to see it, run `claude --plugin-dir .` from the repository root.
+The preview page shows Clawd's scenes and each meter scene without running a session: each at band size, enlarged, and as the terminal paints it in the small and the large size, with cells of 9 by 18 pixels.
 
-To build the page, you need Node.js 22.18 or later, which runs the mod's `.ts` files directly. To serve it, you need Python 3.
+To build and serve the page, you need Node.js 22.18 or later, which runs the mod's `.ts` files directly.
 
 To see the preview page, do the following:
 
@@ -79,13 +89,13 @@ To see the preview page, do the following:
    node tools/preview.mjs
    ```
 
-2. Serve the `.preview` folder:
+2. Serve the page:
 
    ```bash
-   python3 -m http.server 8765 --bind 127.0.0.1 --directory .preview
+   node tools/serve.mjs
    ```
 
-   On Windows, run `python` instead of `python3`. The server answers only on your own machine. The `preview` launch configuration in `.claude/launch.json` runs a similar server.
+   The server answers only on your own machine. The `preview` launch configuration in `.claude/launch.json` runs the same server.
 
 3. Open `http://localhost:8765` in a browser.
 
@@ -116,7 +126,7 @@ The mod's texts are in `hooks/languages/`, one file per language, named by its l
 
 To improve a translation, edit the language's file, then open the `/cozy-clawd` panel, select the language, and check the band and the panel. The texts in languages other than English and Spanish are machine translations.
 
-> **Note:** In a terminal, the band and the panel speak English when the language is Hindi, because Claude Code measures Devanagari narrower than a terminal draws it. To check Hindi, use the desktop app.
+> **Note:** In a terminal, the band, the panel, and the commands speak English when the language is Hindi, because Claude Code measures Devanagari narrower than a terminal draws it. To check Hindi, use the desktop app.
 
 ## Render the documentation's images
 
@@ -124,12 +134,12 @@ The GIFs in `docs/images/` come from the mod's own drawing code. To render them,
 
 - [ffmpeg](https://ffmpeg.org/) on your `PATH`.
 - Node.js 22.18 or later.
-- Playwright and its Chromium, which the first two of the following commands install.
+- Playwright 1.56.1 and its Chromium, which the first two of the following commands install.
 
 To render the images, run the following commands from the repository root:
 
 ```bash
-npm install --no-save playwright
+npm install --no-save playwright@1.56.1
 ```
 
 ```bash
@@ -137,12 +147,10 @@ npx playwright install chromium
 ```
 
 ```bash
-node tools/preview.mjs
-```
-
-```bash
 node tools/readme-images.mjs
 ```
+
+The labels and buttons in the GIFs are set in the sans-serif and monospace fonts your machine has, so they can look slightly different from the GIFs in the repository.
 
 ## Release a version
 

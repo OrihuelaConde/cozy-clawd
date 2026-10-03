@@ -22,11 +22,14 @@
 
 // A scene's image as the terminal paints it: its size in cells, and its cells
 // at `t` seconds after it was drawn, as a Raster's `cells` (RasterProps).
-// `background` is the color translucent pixels are laid over.
+// `background` is the color translucent pixels are laid over. `nextChange`
+// says when after `t`, in seconds after it was drawn, what it paints may
+// next change: Infinity once it holds still for good.
 export type Picture = {
   columns: number
   rows: number
   paint: (t: number, background: number) => string
+  nextChange: (t: number) => number
 }
 
 // x' = a·x + e and y' = d·y + f: the scenes only move and stretch.
@@ -52,7 +55,17 @@ type Animation = {
   fillMode: string
   timing: (q: number) => number
   tracks: Partial<Record<Prop, Track>>
+  changes: Changes
 }
+
+// Where in an iteration an animation's values may change, in progress from 0
+// to 1: where a step or a keyframe falls (`breaks`), and the stretches over
+// which they move smoothly.
+type Changes = { breaks: number[]; smooth: [number, number][] }
+
+// How a timing function moves: in `steps` (and whether each step falls at
+// the start of its interval), or smoothly, with `steps` null.
+type Stepping = { steps: number | null; isStart: boolean }
 
 type Node = {
   tag: string
@@ -215,6 +228,15 @@ const stepsOf = (n: number, position: string) => (q: number) => {
     step += 1
   }
   return Math.min(Math.max(step, 0), jumps) / Math.max(jumps, 1)
+}
+
+const steppingOf = (text: string): Stepping => {
+  const steps = /^steps\(\s*(\d+)\s*(?:,\s*([\w-]+)\s*)?\)$/.exec(text)
+  if (steps !== null) {
+    const position = steps[2] ?? 'end'
+    return { steps: Number(steps[1]), isStart: position === 'start' || position === 'jump-start' || position === 'jump-both' }
+  }
+  return text === 'step-start' || text === 'step-end' ? { steps: 1, isStart: text === 'step-start' } : { steps: null, isStart: false }
 }
 
 const timingOf = (text: string): ((q: number) => number) => {
@@ -502,6 +524,72 @@ const interpolate = (prop: Prop, a: Values[Prop], b: Values[Prop], q: number): V
   return q < 0.5 ? a : b
 }
 
+// Where a set of keyframes may change what it shows, moved by a timing
+// function: within each interval whose two keyframes differ, at each of its
+// steps, or all along it when it moves smoothly; and at an iteration's end.
+// An interval missing a keyframe takes the underlying value, which may
+// differ.
+const changesOf = (tracks: Partial<Record<Prop, Track>>, stepping: Stepping): Changes => {
+  const breaks = new Set<number>([1])
+  const smooth: [number, number][] = []
+  for (const track of Object.values(tracks)) {
+    const offsets = [...new Set([0, ...track.map(k => k.offset), 1])].sort((a, b) => a - b)
+    for (let i = 0; i + 1 < offsets.length; i++) {
+      const a = offsets[i] ?? 0
+      const b = offsets[i + 1] ?? 1
+      const from = track.find(k => k.offset === a)
+      const to = track.find(k => k.offset === b)
+      if (b <= a || (from !== undefined && to !== undefined && JSON.stringify(from.value) === JSON.stringify(to.value))) {
+        continue
+      }
+      if (stepping.steps === null) {
+        smooth.push([a, b])
+        continue
+      }
+      for (let k = stepping.isStart ? 0 : 1; k <= stepping.steps; k++) {
+        breaks.add(a + ((b - a) * k) / stepping.steps)
+      }
+    }
+  }
+  return { breaks: [...breaks].sort((a, b) => a - b), smooth }
+}
+
+// How finely a smooth motion is followed: this many frames to a stretch.
+const SMOOTH_FRAMES = 64
+
+// When at `t` or after an animation may next change what it shows, in the
+// picture's seconds; Infinity once it never will.
+const nextChangeOf = (anim: Animation, t: number): number => {
+  const local = t - anim.delay
+  if (local < 0) {
+    return anim.delay
+  }
+  const active = anim.duration > 0 ? anim.duration * anim.count : 0
+  if (local >= active) {
+    return Infinity
+  }
+  const iteration = Math.floor(local / anim.duration)
+  const frac = local / anim.duration - iteration
+  const isOdd = iteration % 2 === 1
+  const isReverse =
+    anim.direction === 'reverse' || (anim.direction === 'alternate' && isOdd) || (anim.direction === 'alternate-reverse' && !isOdd)
+  const p = isReverse ? 1 - frac : frac
+  const EPS = 1e-9
+  let next = 1
+  for (const [a, b] of anim.changes.smooth) {
+    if (p >= a - EPS && p < b - EPS) {
+      next = Math.min(next, frac + (b - a) / SMOOTH_FRAMES)
+    }
+  }
+  for (const at of anim.changes.breaks) {
+    const f = isReverse ? 1 - at : at
+    if (f > frac + EPS) {
+      next = Math.min(next, f)
+    }
+  }
+  return Math.min(anim.delay + (iteration + next) * anim.duration, anim.delay + active)
+}
+
 // Where an animation is at `t`, as its directed progress through the current
 // iteration from 0 to 1; null while it has no effect.
 const progressOf = (anim: Animation, t: number): number | null => {
@@ -649,14 +737,16 @@ const build = (raw: Raw, parent: Node | null, sheet: ReturnType<typeof parseCss>
       trackCache.set(name, tracks)
     }
     const count = pick(lists.counts, '1')
+    const timing = pick(lists.timings, 'ease')
     node.animations.push({
       duration: seconds(pick(lists.durations, '0s')),
       delay: seconds(pick(lists.delays, '0s')),
       count: count === 'infinite' ? Infinity : parseFloat(count) || 0,
       direction: pick(lists.directions, 'normal'),
       fillMode: pick(lists.fillModes, 'none'),
-      timing: timingOf(pick(lists.timings, 'ease')),
+      timing: timingOf(timing),
       tracks,
+      changes: changesOf(tracks, steppingOf(timing)),
     })
   })
 
@@ -715,8 +805,17 @@ const maskOf = (boxes: Box[], width: number, height: number, within: Uint8Array 
   return mask
 }
 
-// The pixels painted so far, and the characters to lay over them, in pixels.
-type Canvas = { width: number; height: number; rgba: Float64Array; ids: Map<string, Node>; chars: { x: number; y: number; code: number; color: number }[] }
+// The pixels painted so far, and the characters to lay over them, in pixels;
+// `charAlpha`, the opacity the canvas will be laid with (a group's own, see
+// paintNode), which a character needs half of to show.
+type Canvas = {
+  width: number
+  height: number
+  rgba: Float64Array
+  ids: Map<string, Node>
+  chars: { x: number; y: number; code: number; color: number }[]
+  charAlpha: number
+}
 
 const paintNode = (canvas: Canvas, node: Node, t: number, m: Affine, alpha: number, fill: number | null, within: Uint8Array | null) => {
   if (UNPAINTED.has(node.tag)) {
@@ -745,6 +844,28 @@ const paintNode = (canvas: Canvas, node: Node, t: number, m: Affine, alpha: numb
     const [top, right, bottom, left] = v.clip.sides
     mask = maskOf([mapBox(inner, { x0: box.x0 + left, y0: box.y0 + top, x1: box.x1 - right, y1: box.y1 - bottom })], canvas.width, canvas.height, mask)
   }
+  // A group seen through is painted as SVG paints it: its children together
+  // on a layer of their own, then the layer over what lies beneath at the
+  // group's opacity, so where they overlap they don't show through each
+  // other.
+  if (node.rect === undefined && node.char === undefined && v.opacity < 1 && node.children.length > 0) {
+    const layer: Canvas = { ...canvas, rgba: new Float64Array(canvas.rgba.length), charAlpha: canvas.charAlpha * a }
+    for (const child of node.children) {
+      paintNode(layer, child, t, inner, 1, v.fill, mask)
+    }
+    const rgba = canvas.rgba
+    for (let p = 0; p < rgba.length; p += 4) {
+      const la = (layer.rgba[p + 3] ?? 0) * a
+      if (la <= 0) {
+        continue
+      }
+      for (let i = 0; i < 3; i++) {
+        rgba[p + i] = (layer.rgba[p + i] ?? 0) * a + (rgba[p + i] ?? 0) * (1 - la)
+      }
+      rgba[p + 3] = la + (rgba[p + 3] ?? 0) * (1 - la)
+    }
+    return
+  }
   if (node.rect !== undefined && v.fill !== null) {
     const b = mapBox(inner, node.rect)
     const r = (v.fill >> 16) & 0xff
@@ -766,7 +887,7 @@ const paintNode = (canvas: Canvas, node: Node, t: number, m: Affine, alpha: numb
     }
   }
   // A character shows whole or not at all.
-  if (node.char !== undefined && v.fill !== null && a >= 0.5) {
+  if (node.char !== undefined && v.fill !== null && a * canvas.charAlpha >= 0.5) {
     const at = mapBox(inner, { x0: node.char.x, y0: node.char.y, x1: node.char.x, y1: node.char.y })
     canvas.chars.push({ x: at.x0, y: at.y0, code: node.char.code, color: v.fill })
   }
@@ -830,7 +951,7 @@ export const compile = (svg: string, layout: Layout = 'halves'): Picture => {
   const origin: Affine = { a: 1, d: 1, e: -vx, f: -vy }
 
   const paint = (t: number, background: number) => {
-    const canvas: Canvas = { width: columns * across, height: rows * 2, rgba: new Float64Array(columns * across * rows * 2 * 4), ids, chars: [] }
+    const canvas: Canvas = { width: columns * across, height: rows * 2, rgba: new Float64Array(columns * across * rows * 2 * 4), ids, chars: [], charAlpha: 1 }
     paintNode(canvas, root, t, origin, 1, 0x000000, null)
     const base = [(background >> 16) & 0xff, (background >> 8) & 0xff, background & 0xff]
     const colorAt = (x: number, y: number) => {
@@ -883,7 +1004,28 @@ export const compile = (svg: string, layout: Layout = 'halves'): Picture => {
     return toBase64(new Uint8Array(view.buffer))
   }
 
-  return { columns, rows, paint }
+  // Each animation, with the groups around its node whose opacity moves:
+  // while one of them is hidden, what the animation moves doesn't show (a
+  // pastime of Clawd's waiting its turn), and the group showing again is a
+  // change of its own.
+  const timed: { anim: Animation; gates: Node[] }[] = []
+  const collectTimed = (node: Node, gates: Node[]) => {
+    for (const anim of node.animations) {
+      timed.push({ anim, gates })
+    }
+    const inner = node.animations.some(anim => anim.tracks.opacity !== undefined) ? [...gates, node] : gates
+    node.children.forEach(child => collectTimed(child, inner))
+  }
+  collectTimed(root, [])
+  const isHidden = (gates: Node[], t: number) => gates.some(gate => valuesAt(gate, t, null).opacity <= 1e-4)
+  // A frame is painted a moment after a change; what is hidden then is.
+  const nextChange = (t: number) =>
+    timed.reduce((soonest, { anim, gates }) => {
+      const at = nextChangeOf(anim, t)
+      return at < soonest && !isHidden(gates, at + 0.001) ? at : soonest
+    }, Infinity)
+
+  return { columns, rows, paint, nextChange }
 }
 
 // A line of text as a Raster's cells, a column a character, in `color` over
