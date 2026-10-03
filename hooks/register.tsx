@@ -4,7 +4,7 @@ import type { EngineInterface, Register, Timer } from 'claude-code'
 import type { ClawdMode, Stats } from '../types'
 import { DEFAULT_FIGURE_SCENE, FIGURE_SCENES, figureSceneNamed, figuresAlt } from './scenes/index'
 import type { Figures } from './scenes/index'
-import { DEFAULT_LANG, LANG_NAMES, LANGS, langOf } from './language'
+import { DEFAULT_LANG, LANG_NAMES, LANGS, langOf, TEXTS, wordsOf } from './language'
 import type { Lang, LangChoice, Words } from './language'
 import { columnsOf, pictureOf } from './raster'
 import type { Picture } from './raster'
@@ -70,7 +70,7 @@ const BLINK = `
 
 // Hammering in three frames: raised, swinging, struck with sparks.
 const toolUse: Scene = {
-  label: { es: 'Trabajando', en: 'Working' },
+  label: wordsOf(t => t.states.working),
   extra: `
     <g class="up">
       <g fill="${HANDLE}">${px(17, -1, 1, 3)}</g>
@@ -102,7 +102,7 @@ const scenes: Record<Exclude<ClawdMode, 'waiting'>, Scene> = {
   // Nothing to do and the prompt cache expired: asleep, breathing slowly, z's
   // drifting up. With the cache still warm Clawd passes the time instead.
   idle: {
-    label: { es: 'Durmiendo: la caché venció', en: 'Sleeping: the cache expired' },
+    label: wordsOf(t => t.states.sleeping),
     eyes: CLOSED_EYES,
     extra: `
       <g fill="${DOT}">
@@ -120,7 +120,7 @@ const scenes: Record<Exclude<ClawdMode, 'waiting'>, Scene> = {
   // this covers waiting and generating alike. Clawd stacks blocks one by one,
   // lifting an arm to place each; the finished stack sparkles and clears.
   requesting: {
-    label: { es: 'Trabajando en la respuesta', en: 'Working on the answer' },
+    label: wordsOf(t => t.states.workingOnAnswer),
     extra: `
       <g class="b1" fill="${SPARK}">${px(18, 4, 2, 1)}</g>
       <g class="b2" fill="${SKY}">${px(20, 4, 2, 1)}</g>
@@ -148,7 +148,7 @@ const scenes: Record<Exclude<ClawdMode, 'waiting'>, Scene> = {
   // Compacting the conversation: three loose sheets are pressed together,
   // Clawd's arm pushing down, until they are one small golden block.
   compacting: {
-    label: { es: 'Compactando la conversación', en: 'Compacting the conversation' },
+    label: wordsOf(t => t.states.compacting),
     extra: `
       <g class="sheets" fill="${WING}">
         <g class="s1">${px(18, 1.5, 4, 0.5)}</g>
@@ -172,7 +172,7 @@ const scenes: Record<Exclude<ClawdMode, 'waiting'>, Scene> = {
   },
   // A compaction just finished: Clawd hops twice for joy, arms up, among sparkles.
   compacted: {
-    label: { es: '¡Conversación compactada!', en: 'Conversation compacted!' },
+    label: wordsOf(t => t.states.compacted),
     eyes: px(5, 1, 1, 0.5) + px(12, 1, 1, 0.5),
     extra: `
       <g fill="${SPARK}">
@@ -192,7 +192,7 @@ const scenes: Record<Exclude<ClawdMode, 'waiting'>, Scene> = {
   },
   // Thinking: two thought dots, then a light bulb that switches on.
   thinking: {
-    label: { es: 'Pensando', en: 'Thinking' },
+    label: wordsOf(t => t.states.thinking),
     extra: `
       <g fill="${DOT}">
         <g class="d1">${px(16, 0, 1, 0.5)}</g>
@@ -224,11 +224,11 @@ const scenes: Record<Exclude<ClawdMode, 'waiting'>, Scene> = {
       ${BLINK}`,
   },
   // The model is writing a tool call's arguments: already swinging.
-  'tool-input': { ...toolUse, label: { es: 'Preparando una herramienta', en: 'Preparing a tool' } },
-  'tool-use': { ...toolUse, label: { es: 'Usando una herramienta', en: 'Using a tool' } },
+  'tool-input': { ...toolUse, label: wordsOf(t => t.states.preparingTool) },
+  'tool-use': { ...toolUse, label: wordsOf(t => t.states.usingTool) },
   // Writing the answer: walks in place while lines of text appear beside it.
   responding: {
-    label: { es: 'Escribiendo', en: 'Writing' },
+    label: wordsOf(t => t.states.writing),
     extra: `
       <g fill="${DOT}">
         <g class="l1">${px(19, 0, 4, 0.5)}</g>
@@ -285,7 +285,7 @@ const toolScenes: Record<Exclude<ToolKind, 'wait'>, Scene> = {
   // Reading or searching: the page of the editing scene, already written, and a
   // magnifying glass that sweeps down and up over it while Clawd watches.
   look: {
-    label: { es: 'Leyendo', en: 'Reading' },
+    label: wordsOf(t => t.states.reading),
     extra: `
       ${PAPER}
       <g fill="${DOT}">${px(20, 1.5, 3, 0.5)}${px(20, 2.5, 2, 0.5)}${px(20, 3.5, 3, 0.5)}</g>
@@ -308,7 +308,7 @@ const toolScenes: Record<Exclude<ToolKind, 'wait'>, Scene> = {
   },
   // Editing or writing a file: a pencil writes line after line on a page.
   write: {
-    label: { es: 'Editando', en: 'Editing' },
+    label: wordsOf(t => t.states.editing),
     extra: `
       ${PAPER}
       <g fill="${EYE}">
@@ -337,7 +337,7 @@ const toolScenes: Record<Exclude<ToolKind, 'wait'>, Scene> = {
   // Running a command: Clawd types at a monitor where green code rains down,
   // each column at its own pace: a bright head and a trail that fades.
   shell: {
-    label: { es: 'Ejecutando un comando', en: 'Running a command' },
+    label: wordsOf(t => t.states.runningCommand),
     extra: `
       <defs><clipPath id="screen">${px(19, 0.5, 4, 2)}</clipPath></defs>
       <g fill="${STEEL}">${px(18, 0, 6, 3)}${px(20, 3, 2, 1.5)}${px(19, 4.5, 4, 0.5)}</g>
@@ -365,7 +365,7 @@ const toolScenes: Record<Exclude<ToolKind, 'wait'>, Scene> = {
   },
   // On the web: a desk globe as tall as Clawd turns on its stand.
   web: {
-    label: { es: 'Navegando', en: 'Browsing' },
+    label: wordsOf(t => t.states.browsing),
     extra: `
       <defs><clipPath id="globe">${GLOBE}</clipPath></defs>
       <g fill="${SKY}">${GLOBE}</g>
@@ -384,7 +384,7 @@ const toolScenes: Record<Exclude<ToolKind, 'wait'>, Scene> = {
   },
   // Launching a subagent: a small Clawd runs off while the big one waves.
   agent: {
-    label: { es: 'Lanzando un subagente', en: 'Launching a subagent' },
+    label: wordsOf(t => t.states.launchingSubagent),
     extra: `
       <g transform="translate(17 3)"><g class="mini">
         <g fill="${BODY}">${px(0, 0, 5, 1.5)}</g>
@@ -413,22 +413,22 @@ const toolScenes: Record<Exclude<ToolKind, 'wait'>, Scene> = {
 
 // Each tool by name: its family and what the band says while it runs.
 const TOOLS: Record<string, [ToolKind, Words]> = {
-  Read: ['look', { es: 'Leyendo un archivo', en: 'Reading a file' }],
-  Grep: ['look', { es: 'Buscando en el código', en: 'Searching the code' }],
-  Glob: ['look', { es: 'Buscando archivos', en: 'Finding files' }],
-  LS: ['look', { es: 'Mirando una carpeta', en: 'Looking at a folder' }],
-  Edit: ['write', { es: 'Editando un archivo', en: 'Editing a file' }],
-  MultiEdit: ['write', { es: 'Editando un archivo', en: 'Editing a file' }],
-  NotebookEdit: ['write', { es: 'Editando un notebook', en: 'Editing a notebook' }],
-  Write: ['write', { es: 'Escribiendo un archivo', en: 'Writing a file' }],
-  Bash: ['shell', { es: 'Ejecutando un comando', en: 'Running a command' }],
-  PowerShell: ['shell', { es: 'Ejecutando un comando', en: 'Running a command' }],
-  WebFetch: ['web', { es: 'Leyendo una página web', en: 'Reading a web page' }],
-  WebSearch: ['web', { es: 'Buscando en la web', en: 'Searching the web' }],
-  Agent: ['agent', { es: 'Lanzando un subagente', en: 'Launching a subagent' }],
-  Task: ['agent', { es: 'Lanzando un subagente', en: 'Launching a subagent' }],
-  AskUserQuestion: ['wait', { es: 'Esperando tu respuesta', en: 'Waiting for your answer' }],
-  ExitPlanMode: ['wait', { es: 'Esperando que apruebes el plan', en: 'Waiting for you to approve the plan' }],
+  Read: ['look', wordsOf(t => t.tools.readingFile)],
+  Grep: ['look', wordsOf(t => t.tools.searchingCode)],
+  Glob: ['look', wordsOf(t => t.tools.findingFiles)],
+  LS: ['look', wordsOf(t => t.tools.lookingAtFolder)],
+  Edit: ['write', wordsOf(t => t.tools.editingFile)],
+  MultiEdit: ['write', wordsOf(t => t.tools.editingFile)],
+  NotebookEdit: ['write', wordsOf(t => t.tools.editingNotebook)],
+  Write: ['write', wordsOf(t => t.tools.writingFile)],
+  Bash: ['shell', wordsOf(t => t.states.runningCommand)],
+  PowerShell: ['shell', wordsOf(t => t.states.runningCommand)],
+  WebFetch: ['web', wordsOf(t => t.tools.readingWebPage)],
+  WebSearch: ['web', wordsOf(t => t.tools.searchingWeb)],
+  Agent: ['agent', wordsOf(t => t.states.launchingSubagent)],
+  Task: ['agent', wordsOf(t => t.states.launchingSubagent)],
+  AskUserQuestion: ['wait', wordsOf(t => t.states.waitingForAnswer)],
+  ExitPlanMode: ['wait', wordsOf(t => t.tools.waitingForPlan)],
 }
 
 // An MCP tool's own name, without the `mcp__<server>__` prefix.
@@ -443,14 +443,11 @@ const sceneFor = (m: ClawdMode, tool: string | null, since = 0) => {
   if (m === 'waiting') {
     return {
       scene: waitScene(since),
-      label:
-        tool === 'answer'
-          ? { es: 'Esperando tu respuesta', en: 'Waiting for your answer' }
-          : { es: 'Esperando tu aprobación', en: 'Waiting for your approval' },
+      label: tool === 'answer' ? wordsOf(t => t.states.waitingForAnswer) : wordsOf(t => t.states.waitingForApproval),
     }
   }
   if ((m === 'tool-use' || m === 'tool-input') && tool !== null) {
-    const [kind, label] = TOOLS[tool] ?? ['other', { es: `Usando ${shortName(tool)}`, en: `Using ${shortName(tool)}` }]
+    const [kind, label] = TOOLS[tool] ?? ['other', wordsOf(t => t.tools.using(shortName(tool)))]
     return { scene: kind === 'wait' ? waitScene(since) : toolScenes[kind], label }
   }
   const scene = scenes[m] ?? scenes.requesting
@@ -462,7 +459,7 @@ const cacheScenes: Record<'worry' | 'yawn', Scene> = {
   // Clawd stretches its arms up in a big yawn, then nods off: two minutes or
   // less of the cache are left.
   yawn: {
-    label: { es: 'Bostezando: la caché está por vencer', en: 'Yawning: the cache is about to expire' },
+    label: wordsOf(t => t.states.yawning),
     eyes: `<g class="drowsy">${px(5, 1.5, 1, 0.5)}${px(12, 1.5, 1, 0.5)}</g><g class="shut">${CLOSED_EYES}</g>`,
     extra: `
       <g class="mouth" fill="${EYE}"><g class="gape">${px(8, 2, 2, 1)}</g><g class="ajar">${px(8, 2.5, 2, 0.5)}</g></g>
@@ -484,7 +481,7 @@ const cacheScenes: Record<'worry' | 'yawn', Scene> = {
   // Clawd keeps an anxious eye on the scene, a drop of sweat running down its
   // side: ten minutes or less of the cache are left.
   worry: {
-    label: { es: 'Preocupado: la caché vence pronto', en: 'Worried: the cache expires soon' },
+    label: wordsOf(t => t.states.worried),
     extra: `<g class="sweat" fill="${SKY}">${px(15, 0, 1, 0.5)}</g>`,
     css: `
       .eyes { transform: translate(1px, 0); }
@@ -772,7 +769,7 @@ const pastimeBody = (p: Pastime, turn = '') =>
 
 // One pastime by itself, as the preview shows it and as Clawd waits on the person.
 const pastimeScene = (p: Pastime): Scene => ({
-  label: { es: 'Esperando', en: 'Waiting' },
+  label: wordsOf(t => t.states.waiting),
   body: pastimeBody(p),
   extra: '',
   css: `${p.css}
@@ -793,7 +790,7 @@ const waitingScene = (atS: number): Scene => {
   )
   const at = atS % cycle
   return {
-    label: { es: 'Esperando', en: 'Waiting' },
+    label: wordsOf(t => t.states.waiting),
     body: [pastimeBody(REST, `turn-${REST.name}`), ...PASTIMES.map(p => pastimeBody(p, `turn-${p.name}`))].join(''),
     extra: '',
     css: `${windowsCss(REST.name, rests, cycle, at)}
@@ -842,54 +839,6 @@ const COMPACT_AT = 25
 // How long the prompt cache keeps a conversation after its last request:
 // Claude Code's requests use the one-hour cache.
 const CACHE_TTL_MIN = 60
-
-// What the commands, the band's button and the pane say, in each language.
-const TEXTS = {
-  es: {
-    paneCommand: 'Abrí el panel para elegir la escena y el idioma de la franja',
-    sceneCommand: 'Elegí la escena de la derecha de la franja',
-    sceneHint: '[escena]',
-    paneTitle: 'Escenas',
-    paneOpened: 'Panel de escenas abierto.',
-    sceneIs: (name: string) => `Escena: ${name}.`,
-    available: (names: string) => `Hay: ${names}.`,
-    noScene: (name: string) => `No hay una escena "${name}".`,
-    alreadyScene: (name: string) => `La escena ya es ${name}.`,
-    waitToCompact: 'Clawd: esperá a que termine el turno para compactar.',
-    compactAsk: '¿Compactar?',
-    yes: 'Sí',
-    no: 'No',
-    compact: 'Compactar',
-    scene: 'Escena',
-    pickScene: 'Elegí la escena de la derecha de la franja.',
-    inUse: 'en uso',
-    use: 'Usar',
-    language: 'Idioma',
-    auto: (name: string) => `Automático (${name})`,
-  },
-  en: {
-    paneCommand: "Open the panel to pick the band's scene and language",
-    sceneCommand: "Pick the scene on the band's right",
-    sceneHint: '[scene]',
-    paneTitle: 'Scenes',
-    paneOpened: 'Scenes panel opened.',
-    sceneIs: (name: string) => `Scene: ${name}.`,
-    available: (names: string) => `Available: ${names}.`,
-    noScene: (name: string) => `There is no scene "${name}".`,
-    alreadyScene: (name: string) => `The scene is already ${name}.`,
-    waitToCompact: 'Clawd: wait for the turn to end before compacting.',
-    compactAsk: 'Compact?',
-    yes: 'Yes',
-    no: 'No',
-    compact: 'Compact',
-    scene: 'Scene',
-    pickScene: "Pick the scene on the band's right.",
-    inUse: 'in use',
-    use: 'Use',
-    language: 'Language',
-    auto: (name: string) => `Automatic (${name})`,
-  },
-} satisfies Record<Lang, unknown>
 
 // The picks of the pane's language row, in its order.
 const LANG_CHOICES: readonly LangChoice[] = ['auto', ...LANGS]
@@ -1570,7 +1519,7 @@ export const register: Register = on => {
 
     return (
       <Box flexDirection="column" gap={1} paddingY={1}>
-        <Box flexDirection="row" alignItems="center" gap={1}>
+        <Box flexDirection="row" flexWrap="wrap" alignItems="center" gap={1}>
           <Text dimColor>{t.language}:</Text>
           {LANG_CHOICES.map(c =>
             c === choice ? (

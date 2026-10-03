@@ -1,0 +1,83 @@
+// The mod's texts in Spanish.
+
+import type { Texts } from './en'
+
+export const es: Texts = {
+  name: 'Español',
+
+  states: {
+    working: 'Trabajando',
+    workingOnAnswer: 'Trabajando en la respuesta',
+    thinking: 'Pensando',
+    writing: 'Escribiendo',
+    preparingTool: 'Preparando una herramienta',
+    usingTool: 'Usando una herramienta',
+    reading: 'Leyendo',
+    editing: 'Editando',
+    runningCommand: 'Ejecutando un comando',
+    browsing: 'Navegando',
+    launchingSubagent: 'Lanzando un subagente',
+    waiting: 'Esperando',
+    waitingForAnswer: 'Esperando tu respuesta',
+    waitingForApproval: 'Esperando tu aprobación',
+    compacting: 'Compactando la conversación',
+    compacted: '¡Conversación compactada!',
+    worried: 'Preocupado: la caché vence pronto',
+    yawning: 'Bostezando: la caché está por vencer',
+    sleeping: 'Durmiendo: la caché venció',
+  },
+
+  tools: {
+    readingFile: 'Leyendo un archivo',
+    searchingCode: 'Buscando en el código',
+    findingFiles: 'Buscando archivos',
+    lookingAtFolder: 'Mirando una carpeta',
+    editingFile: 'Editando un archivo',
+    editingNotebook: 'Editando un notebook',
+    writingFile: 'Escribiendo un archivo',
+    readingWebPage: 'Leyendo una página web',
+    searchingWeb: 'Buscando en la web',
+    waitingForPlan: 'Esperando que apruebes el plan',
+    using: (tool: string) => `Usando ${tool}`,
+  },
+
+  scenes: {
+    shelf: 'Estante',
+    mate: 'Mateada',
+    balcony: 'Balcón',
+    window: 'Ventana de noche',
+    adventure: 'Aventura',
+    gamer: 'Gamer',
+    cyberpunk: 'Cyberpunk',
+    steampunk: 'Steampunk',
+  },
+
+  figures: {
+    none: 'sin datos',
+    expired: 'vencida',
+    minutes: (n: number) => `${n}\u00a0min`,
+    line: (context: string, cache: string, fiveHour: string, week: string) =>
+      `Contexto libre ${context}, caché ${cache}, límite de 5\u00a0h libre ${fiveHour}, semana libre ${week}`,
+  },
+
+  paneCommand: 'Abrí el panel para elegir la escena y el idioma de la franja',
+  sceneCommand: 'Elegí la escena de la derecha de la franja',
+  sceneHint: '[escena]',
+  paneTitle: 'Escenas',
+  paneOpened: 'Panel de escenas abierto.',
+  sceneIs: (name: string) => `Escena: ${name}.`,
+  available: (names: string) => `Hay: ${names}.`,
+  noScene: (name: string) => `No hay una escena "${name}".`,
+  alreadyScene: (name: string) => `La escena ya es ${name}.`,
+  waitToCompact: 'Clawd: esperá a que termine el turno para compactar.',
+  compactAsk: '¿Compactar?',
+  yes: 'Sí',
+  no: 'No',
+  compact: 'Compactar',
+  scene: 'Escena',
+  pickScene: 'Elegí la escena de la derecha de la franja.',
+  inUse: 'en uso',
+  use: 'Usar',
+  language: 'Idioma',
+  auto: (name: string) => `Automático (${name})`,
+}

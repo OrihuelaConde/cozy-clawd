@@ -20,8 +20,8 @@ export type Stats = {
   cacheAt: number | null
 }
 
-// The languages the mod speaks.
-export type Lang = 'es' | 'en'
+// The languages the mod speaks: those the Claude desktop app shows.
+export type Lang = 'es' | 'en' | 'fr' | 'de' | 'it' | 'pt' | 'id' | 'hi' | 'ja' | 'ko'
 
 // The language the person picked in the /cozy-clawd pane, or `auto` to
 // follow the one Claude Code shows them.

@@ -1,0 +1,83 @@
+// The mod's texts in Portuguese, as spoken in Brazil.
+
+import type { Texts } from './en'
+
+export const pt: Texts = {
+  name: 'Português',
+
+  states: {
+    working: 'Trabalhando',
+    workingOnAnswer: 'Trabalhando na resposta',
+    thinking: 'Pensando',
+    writing: 'Escrevendo',
+    preparingTool: 'Preparando uma ferramenta',
+    usingTool: 'Usando uma ferramenta',
+    reading: 'Lendo',
+    editing: 'Editando',
+    runningCommand: 'Executando um comando',
+    browsing: 'Navegando',
+    launchingSubagent: 'Iniciando um subagente',
+    waiting: 'Esperando',
+    waitingForAnswer: 'Esperando sua resposta',
+    waitingForApproval: 'Esperando sua aprovação',
+    compacting: 'Compactando a conversa',
+    compacted: 'Conversa compactada!',
+    worried: 'Preocupado: o cache expira em breve',
+    yawning: 'Bocejando: o cache está prestes a expirar',
+    sleeping: 'Dormindo: o cache expirou',
+  },
+
+  tools: {
+    readingFile: 'Lendo um arquivo',
+    searchingCode: 'Buscando no código',
+    findingFiles: 'Procurando arquivos',
+    lookingAtFolder: 'Olhando uma pasta',
+    editingFile: 'Editando um arquivo',
+    editingNotebook: 'Editando um notebook',
+    writingFile: 'Escrevendo um arquivo',
+    readingWebPage: 'Lendo uma página da web',
+    searchingWeb: 'Pesquisando na web',
+    waitingForPlan: 'Esperando você aprovar o plano',
+    using: (tool: string) => `Usando ${tool}`,
+  },
+
+  scenes: {
+    shelf: 'Estante',
+    mate: 'Chimarrão',
+    balcony: 'Varanda',
+    window: 'Janela à noite',
+    adventure: 'Aventura',
+    gamer: 'Gamer',
+    cyberpunk: 'Cyberpunk',
+    steampunk: 'Steampunk',
+  },
+
+  figures: {
+    none: 'sem dados',
+    expired: 'expirado',
+    minutes: (n: number) => `${n}\u00a0min`,
+    line: (context: string, cache: string, fiveHour: string, week: string) =>
+      `Contexto livre ${context}, cache ${cache}, limite de 5\u00a0h livre ${fiveHour}, semana livre ${week}`,
+  },
+
+  paneCommand: 'Abra o painel para escolher a cena e o idioma da faixa',
+  sceneCommand: 'Escolha a cena à direita da faixa',
+  sceneHint: '[cena]',
+  paneTitle: 'Cenas',
+  paneOpened: 'Painel de cenas aberto.',
+  sceneIs: (name: string) => `Cena: ${name}.`,
+  available: (names: string) => `Disponíveis: ${names}.`,
+  noScene: (name: string) => `Não existe uma cena "${name}".`,
+  alreadyScene: (name: string) => `A cena já é ${name}.`,
+  waitToCompact: 'Clawd: espere o turno terminar para compactar.',
+  compactAsk: 'Compactar?',
+  yes: 'Sim',
+  no: 'Não',
+  compact: 'Compactar',
+  scene: 'Cena',
+  pickScene: 'Escolha a cena à direita da faixa.',
+  inUse: 'em uso',
+  use: 'Usar',
+  language: 'Idioma',
+  auto: (name: string) => `Automático (${name})`,
+}

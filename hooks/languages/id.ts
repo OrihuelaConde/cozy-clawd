@@ -1,0 +1,83 @@
+// The mod's texts in Indonesian.
+
+import type { Texts } from './en'
+
+export const id: Texts = {
+  name: 'Bahasa Indonesia',
+
+  states: {
+    working: 'Bekerja',
+    workingOnAnswer: 'Mengerjakan jawaban',
+    thinking: 'Berpikir',
+    writing: 'Menulis',
+    preparingTool: 'Menyiapkan alat',
+    usingTool: 'Menggunakan alat',
+    reading: 'Membaca',
+    editing: 'Menyunting',
+    runningCommand: 'Menjalankan perintah',
+    browsing: 'Menjelajah web',
+    launchingSubagent: 'Meluncurkan subagen',
+    waiting: 'Menunggu',
+    waitingForAnswer: 'Menunggu jawaban Anda',
+    waitingForApproval: 'Menunggu persetujuan Anda',
+    compacting: 'Memadatkan percakapan',
+    compacted: 'Percakapan dipadatkan!',
+    worried: 'Cemas: cache segera kedaluwarsa',
+    yawning: 'Menguap: cache hampir kedaluwarsa',
+    sleeping: 'Tidur: cache sudah kedaluwarsa',
+  },
+
+  tools: {
+    readingFile: 'Membaca file',
+    searchingCode: 'Mencari di kode',
+    findingFiles: 'Mencari file',
+    lookingAtFolder: 'Melihat folder',
+    editingFile: 'Menyunting file',
+    editingNotebook: 'Menyunting notebook',
+    writingFile: 'Menulis file',
+    readingWebPage: 'Membaca halaman web',
+    searchingWeb: 'Mencari di web',
+    waitingForPlan: 'Menunggu Anda menyetujui rencana',
+    using: (tool: string) => `Menggunakan ${tool}`,
+  },
+
+  scenes: {
+    shelf: 'Rak',
+    mate: 'Mate',
+    balcony: 'Balkon',
+    window: 'Jendela malam',
+    adventure: 'Petualangan',
+    gamer: 'Gamer',
+    cyberpunk: 'Cyberpunk',
+    steampunk: 'Steampunk',
+  },
+
+  figures: {
+    none: 'tidak ada data',
+    expired: 'kedaluwarsa',
+    minutes: (n: number) => `${n}\u00a0menit`,
+    line: (context: string, cache: string, fiveHour: string, week: string) =>
+      `Konteks tersisa ${context}, cache ${cache}, batas 5\u00a0jam tersisa ${fiveHour}, mingguan tersisa ${week}`,
+  },
+
+  paneCommand: 'Buka panel untuk memilih adegan dan bahasa bilah',
+  sceneCommand: 'Pilih adegan di sisi kanan bilah',
+  sceneHint: '[adegan]',
+  paneTitle: 'Adegan',
+  paneOpened: 'Panel adegan dibuka.',
+  sceneIs: (name: string) => `Adegan: ${name}.`,
+  available: (names: string) => `Tersedia: ${names}.`,
+  noScene: (name: string) => `Tidak ada adegan "${name}".`,
+  alreadyScene: (name: string) => `Adegan sudah ${name}.`,
+  waitToCompact: 'Clawd: tunggu giliran selesai sebelum memadatkan.',
+  compactAsk: 'Padatkan?',
+  yes: 'Ya',
+  no: 'Tidak',
+  compact: 'Padatkan',
+  scene: 'Adegan',
+  pickScene: 'Pilih adegan di sisi kanan bilah.',
+  inUse: 'digunakan',
+  use: 'Gunakan',
+  language: 'Bahasa',
+  auto: (name: string) => `Otomatis (${name})`,
+}

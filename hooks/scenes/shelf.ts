@@ -9,6 +9,7 @@
 // At a quarter of the context or less a teapot stands beside the mug; while
 // the conversation is compacted it pours and the mug fills up again.
 
+import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, INK, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
 
@@ -247,7 +248,7 @@ const shelfSvg = (f: Figures) =>
 
 export const shelfScene: FigureScene = {
   name: 'shelf',
-  label: { es: 'Estante', en: 'Shelf' },
+  label: wordsOf(t => t.scenes.shelf),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,

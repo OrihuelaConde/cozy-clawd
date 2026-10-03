@@ -8,6 +8,7 @@
 // gathers over the watering can; while the conversation is compacted it rains
 // and the can fills up.
 
+import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
 
@@ -226,7 +227,7 @@ const balconySvg = (f: Figures) =>
 
 export const balconyScene: FigureScene = {
   name: 'balcony',
-  label: { es: 'Balcón', en: 'Balcony' },
+  label: wordsOf(t => t.scenes.balcony),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,

@@ -10,6 +10,7 @@
 // while the conversation is compacted the boiler whistles and the sight glass
 // fills.
 
+import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
 
@@ -201,7 +202,7 @@ const steampunkSvg = (f: Figures) =>
 
 export const steampunkScene: FigureScene = {
   name: 'steampunk',
-  label: { es: 'Steampunk', en: 'Steampunk' },
+  label: wordsOf(t => t.scenes.steampunk),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,

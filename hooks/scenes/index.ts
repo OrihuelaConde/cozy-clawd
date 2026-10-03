@@ -6,7 +6,7 @@ import { adventureScene } from './adventure'
 import { balconyScene } from './balcony'
 import { cyberpunkScene } from './cyberpunk'
 import { gamerScene } from './gamer'
-import type { Lang, Words } from '../language'
+import { TEXTS, type Lang, type Words } from '../language'
 import { mateScene } from './mate'
 import { shelfScene } from './shelf'
 import { steampunkScene } from './steampunk'
@@ -49,21 +49,8 @@ export const figureSceneNamed = (name: unknown) => FIGURE_SCENES.find(s => s.nam
 
 // The figures in words, for a reader that cannot see the scene.
 export const figuresAlt = (f: Figures, lang: Lang) => {
-  const words = ALT[lang]
+  const words = TEXTS[lang].figures
   const pct = (n: number | null) => (n === null ? words.none : `${Math.round(n)}%`)
-  const cache = f.cacheLeft === null ? words.none : f.cacheLeft > 0 ? `${Math.ceil(f.cacheLeft / 60)} min` : words.expired
+  const cache = f.cacheLeft === null ? words.none : f.cacheLeft > 0 ? words.minutes(Math.ceil(f.cacheLeft / 60)) : words.expired
   return words.line(pct(f.contextLeft), cache, pct(f.fiveHour === null ? null : 100 - f.fiveHour), pct(f.week === null ? null : 100 - f.week))
-}
-
-const ALT: Record<Lang, { none: string; expired: string; line: (context: string, cache: string, fiveHour: string, week: string) => string }> = {
-  es: {
-    none: 'sin datos',
-    expired: 'vencida',
-    line: (context, cache, fiveHour, week) => `Contexto libre ${context}, caché ${cache}, límite de 5 h libre ${fiveHour}, semana libre ${week}`,
-  },
-  en: {
-    none: 'no data',
-    expired: 'expired',
-    line: (context, cache, fiveHour, week) => `Context free ${context}, cache ${cache}, 5-hour limit free ${fiveHour}, week free ${week}`,
-  },
 }

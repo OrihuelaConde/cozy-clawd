@@ -1,0 +1,83 @@
+// The mod's texts in Italian.
+
+import type { Texts } from './en'
+
+export const it: Texts = {
+  name: 'Italiano',
+
+  states: {
+    working: 'Sta lavorando',
+    workingOnAnswer: 'Sta lavorando alla risposta',
+    thinking: 'Sta pensando',
+    writing: 'Sta scrivendo',
+    preparingTool: 'Sta preparando uno strumento',
+    usingTool: 'Sta usando uno strumento',
+    reading: 'Sta leggendo',
+    editing: 'Sta modificando',
+    runningCommand: 'Sta eseguendo un comando',
+    browsing: 'Sta navigando',
+    launchingSubagent: 'Sta avviando un subagente',
+    waiting: 'In attesa',
+    waitingForAnswer: 'In attesa della tua risposta',
+    waitingForApproval: 'In attesa della tua approvazione',
+    compacting: 'Sta compattando la conversazione',
+    compacted: 'Conversazione compattata!',
+    worried: 'Preoccupato: la cache scade presto',
+    yawning: 'Sbadiglia: la cache sta per scadere',
+    sleeping: 'Dorme: la cache è scaduta',
+  },
+
+  tools: {
+    readingFile: 'Sta leggendo un file',
+    searchingCode: 'Sta cercando nel codice',
+    findingFiles: 'Sta cercando file',
+    lookingAtFolder: 'Sta guardando una cartella',
+    editingFile: 'Sta modificando un file',
+    editingNotebook: 'Sta modificando un notebook',
+    writingFile: 'Sta scrivendo un file',
+    readingWebPage: 'Sta leggendo una pagina web',
+    searchingWeb: 'Sta cercando sul web',
+    waitingForPlan: 'In attesa che tu approvi il piano',
+    using: (tool: string) => `Sta usando ${tool}`,
+  },
+
+  scenes: {
+    shelf: 'Mensola',
+    mate: 'Mate',
+    balcony: 'Balcone',
+    window: 'Finestra di notte',
+    adventure: 'Avventura',
+    gamer: 'Gamer',
+    cyberpunk: 'Cyberpunk',
+    steampunk: 'Steampunk',
+  },
+
+  figures: {
+    none: 'nessun dato',
+    expired: 'scaduta',
+    minutes: (n: number) => `${n}\u00a0min`,
+    line: (context: string, cache: string, fiveHour: string, week: string) =>
+      `Contesto libero ${context}, cache ${cache}, limite di 5\u00a0ore libero ${fiveHour}, settimana libera ${week}`,
+  },
+
+  paneCommand: 'Apri il pannello per scegliere la scena e la lingua della barra',
+  sceneCommand: 'Scegli la scena a destra della barra',
+  sceneHint: '[scena]',
+  paneTitle: 'Scene',
+  paneOpened: 'Pannello delle scene aperto.',
+  sceneIs: (name: string) => `Scena: ${name}.`,
+  available: (names: string) => `Disponibili: ${names}.`,
+  noScene: (name: string) => `Non esiste una scena "${name}".`,
+  alreadyScene: (name: string) => `La scena è già ${name}.`,
+  waitToCompact: 'Clawd: aspetta che finisca il turno per compattare.',
+  compactAsk: 'Compattare?',
+  yes: 'Sì',
+  no: 'No',
+  compact: 'Compatta',
+  scene: 'Scena',
+  pickScene: 'Scegli la scena a destra della barra.',
+  inUse: 'in uso',
+  use: 'Usa',
+  language: 'Lingua',
+  auto: (name: string) => `Automatica (${name})`,
+}

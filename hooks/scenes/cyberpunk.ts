@@ -10,6 +10,7 @@
 // beside a loose charging cable; while the conversation is compacted the
 // cable is plugged in and the cell charges.
 
+import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
 
@@ -172,7 +173,7 @@ const cyberpunkSvg = (f: Figures) =>
 
 export const cyberpunkScene: FigureScene = {
   name: 'cyberpunk',
-  label: { es: 'Cyberpunk', en: 'Cyberpunk' },
+  label: wordsOf(t => t.scenes.cyberpunk),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,

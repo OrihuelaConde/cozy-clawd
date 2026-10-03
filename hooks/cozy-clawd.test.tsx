@@ -292,6 +292,33 @@ test('the Language row of /config wins over the locale', async ($, on) => {
   await band.unmount()
 })
 
+test('a locale in any language the desktop app shows picks it', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  mock.env(on, { LANG: 'ja_JP.UTF-8' })
+
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
+  expect(await clawdOf(band)).toBe('Clawd: 待機中')
+  expect((await band.findAll({ type: 'Svg' })).some(svg => String(svg.props.alt).startsWith('空きコンテキスト'))).toBe(true)
+  await band.unmount()
+
+  const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
+  expect(await pane.find({ type: 'Text', text: '自動（日本語）' })).toBeDefined()
+  for (const lang of ['es', 'en', 'fr', 'de', 'it', 'pt', 'id', 'hi', 'ja', 'ko']) {
+    expect(await pane.find({ key: `language-${lang}` })).toBeDefined()
+  }
+  await pane.unmount()
+})
+
+test('the Language row of /config can name a language in its own words', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  mock.env(on, ENGLISH)
+  on('config.list', () => ({ value: [{ key: 'language', label: 'Language', kind: 'text', value: 'Deutsch' }] as never }))
+
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
+  expect(await clawdOf(band)).toBe('Clawd: Wartet')
+  await band.unmount()
+})
+
 test('on Windows with no locale variables, the registry\'s display language counts', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.env(on, { OS: 'Windows_NT' })

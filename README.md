@@ -31,7 +31,7 @@ cozy-clawd is an unofficial fan project. It isn't affiliated with or endorsed by
   - A moon lamp wanes, its glow shrinking, as you use the weekly limit.
 - **Scenes to choose from.** The `/cozy-clawd-scene` command and the `/cozy-clawd` pane each switch the scene. For more information, see [Choose a scene](#choose-a-scene).
 - **A compact button.** When 25% or less of the context is free, a **Compactar** (Compact) button appears next to the scene. It asks for confirmation before it compacts the conversation.
-- **Spanish or English.** The band, the `/cozy-clawd` pane, and the commands speak Spanish or English. For more information, see [Choose the language](#choose-the-language).
+- **The desktop app's languages.** The band, the `/cozy-clawd` pane, and the commands speak the languages the Claude desktop app shows: English, French, German, Hindi, Indonesian, Italian, Japanese, Korean, Portuguese, and Spanish. For more information, see [Choose the language](#choose-the-language).
 
 The band draws in the Code tab of the Claude desktop app and in the terminal. The terminal draws no SVG images, so there the mod paints each scene in block characters, two pixels to a character cell, and moves it frame by frame. Clawd and the figures side by side take 9 rows and at least 105 columns, a few more while the **Compactar** button shows. A narrower terminal shows Clawd with the figures in words, and one under 39 columns shows words alone. Claude Code's own spinner stays as it is.
 
@@ -90,16 +90,16 @@ The band switches to the new scene at once, and later sessions start with it.
 
 ## Choose the language
 
-The mod speaks Spanish or English. Claude Code doesn't tell a mod which language the app shows, so by default the mod goes by the following, in order:
+The mod speaks English, French, German, Hindi, Indonesian, Italian, Japanese, Korean, Portuguese (as spoken in Brazil), and Spanish. Claude Code doesn't tell a mod which language the app shows, so by default the mod goes by the following, in order:
 
 1. The **Language** setting in `/config`, the language Claude answers in, when you've set it.
 2. Your system's locale variables, `LC_ALL`, `LC_MESSAGES`, and `LANG`, where they're set.
 3. Your system's language: on Windows, the first of your preferred languages, then the regional format; on macOS, the first of your preferred languages. The desktop app usually starts without the locale variables, so this is what it goes by.
-4. English, when none of these names Spanish or English.
+4. English, when none of these names a language the mod speaks.
 
-To choose the language yourself, open the `/cozy-clawd` pane and select **Español** or **English** next to **Idioma** (Language). To go back to the automatic language, select **Automático** (Automatic). In the terminal, the pane has an **Idioma** picker instead. Later sessions start with the language you chose.
+To choose the language yourself, open the `/cozy-clawd` pane and select the language by its own name, such as **Español** or **日本語**, next to **Language**. To go back to the automatic language, select **Automatic**. In the terminal, the pane has a **Language** picker instead. Later sessions start with the language you chose.
 
-The command names (`/cozy-clawd`, `/cozy-clawd-scene`) and the scene names stay the same in both languages.
+The command names (`/cozy-clawd`, `/cozy-clawd-scene`) and the scene names the `/cozy-clawd-scene` command takes stay the same in every language.
 
 ## Development
 
@@ -109,6 +109,7 @@ The mod is a Claude Code plugin of function hooks:
 | --- | --- |
 | `hooks/register.tsx` | The hooks module: Clawd's scenes, how the mod follows the turn, the band, and the `/cozy-clawd` pane. |
 | `hooks/language.ts` | The languages the mod speaks, and how it tells which one you use. |
+| `hooks/languages/` | The mod's texts, one file per language. `en.ts` sets the texts every language has. |
 | `hooks/raster.ts` | How the terminal paints the scenes: a reader of the SVG and CSS they're drawn with that paints any moment of their animations in block characters. Also how many columns a text takes there. |
 | `hooks/scenes/index.ts` | The scenes the session figures can be drawn as, and the figures in words. |
 | `hooks/scenes/pixels.ts` | What the figure scenes share: their layout, the pixel font of the numbers, the cache's countdown, and the refill while compacting. |

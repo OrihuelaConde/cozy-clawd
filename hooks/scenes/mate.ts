@@ -8,6 +8,7 @@
 // out. While the conversation is compacted, the kettle boils and the thermos
 // fills up.
 
+import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
 
@@ -169,7 +170,7 @@ const mateSvg = (f: Figures) =>
 
 export const mateScene: FigureScene = {
   name: 'mate',
-  label: { es: 'Mateada', en: 'Mate' },
+  label: wordsOf(t => t.scenes.mate),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,

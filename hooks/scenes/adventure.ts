@@ -8,6 +8,7 @@
 // vial waits beside the potion; while the conversation is compacted the
 // potion fills up again, sparkling.
 
+import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
 
@@ -168,7 +169,7 @@ const adventureSvg = (f: Figures) =>
 
 export const adventureScene: FigureScene = {
   name: 'adventure',
-  label: { es: 'Aventura', en: 'Adventure' },
+  label: wordsOf(t => t.scenes.adventure),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,

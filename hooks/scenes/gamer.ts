@@ -8,6 +8,7 @@
 // it is game over. At a quarter of the context or less the last heart blinks;
 // while the conversation is compacted the hearts heal back to full.
 
+import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
 
@@ -170,7 +171,7 @@ const gamerSvg = (f: Figures) =>
 
 export const gamerScene: FigureScene = {
   name: 'gamer',
-  label: { es: 'Gamer', en: 'Gamer' },
+  label: wordsOf(t => t.scenes.gamer),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,

@@ -9,6 +9,7 @@
 // waits beside the stub; while the conversation is compacted the candle grows
 // back to its full height.
 
+import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, level, percentText, pixelText, px, refill, REFILL_CSS, rise, RISE_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
 
@@ -226,7 +227,7 @@ const windowSvg = (f: Figures) =>
 
 export const windowScene: FigureScene = {
   name: 'window',
-  label: { es: 'Ventana de noche', en: 'Night window' },
+  label: wordsOf(t => t.scenes.window),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,

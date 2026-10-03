@@ -1,0 +1,83 @@
+// The mod's texts in Japanese.
+
+import type { Texts } from './en'
+
+export const ja: Texts = {
+  name: '日本語',
+
+  states: {
+    working: '作業中',
+    workingOnAnswer: '回答を作成中',
+    thinking: '考え中',
+    writing: '執筆中',
+    preparingTool: 'ツールを準備中',
+    usingTool: 'ツールを使用中',
+    reading: '読み取り中',
+    editing: '編集中',
+    runningCommand: 'コマンドを実行中',
+    browsing: 'ウェブを閲覧中',
+    launchingSubagent: 'サブエージェントを起動中',
+    waiting: '待機中',
+    waitingForAnswer: 'あなたの回答を待っています',
+    waitingForApproval: 'あなたの承認を待っています',
+    compacting: '会話を圧縮中',
+    compacted: '会話を圧縮しました！',
+    worried: '心配：キャッシュの期限がまもなく切れます',
+    yawning: 'あくび：キャッシュの期限が切れる寸前です',
+    sleeping: 'おやすみ：キャッシュの期限が切れました',
+  },
+
+  tools: {
+    readingFile: 'ファイルを読み取り中',
+    searchingCode: 'コードを検索中',
+    findingFiles: 'ファイルを探索中',
+    lookingAtFolder: 'フォルダを確認中',
+    editingFile: 'ファイルを編集中',
+    editingNotebook: 'ノートブックを編集中',
+    writingFile: 'ファイルを書き込み中',
+    readingWebPage: 'ウェブページを読み取り中',
+    searchingWeb: 'ウェブを検索中',
+    waitingForPlan: 'プランの承認を待っています',
+    using: (tool: string) => `${tool} を使用中`,
+  },
+
+  scenes: {
+    shelf: '棚',
+    mate: 'マテ茶',
+    balcony: 'バルコニー',
+    window: '夜の窓',
+    adventure: '冒険',
+    gamer: 'ゲーマー',
+    cyberpunk: 'サイバーパンク',
+    steampunk: 'スチームパンク',
+  },
+
+  figures: {
+    none: 'データなし',
+    expired: '期限切れ',
+    minutes: (n: number) => `${n}分`,
+    line: (context: string, cache: string, fiveHour: string, week: string) =>
+      `空きコンテキスト ${context}、キャッシュ ${cache}、5時間制限の残り ${fiveHour}、週間制限の残り ${week}`,
+  },
+
+  paneCommand: 'バーのシーンと言語を選ぶパネルを開く',
+  sceneCommand: 'バー右側のシーンを選ぶ',
+  sceneHint: '[シーン]',
+  paneTitle: 'シーン',
+  paneOpened: 'シーンのパネルを開きました。',
+  sceneIs: (name: string) => `シーン：${name}。`,
+  available: (names: string) => `選べるシーン：${names}。`,
+  noScene: (name: string) => `「${name}」というシーンはありません。`,
+  alreadyScene: (name: string) => `シーンはすでに ${name} です。`,
+  waitToCompact: 'Clawd：圧縮するにはターンが終わるまで待ってください。',
+  compactAsk: '圧縮しますか？',
+  yes: 'はい',
+  no: 'いいえ',
+  compact: '圧縮',
+  scene: 'シーン',
+  pickScene: 'バー右側のシーンを選んでください。',
+  inUse: '使用中',
+  use: '使う',
+  language: '言語',
+  auto: (name: string) => `自動（${name}）`,
+}

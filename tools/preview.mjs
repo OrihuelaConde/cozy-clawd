@@ -27,11 +27,13 @@ const outDir = join(root, '.preview')
 mkdirSync(outDir, { recursive: true })
 
 // The scenes live in the hooks module, between the palette and the mode
-// timing; that slice has no engine imports, so Node runs it as plain TypeScript.
+// timing; that slice has no engine imports, so Node runs it as plain
+// TypeScript, with the texts of every language from hooks/language.ts.
 const code = readFileSync(join(root, 'hooks', 'register.tsx'), 'utf8')
 const body = code.slice(code.indexOf('const BODY'), code.indexOf('// Each mode stays on screen'))
 const scenesFile = join(outDir, 'scenes.gen.ts')
-writeFileSync(scenesFile, `type ClawdMode = string\n${body}\nexport { scenes, toolScenes, cacheScenes, REST, PASTIMES, pastimeScene, waitingScene, svgFor, SCALE, VIEW_W, VIEW_H }\n`)
+const languageUrl = pathToFileURL(join(root, 'hooks', 'language.ts')).href
+writeFileSync(scenesFile, `import { wordsOf } from '${languageUrl}'\ntype ClawdMode = string\n${body}\nexport { scenes, toolScenes, cacheScenes, REST, PASTIMES, pastimeScene, waitingScene, svgFor, SCALE, VIEW_W, VIEW_H }\n`)
 const { scenes, toolScenes, cacheScenes, REST, PASTIMES, pastimeScene, waitingScene, svgFor, SCALE, VIEW_W, VIEW_H } = await import(pathToFileURL(scenesFile).href + '?t=' + Date.now())
 const { FIGURE_SCENES, figuresAlt } = await import(pathToFileURL(join(root, 'hooks', 'scenes', 'index.ts')).href + '?t=' + Date.now())
 
