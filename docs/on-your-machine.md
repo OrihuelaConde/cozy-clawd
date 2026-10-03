@@ -49,7 +49,7 @@ The **Compact** button compacts the conversation only after you select **Yes**.
 To list what the mod hooks and calls, clone the repository and run the following command from its root:
 
 ```bash
-claude plugin validate .claude-plugin/plugin.json
+claude plugin validate .
 ```
 
 The command ends with **Validation passed with warnings**. The warning is about `CLAUDE.md` at the plugin root, and it's expected: that file holds notes for working on the mod with Claude Code.

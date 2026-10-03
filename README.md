@@ -25,23 +25,23 @@ Cozy Clawd needs the following:
 - Claude Code 2.1.287 or later, where mods are on by default.
 - The Code tab of the Claude desktop app, or a terminal. For the scenes' true colors, use a terminal with 24-bit color (truecolor), such as Windows Terminal or iTerm2; other terminals show approximate colors.
 
-> **Note:** A mod is code that runs inside Claude Code with your permissions. For what Cozy Clawd reads, keeps, and runs, see [What the mod does on your machine](#what-the-mod-does-on-your-machine). To list what it hooks and calls, clone the repository and run `claude plugin validate .claude-plugin/plugin.json`; it passes with a warning about `CLAUDE.md` at the plugin root, which is expected. For more information, see [Decide whether to trust a mod](https://code.claude.com/docs/en/plugins/mods/overview#decide-whether-to-trust-a-mod).
+> **Note:** A mod is code that runs inside Claude Code with your permissions. For what Cozy Clawd reads, keeps, and runs, see [What the mod does on your machine](#what-the-mod-does-on-your-machine). To list what it hooks and calls, clone the repository and run `claude plugin validate .` from its root; it passes with a warning about `CLAUDE.md` at the plugin root, which is expected. For more information, see [Decide whether to trust a mod](https://code.claude.com/docs/en/plugins/mods/overview#decide-whether-to-trust-a-mod).
 
 To install the mod for your user account, run the following commands in a terminal:
 
 ```bash
-claude plugin marketplace add OrihuelaConde/cozy-clawd
+claude plugin marketplace add OrihuelaConde/claude-plugins
 ```
 
 ```bash
-claude plugin install cozy-clawd@cozy-clawd
+claude plugin install cozy-clawd@orihuelaconde
 ```
 
-The first command adds this repository as a plugin marketplace named `cozy-clawd`, and the second installs the `cozy-clawd` plugin from it. The band appears in the next session you start, in the terminal or in the desktop app. To load the mod in a terminal session that's already open, run `/reload-plugins`.
+The first command adds `orihuelaconde`, the plugin marketplace that lists OrihuelaConde's plugins, and the second installs the `cozy-clawd` plugin from it. The band appears in the next session you start, in the terminal or in the desktop app. To load the mod in a terminal session that's already open, run `/reload-plugins`.
 
 You can also install the mod in the following ways:
 
-- **From a terminal session.** Run `/plugin install cozy-clawd --marketplace OrihuelaConde/cozy-clawd`, confirm the marketplace, and then select **Install for you (user scope)**.
+- **From a terminal session.** Run `/plugin install cozy-clawd --marketplace OrihuelaConde/claude-plugins`, confirm the marketplace, and then select **Install for you (user scope)**.
 - **From the desktop app.** After you add the marketplace with the first command, click **+** next to the prompt box in the Code tab, select **Plugins** > **Add plugin**, select **cozy-clawd**, and then choose your user account as the scope.
 
 ### Update or uninstall the mod
@@ -49,14 +49,14 @@ You can also install the mod in the following ways:
 By default, Claude Code doesn't update the mod. To update it, run the following command:
 
 ```bash
-claude plugin update cozy-clawd@cozy-clawd
+claude plugin update cozy-clawd@orihuelaconde
 ```
 
 Then start a new session, or run `/reload-plugins` in an open terminal session.
 
-To install updates automatically, run `/plugin` in a terminal session, go to the **Marketplaces** tab, select `cozy-clawd`, and then select **Enable auto-update**.
+To install updates automatically, run `/plugin` in a terminal session, go to the **Marketplaces** tab, select `orihuelaconde`, and then select **Enable auto-update**.
 
-To turn the mod off and keep it installed, run `claude plugin disable cozy-clawd@cozy-clawd`. To uninstall it, run `claude plugin uninstall cozy-clawd@cozy-clawd`.
+To turn the mod off and keep it installed, run `claude plugin disable cozy-clawd@orihuelaconde`. To uninstall it, run `claude plugin uninstall cozy-clawd@orihuelaconde`.
 
 ## What Clawd does
 
@@ -174,7 +174,7 @@ Check the following:
 
 - Claude Code is version 2.1.287 or later. To see the version, run `claude --version`.
 - The session started after you installed the mod. To load the mod in a terminal session that was already open, run `/reload-plugins`.
-- The mod is turned on. To turn it back on, run `claude plugin enable cozy-clawd@cozy-clawd`.
+- The mod is turned on. To turn it back on, run `claude plugin enable cozy-clawd@orihuelaconde`.
 
 ### The colors look off in a terminal
 

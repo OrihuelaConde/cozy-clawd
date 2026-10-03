@@ -24,14 +24,13 @@ In the code, the scenes that draw the four meters on the right of the band are *
 | `hooks/cozy-clawd.test.tsx` | Tests that run against the engine. |
 | `types/index.d.ts` | The contract for the values the mod keeps in the session's state. |
 | `.claude-plugin/plugin.json` | The plugin's manifest. |
-| `.claude-plugin/marketplace.json` | The marketplace that lists the plugin, so it installs by name. |
 | `tools/preview.mjs` | A script that renders Clawd's scenes and a few states of each meter scene to an HTML page, as images and as the terminal paints the large size. |
 | `tools/readme-images.mjs` | A script that renders the documentation's GIFs to `docs/images/`. |
 | `docs/` | The user documentation that the README links to, and its images. |
 
 ## Load the mod from a clone
 
-To work on the mod, load it from your clone instead of the marketplace. If you installed it from the marketplace, turn that copy off first with `claude plugin disable cozy-clawd@cozy-clawd`, so only one copy draws the band.
+To work on the mod, load it from your clone instead of the marketplace. If you installed it from the marketplace, turn that copy off first with `claude plugin disable cozy-clawd@orihuelaconde`, so only one copy draws the band.
 
 To load the clone in every session, including the desktop app's, add its folder to the `CLAUDE_CODE_PLUGIN_DIRS` variable, and set `CLAUDE_CODE_PLUGIN_DIR_WATCH` to `1`, in the `env` block of your user settings file, `~/.claude/settings.json`:
 
@@ -57,10 +56,6 @@ claude --plugin-dir PATH_TO_COZY_CLAWD
 To check the mod the way the engine reads it, run the following commands from the repository root:
 
 ```bash
-claude plugin validate .claude-plugin/plugin.json
-```
-
-```bash
 claude plugin validate .
 ```
 
@@ -68,7 +63,7 @@ claude plugin validate .
 claude plugin test .
 ```
 
-The first command checks the plugin. Because the repository is also a marketplace, `claude plugin validate .` checks only `marketplace.json`. The last command runs the tests.
+The first command checks the plugin, and the second runs the tests.
 
 ## Preview the scenes
 
@@ -151,4 +146,4 @@ node tools/readme-images.mjs
 
 ## Release a version
 
-Users who installed the mod from the marketplace get an update only when its version changes. To publish a release, increment `version` in `.claude-plugin/plugin.json` and push.
+The `orihuelaconde` marketplace, in the [claude-plugins](https://github.com/OrihuelaConde/claude-plugins) repository, installs the mod from this repository's default branch. Users who installed it get an update only when its version changes. To publish a release, increment `version` in `.claude-plugin/plugin.json` and push.
