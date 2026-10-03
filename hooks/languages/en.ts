@@ -86,6 +86,9 @@ export const en = {
   inUse: 'in use',
   use: 'Use',
   language: 'Language',
+  // The band's size in the terminal, as the pane's picker names it.
+  size: 'Size',
+  sizes: { compact: 'Compact', large: 'Large' },
   auto: (name: string) => `Automatic (${name})`,
 }
 

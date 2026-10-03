@@ -27,6 +27,10 @@ export type Lang = 'es' | 'en' | 'fr' | 'de' | 'it' | 'pt' | 'id' | 'hi' | 'ja' 
 // follow the one Claude Code shows them.
 export type LangChoice = 'auto' | Lang
 
+// How big the band draws its scenes in the terminal: the compact ones, half
+// the size, or the large ones the desktop app shows.
+export type Size = 'compact' | 'large'
+
 declare module 'claude-code' {
   interface PluginState {
     'cozy-clawd': {
@@ -41,6 +45,8 @@ declare module 'claude-code' {
       sceneName: string
       // The language the band, the pane and the commands speak.
       langChoice: LangChoice
+      // How big the band draws its scenes in the terminal.
+      sizeName: Size
     }
   }
 }

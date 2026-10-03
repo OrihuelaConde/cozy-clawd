@@ -11,7 +11,7 @@
 
 import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, INK, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
+import { COUNTDOWN_CSS, countdown, HEIGHT, INK, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the shelf, whose top is at y 9; the numbers sit under it.
 const BOARD_Y = 9
@@ -246,6 +246,93 @@ const shelfSvg = (f: Figures) =>
   ${moonLamp(f.week, SLOT * 3)}`,
   )
 
+// The shelf in the compact size, eight pixels tall: the same four objects
+// drawn small, four pixels apart, on the board at the bottom. Each shows
+// four steps of its figure: more than half, down to half, down to a quarter,
+// and nothing. No teapot: the mug alone fills up while compacting.
+const compactShelfSvg = (f: Figures) => {
+  const tea = [0, 1, 2, 4][stageOf(f.contextLeft)] ?? 0
+  const isWarm = f.isCompacting || (f.contextLeft !== null && f.contextLeft > 25)
+  const mugTea = f.isCompacting
+    ? `<g class="refill"><g fill="${TEA}">${px(2, 2, 4, 4)}</g><g fill="${TEA_TOP}">${px(2, 2, 4, 1)}</g></g>`
+    : tea > 0
+      ? `<g fill="${TEA}">${px(2, 6 - tea, 4, tea)}</g><g fill="${TEA_TOP}">${px(2, 6 - tea, 4, 1)}</g>`
+      : ''
+  const mug = `
+    <g fill="${INSIDE}">${px(2, 2, 4, 4)}</g>
+    ${mugTea}
+    <g fill="${CERAMIC}">${px(1, 2, 1, 5)}${px(7, 3, 2, 1)}${px(8, 4)}${px(7, 5, 2, 1)}</g>
+    <g fill="${CERAMIC_DARK}">${px(6, 2, 1, 5)}${px(2, 6, 4, 1)}</g>
+    <g fill="${STRIPE}">${px(1, 4)}${px(6, 4)}</g>
+    ${isWarm ? `<g fill="${CERAMIC}" opacity="0.6"><g class="steam1">${px(3, 1)}</g><g class="steam2">${px(5, 1)}</g></g>` : ''}`
+
+  const left = f.cacheLeft
+  const holder = `<g fill="${BRASS}">${px(14, 5, 5, 1)}</g><g fill="${BRASS_DARK}">${px(13, 6, 7, 1)}</g>`
+  const waxRows = (top: number) => `
+    <g fill="${WAX}">${px(15, top, 3, 5 - top)}</g>
+    <g fill="${WAX_LIGHT}">${px(15, top, 1, 5 - top)}</g>
+    <g fill="${WAX_SHADE}">${px(17, top, 1, 5 - top)}</g>`
+  const timing = left === null ? '' : `animation-duration: ${f.cacheTtl}s; animation-delay: -${f.cacheTtl - left}s`
+  const candle =
+    left === null
+      ? `${holder}${waxRows(2)}<g fill="${WICK}">${px(16, 1)}</g>`
+      : left <= 0
+        ? `${holder}${waxRows(4)}<g fill="${WICK}">${px(16, 3)}</g><g class="smoke" fill="${INK}" opacity="0.5">${px(16, 2)}</g>`
+        : `${holder}
+          <g class="burn" style="${timing}">${waxRows(2)}</g>
+          <g class="sink" style="${timing}">
+            <g fill="${FLAME}">${px(16, 1)}</g>
+            <g class="flame" fill="${FLAME_TIP}">${px(16, 0)}</g>
+          </g>`
+
+  const fiveLeft = f.fiveHour === null ? null : 100 - f.fiveHour
+  const count = [0, 1, 3, 5][stageOf(fiveLeft)] ?? 0
+  const cookies = ([[25, 5], [27, 5], [25, 4], [27, 4], [26, 3]] as const)
+    .slice(0, count)
+    .map(([x, y], i) => `<g fill="${i % 2 === 0 ? COOKIE : COOKIE_LIGHT}">${px(x, y, 2, 1)}</g>`)
+    .join('')
+  const crumbs = fiveLeft === null || count > 1 ? '' : `<g fill="${COOKIE_DARK}">${(count === 0 ? [25, 28] : [28]).map(x => px(x, 5)).join('')}</g>`
+  const jar = `
+    ${cookies}${crumbs}
+    <g fill="${GLASS}">${px(24, 3, 1, 4)}${px(29, 3, 1, 4)}${px(25, 6, 4, 1)}</g>
+    <g fill="${WOOD_DARK}">${px(24, 2, 6, 1)}</g><g fill="${WOOD}">${px(25, 1, 4, 1)}</g>`
+
+  const weekLeft = f.week === null ? null : 100 - f.week
+  const lit = [0, 1, 3, 5][stageOf(weekLeft)] ?? 0
+  const disc: [number, number, number][] = [[1, 35, 37], [2, 34, 38], [3, 34, 38], [4, 34, 38], [5, 35, 37]]
+  const part = (from: number, to: number) =>
+    disc.map(([y, a, b]) => (Math.min(b, to) >= Math.max(a, from) ? px(Math.max(a, from), y, Math.min(b, to) - Math.max(a, from) + 1, 1) : '')).join('')
+  const moon = `
+    <g fill="${MOON_DARK}">${part(34, 38 - lit)}</g>
+    <g fill="${MOON}">${part(39 - lit, 38)}</g>
+    <g fill="${WOOD}">${px(34, 6, 5, 1)}</g>
+    <g class="star" fill="${STAR}">${px(39, 1)}</g>`
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 8" shape-rendering="crispEdges">
+  <style>
+    g { transform-box: view-box; }
+    .steam1 { animation: steam 2s steps(1) infinite; }
+    .steam2 { animation: steam 2s steps(1) -1s infinite; }
+    @keyframes steam { 0%, 24.9% { opacity: 0; transform: translate(0, 0); } 25%, 49.9% { opacity: 1; transform: translate(0, 0); } 50%, 74.9% { opacity: 1; transform: translate(0, -1px); } 75%, 100% { opacity: 0; } }
+    .refill { animation: refill 2s steps(4) both; }
+    @keyframes refill { from { clip-path: inset(4px 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+    .burn { animation-name: burn; animation-timing-function: steps(1); animation-fill-mode: forwards; }
+    .sink { animation-name: sink; animation-timing-function: steps(1); animation-fill-mode: forwards; }
+    @keyframes burn { 0%, 49.9% { clip-path: inset(0 0 0 0); } 50%, 74.9% { clip-path: inset(1px 0 0 0); } 75%, 100% { clip-path: inset(2px 0 0 0); } }
+    @keyframes sink { 0%, 49.9% { transform: translate(0, 0); } 50%, 74.9% { transform: translate(0, 1px); } 75%, 100% { transform: translate(0, 2px); } }
+    .flame { animation: flicker 0.9s steps(1) infinite; }
+    @keyframes flicker { 0%, 66.9% { opacity: 1; } 67%, 100% { opacity: 0; } }
+    .smoke { animation: smoke 1.8s steps(1) infinite; }
+    @keyframes smoke { 0%, 32.9% { transform: translate(0, 0); } 33%, 65.9% { transform: translate(1px, -1px); } 66%, 100% { transform: translate(0, -2px); } }
+    .star { animation: twinkle 2.2s steps(1) infinite; }
+    @keyframes twinkle { 0%, 69.9% { opacity: 1; } 70%, 100% { opacity: 0; } }
+  </style>
+  <g fill="${WOOD}">${px(0, 7, 40, 1)}</g>
+  <g fill="${GRAIN}">${[3, 12, 17, 26, 33, 38].map(x => px(x, 7)).join('')}</g>
+  ${mug}${candle}${jar}${moon}
+</svg>`
+}
+
 export const shelfScene: FigureScene = {
   name: 'shelf',
   label: wordsOf(t => t.scenes.shelf),
@@ -253,4 +340,5 @@ export const shelfScene: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: shelfSvg,
+  compact: { svg: compactShelfSvg, centers: [4.5, 16, 26.5, 36] },
 }

@@ -1,6 +1,7 @@
 import { expect, mock, test, type TestBody } from 'claude-code/testing'
 
 import { columnsOf, compile } from './raster'
+import { FIGURE_SCENES } from './scenes/index'
 
 // What a site's props carry beside its own: where it scrolls, and whose conversation it shows.
 const SITE = { scroll: { offset: 0, bodyRows: 10 }, view: {} }
@@ -69,8 +70,12 @@ test('the band paints Clawd and the scene in the terminal, and moves them by the
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 160, maxRows: 20, isWorking: true } })
   const clawd = await band.find({ type: 'Raster', key: 'clawd' })
   const figures = await band.find({ type: 'Raster', key: 'figures' })
-  expect([clawd?.props.columns, clawd?.props.rows]).toEqual([25, 8])
-  expect([figures?.props.columns, figures?.props.rows]).toEqual([64, 9])
+  const numbers = await band.find({ type: 'Raster', key: 'numbers' })
+  // The compact size: Clawd in quadrants, the shelf in half blocks, its numbers as text under it.
+  expect([clawd?.props.columns, clawd?.props.rows]).toEqual([15, 5])
+  expect([figures?.props.columns, figures?.props.rows]).toEqual([40, 4])
+  expect([numbers?.props.columns, numbers?.props.rows]).toEqual([40, 1])
+  expect(textOf(String(numbers?.props.cells)).split(/ +/).filter(Boolean)).toEqual(['70%', '59m', '--', '--'])
   expect(await band.find({ type: 'Text', text: 'Trabajando en la respuesta…' })).toBeDefined()
 
   // Clawd stacks its blocks: a second on, its picture is not the one first drawn.
@@ -79,6 +84,121 @@ test('the band paints Clawd and the scene in the terminal, and moves them by the
   expect(moved.length).toBeGreaterThan(0)
   expect(moved[moved.length - 1]?.cells).not.toBe(clawd?.props.cells)
   await band.unmount()
+})
+
+test('the large size draws in the terminal the scenes the desktop shows', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  mock.store(on, { size: 'large' })
+  mock.env(on, SPANISH)
+  on('session.start', ($, e) => ({ cwd: e.cwd }))
+  on('command.register', ($, e) => ({ value: { command: e.name } }))
+  await $.session.start({ cwd: '/', surface: null, isInteractive: false })
+
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 160, maxRows: 20, isWorking: false } })
+  const clawd = await band.find({ type: 'Raster', key: 'clawd' })
+  const figures = await band.find({ type: 'Raster', key: 'figures' })
+  expect([clawd?.props.columns, clawd?.props.rows]).toEqual([25, 8])
+  expect([figures?.props.columns, figures?.props.rows]).toEqual([64, 9])
+  expect(await band.find({ type: 'Raster', key: 'numbers' })).toBeUndefined()
+  await band.unmount()
+})
+
+test('every scene has a compact drawing, its numbers under it', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  mock.store(on)
+  mock.env(on, SPANISH)
+  for (const name of ['shelf', 'mate', 'balcony', 'window', 'adventure', 'gamer', 'cyberpunk', 'steampunk']) {
+    const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
+    await pane.select({ key: 'scene', value: name })
+    await pane.unmount()
+    const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 160, maxRows: 20, isWorking: false } })
+    const figures = await band.find({ type: 'Raster', key: 'figures' })
+    expect([name, figures?.props.columns, figures?.props.rows]).toEqual([name, 40, 4])
+    expect(await band.find({ type: 'Raster', key: 'numbers' })).toBeDefined()
+    await band.unmount()
+  }
+})
+
+test('a compact scene draws every moment of its figures', () => {
+  const moments = [
+    { contextLeft: null, cacheLeft: null, fiveHour: null, week: null, cacheTtl: 3600, isCompacting: false },
+    { contextLeft: 94, cacheLeft: 2280, fiveHour: 3, week: 15, cacheTtl: 3600, isCompacting: false },
+    { contextLeft: 20, cacheLeft: 0, fiveHour: 80, week: 90, cacheTtl: 3600, isCompacting: false },
+    { contextLeft: 10, cacheLeft: 600, fiveHour: 100, week: 100, cacheTtl: 3600, isCompacting: true },
+  ]
+  for (const scene of FIGURE_SCENES) {
+    for (const f of moments) {
+      const picture = compile(scene.compact?.svg(f) ?? '', 'halves')
+      expect([scene.name, picture.columns, picture.rows]).toEqual([scene.name, 40, 4])
+      // Something is drawn, and only the characters a cell of pixels takes.
+      const codes = cellsOf(picture.paint(1, 0x1f1e1d)).filter((_, i) => i % 3 === 0)
+      expect(codes.some(code => code !== 0x20)).toBe(true)
+      expect(codes.every(code => code === 0x20 || code === 0x2580 || code === 0x2584 || code === 0x2588)).toBe(true)
+    }
+  }
+})
+
+test('Tamaño in the terminal pane switches the band', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  mock.store(on)
+  mock.env(on, SPANISH)
+  const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
+  expect((await pane.find({ key: 'size' }))?.props.value).toBe('compact')
+  await pane.select({ key: 'size', value: 'large' })
+  expect((await pane.find({ key: 'size' }))?.props.value).toBe('large')
+  await pane.unmount()
+
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 160, maxRows: 20, isWorking: false } })
+  expect((await band.find({ type: 'Raster', key: 'clawd' }))?.props.rows).toBe(8)
+  await band.unmount()
+})
+
+// A number in [0, 1) for each whole number, as the band draws it (mulberry32).
+const chance = (n: number) => {
+  let t = Math.imul(n + 1, 0x6d2b79f5) >>> 0
+  t = Math.imul(t ^ (t >>> 15), t | 1)
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+}
+
+// The pastimes in the band's order, and a moment for a wait to begin at
+// that has Clawd take up `name`.
+const PASTIME_NAMES = ['gaze', 'whistle', 'juggle', 'yoyo', 'bubbles', 'read', 'dance', 'ladybug']
+const waitStartFor = (name: string) => {
+  let n = 2000
+  while (PASTIME_NAMES[Math.floor(chance(n) * PASTIME_NAMES.length)] !== name) {
+    n++
+  }
+  return n * 1000
+}
+
+test('the compact band paints the characters its scenes are drawn with', async ($, on) => {
+  // Notes while whistling and dancing, bubbles: each a character in its cell.
+  const waits = (
+    [
+      ['whistle', '♪♫', 'Bash'],
+      ['bubbles', 'o°', 'Edit'],
+      ['dance', '♪', 'Write'],
+    ] as const
+  )
+    .map(([name, chars, tool]) => ({ at: waitStartFor(name), chars, tool }))
+    .sort((a, b) => a.at - b.at)
+  let now = waits[0]?.at ?? 0
+  const clock = mock.clock(on, { now })
+  mock.env(on, SPANISH)
+  on('classic.PermissionRequest', () => ({}))
+  for (const wait of waits) {
+    await clock.advance(wait.at - now)
+    now = wait.at
+    // Each wait for another tool, so the band takes up a pastime anew.
+    await $.classic.PermissionRequest({ tool_name: wait.tool, tool_input: {} } as never)
+    const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 160, maxRows: 20, isWorking: true } })
+    const clawd = await band.find({ type: 'Raster', key: 'clawd' })
+    for (const char of wait.chars) {
+      expect(textOf(String(clawd?.props.cells))).toContain(char)
+    }
+    await band.unmount()
+  }
 })
 
 test('in Hindi the terminal band speaks English, and the desktop band Hindi', async ($, on) => {
@@ -96,13 +216,13 @@ test('a narrow terminal shows Clawd with the figures in words, a narrower one wo
   mock.clock(on, { now: 1_000_000 })
   mock.env(on, SPANISH)
 
-  const narrow = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 80, isWorking: false } })
+  const narrow = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 60, isWorking: false } })
   expect(await narrow.find({ type: 'Raster', key: 'clawd' })).toBeDefined()
   expect(await narrow.find({ type: 'Raster', key: 'figures' })).toBeUndefined()
   expect(await narrow.find({ type: 'Text', text: /^Contexto libre sin datos/ })).toBeDefined()
   await narrow.unmount()
 
-  const narrower = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 30, isWorking: false } })
+  const narrower = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 25, isWorking: false } })
   expect(await narrower.find({ type: 'Raster' })).toBeUndefined()
   expect(await narrower.find({ type: 'Text', text: 'Clawd: Esperando' })).toBeDefined()
   await narrower.unmount()
@@ -124,6 +244,9 @@ test('a picture paints its image two pixels to a cell, each animation where the 
   // Half a second on, the green column has blinked off.
   expect(cellsOf(picture.paint(0.6, 0))).toEqual([0x2580, 0xff0000, OWN, 0x20, OWN, OWN])
 })
+
+// The characters of a Raster's cells, in order.
+const textOf = (cells: string) => String.fromCodePoint(...cellsOf(cells).filter((_, i) => i % 3 === 0))
 
 // A Raster's cells as the words they pack: code point, foreground, background.
 const cellsOf = (cells: string) => {

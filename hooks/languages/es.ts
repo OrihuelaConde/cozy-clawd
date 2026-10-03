@@ -79,5 +79,7 @@ export const es: Texts = {
   inUse: 'en uso',
   use: 'Usar',
   language: 'Idioma',
+  size: 'Tamaño',
+  sizes: { compact: 'Compacta', large: 'Grande' },
   auto: (name: string) => `Automático (${name})`,
 }

@@ -1,12 +1,15 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, SessionCompactResult, Timer } from 'claude-code'
 
-import type { ClawdMode, Stats } from '../types'
-import { DEFAULT_FIGURE_SCENE, FIGURE_SCENES, figureSceneNamed, figuresAlt } from './scenes/index'
+import type { ClawdMode, Size, Stats } from '../types'
+import { compactScene, compactSvg } from './compact'
+import type { ScenePick } from './compact'
+import { DEFAULT_FIGURE_SCENE, FIGURE_SCENES, figureSceneNamed, figuresAlt, numbersLine } from './scenes/index'
 import type { Figures } from './scenes/index'
+import { INK } from './scenes/pixels'
 import { DEFAULT_LANG, LANG_NAMES, LANGS, langOf, TEXTS, wordsOf } from './language'
 import type { Lang, LangChoice, Words } from './language'
-import { columnsOf, isMeasuredShort, pictureOf } from './raster'
+import { columnsOf, isMeasuredShort, pictureOf, textCells } from './raster'
 import type { Picture } from './raster'
 
 const PANE = 'clawd'
@@ -20,6 +23,7 @@ const isConfirming = atom({ plugin: 'cozy-clawd', key: 'isConfirming' } as const
 const redraws = atom({ plugin: 'cozy-clawd', key: 'redraws' } as const, 0)
 const sceneName = atom({ plugin: 'cozy-clawd', key: 'sceneName' } as const, DEFAULT_FIGURE_SCENE.name)
 const langChoice = atom({ plugin: 'cozy-clawd', key: 'langChoice' } as const, 'auto')
+const sizeName = atom({ plugin: 'cozy-clawd', key: 'sizeName' } as const, 'compact')
 
 const BODY = '#D97757'
 const EYE = '#1F1E1D'
@@ -226,7 +230,8 @@ const scenes: Record<Exclude<ClawdMode, 'waiting'>, Scene> = {
   // The model is writing a tool call's arguments: already swinging.
   'tool-input': { ...toolUse, label: wordsOf(t => t.states.preparingTool) },
   'tool-use': { ...toolUse, label: wordsOf(t => t.states.usingTool) },
-  // Writing the answer: walks in place while lines of text appear beside it.
+  // Writing the answer: types away, a hand at a time, while lines of text
+  // appear beside it.
   responding: {
     label: wordsOf(t => t.states.writing),
     extra: `
@@ -237,17 +242,15 @@ const scenes: Record<Exclude<ClawdMode, 'waiting'>, Scene> = {
         <g class="l4">${px(19, 3.75, 2, 0.5)}</g>
       </g>`,
     css: `
-      .clawd { animation: hop 0.8s steps(1) infinite; }
-      .legs-a { animation: stepA 0.4s steps(1) infinite; }
-      .legs-b { animation: stepB 0.4s steps(1) infinite; }
+      .arm-l { animation: typeL 0.3s steps(1) infinite; }
+      .arm-r { animation: typeR 0.3s steps(1) infinite; }
       .eyes { animation: blink 2.6s steps(1) infinite; }
       .l1 { animation: line1 2.4s steps(1) infinite; }
       .l2 { animation: line2 2.4s steps(1) infinite; }
       .l3 { animation: line3 2.4s steps(1) infinite; }
       .l4 { animation: line4 2.4s steps(1) infinite; }
-      @keyframes hop { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, -0.5px); } }
-      @keyframes stepA { 0%, 49.9% { transform: translate(0, -0.5px); } 50%, 100% { transform: translate(0, 0); } }
-      @keyframes stepB { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, -0.5px); } }
+      @keyframes typeL { 0%, 49.9% { transform: translate(0, -0.5px); } 50%, 100% { transform: translate(0, 0); } }
+      @keyframes typeR { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, -0.5px); } }
       @keyframes line1 { 0%, 9.9% { opacity: 0; } 10%, 100% { opacity: 1; } }
       @keyframes line2 { 0%, 29.9% { opacity: 0; } 30%, 100% { opacity: 1; } }
       @keyframes line3 { 0%, 49.9% { opacity: 0; } 50%, 100% { opacity: 1; } }
@@ -439,19 +442,22 @@ const shortName = (tool: string) => (tool.startsWith('mcp__') ? tool.split('__')
 // asked for) or anything else, a tool waiting for the person's approval.
 // While Clawd waits on the person it passes the time with a pastime picked
 // for that wait (`since`, when the wait began).
-const sceneFor = (m: ClawdMode, tool: string | null, since = 0) => {
+// `pick` names the scene for the compact size (hooks/compact.ts).
+const sceneFor = (m: ClawdMode, tool: string | null, since = 0): { scene: Scene; label: Words; pick: ScenePick } => {
+  const waitPick: ScenePick = { kind: 'pastime', key: waitPastime(since).name }
   if (m === 'waiting') {
     return {
       scene: waitScene(since),
       label: tool === 'answer' ? wordsOf(t => t.states.waitingForAnswer) : wordsOf(t => t.states.waitingForApproval),
+      pick: waitPick,
     }
   }
   if ((m === 'tool-use' || m === 'tool-input') && tool !== null) {
     const [kind, label] = TOOLS[tool] ?? ['other', wordsOf(t => t.tools.using(shortName(tool)))]
-    return { scene: kind === 'wait' ? waitScene(since) : toolScenes[kind], label }
+    return kind === 'wait' ? { scene: waitScene(since), label, pick: waitPick } : { scene: toolScenes[kind], label, pick: { kind: 'tool', key: kind } }
   }
   const scene = scenes[m] ?? scenes.requesting
-  return { scene, label: scene.label }
+  return { scene, label: scene.label, pick: { kind: 'mode', key: m } }
 }
 
 // What Clawd does as the prompt cache runs out, between waiting and sleeping.
@@ -780,7 +786,18 @@ const pastimeScene = (p: Pastime): Scene => ({
 // often a pastime picked at random, all in one image so no redraw is needed
 // to change them. The round goes by the clock (`atS`, in seconds), so a
 // redraw takes it up where it was rather than from the start.
-const waitingScene = (atS: number): Scene => {
+const waitingScene = (atS: number): Scene => ({
+  label: wordsOf(t => t.states.waiting),
+  body: [pastimeBody(REST, `turn-${REST.name}`), ...PASTIMES.map(p => pastimeBody(p, `turn-${p.name}`))].join(''),
+  extra: '',
+  css: `${waitingTurns(atS)}
+    ${[REST, ...PASTIMES].map(p => p.css).join('')}
+    ${BLINK}`,
+})
+
+// The round's CSS at `atS`: when each of the rest and the pastimes shows, the
+// same in either size.
+const waitingTurns = (atS: number) => {
   const slot = REST_S + PASTIME_S
   const cycle = PASTIMES.length * ROUND_SHUFFLES * slot
   const order = roundOrder(Math.floor(atS / cycle))
@@ -789,23 +806,14 @@ const waitingScene = (atS: number): Scene => {
     order.flatMap((p, k): [number, number][] => (p === i ? [[k * slot + REST_S, (k + 1) * slot]] : [])),
   )
   const at = atS % cycle
-  return {
-    label: wordsOf(t => t.states.waiting),
-    body: [pastimeBody(REST, `turn-${REST.name}`), ...PASTIMES.map(p => pastimeBody(p, `turn-${p.name}`))].join(''),
-    extra: '',
-    css: `${windowsCss(REST.name, rests, cycle, at)}
-    ${PASTIMES.map((p, i) => windowsCss(p.name, turns[i] ?? [], cycle, at)).join('\n    ')}
-    ${[REST, ...PASTIMES].map(p => p.css).join('')}
-    ${BLINK}`,
-  }
+  return `${windowsCss(REST.name, rests, cycle, at)}
+    ${PASTIMES.map((p, i) => windowsCss(p.name, turns[i] ?? [], cycle, at)).join('\n    ')}`
 }
 
 // What Clawd does while it waits on the person: one pastime, picked at
 // random for the wait that began at `since` (milliseconds).
-const waitScene = (since: number) => {
-  const pick = PASTIMES[Math.floor(chance(Math.floor(since / 1000)) * PASTIMES.length)] ?? REST
-  return pastimeScene(pick)
-}
+const waitPastime = (since: number) => PASTIMES[Math.floor(chance(Math.floor(since / 1000)) * PASTIMES.length)] ?? REST
+const waitScene = (since: number) => pastimeScene(waitPastime(since))
 
 // Each scene enters with a small hop of Clawd while its props fade in, so a
 // change of mode reads as a transition rather than a cut.
@@ -1089,6 +1097,26 @@ async function loadLang($: EngineInterface) {
   }
 }
 
+// The sizes the terminal band draws in, the default first.
+const SIZES: readonly Size[] = ['compact', 'large']
+
+// Switches the size of the terminal band: in the session's state, which draws
+// the band and the pane again, and in the plugin's store, which the next
+// session starts from.
+async function chooseSize($: EngineInterface, size: Size) {
+  await update($, sizeName, () => size)
+  await $.store.set('size', size)
+}
+
+// The size the last pick left in the store, for a new session.
+async function loadSize($: EngineInterface) {
+  const stored = await $.store.get('size').catch(() => undefined)
+  const size = SIZES.find(s => s === stored)
+  if (size !== undefined) {
+    await update($, sizeName, () => size)
+  }
+}
+
 // What the scene on the right shows: the figures, the cache's seconds left
 // right now, and whether the conversation is being compacted.
 const figuresOf = (s: Stats, now: number, isCompacting = false): Figures => ({
@@ -1104,17 +1132,17 @@ const figuresOf = (s: Stats, now: number, isCompacting = false): Figures => ({
 // with a pastime now and then (`now` sets where in their round), worried with
 // ten minutes or less left, yawning with two or less, and asleep once the
 // cache has expired.
-const idleScene = (figures: Figures, now: number) => {
+const idleScene = (figures: Figures, now: number): { scene: Scene; label: Words; pick: ScenePick } => {
   const left = figures.cacheLeft
-  const scene =
+  const [scene, pick]: [Scene, ScenePick] =
     left === null || left > WORRY_S
-      ? waitingScene(now / 1000)
+      ? [waitingScene(now / 1000), { kind: 'round', turns: waitingTurns(now / 1000) }]
       : left <= 0
-        ? scenes.idle
+        ? [scenes.idle, { kind: 'mode', key: 'idle' }]
         : left <= YAWN_S
-          ? cacheScenes.yawn
-          : cacheScenes.worry
-  return { scene, label: scene.label }
+          ? [cacheScenes.yawn, { kind: 'cache', key: 'yawn' }]
+          : [cacheScenes.worry, { kind: 'cache', key: 'worry' }]
+  return { scene, label: scene.label, pick }
 }
 
 // The terminal draws no SVG: there the band paints Clawd and the scene of
@@ -1175,6 +1203,14 @@ function livePicture($: EngineInterface, requestId: string, key: string, picture
   return cells
 }
 
+// The figures' numbers under a compact scene, as a line of text with each
+// centered under its figure: the pixel font can't be read at that size. The
+// cache's minutes count down by the clock.
+const numbersPicture = (f: Figures, centers: readonly number[], columns: number): Picture => {
+  const color = parseInt(INK.slice(1), 16)
+  return { columns, rows: 1, paint: t => textCells(numbersLine(f, centers, columns, t), color) }
+}
+
 const forgetPictures = (requestId: string, except: readonly string[] = []) => {
   for (const [id, live] of livePictures) {
     if (live.requestId === requestId && !except.includes(live.key)) {
@@ -1221,6 +1257,7 @@ export const register: Register = on => {
     await registerCommands($)
     current = { mode: await read($, mode), tool: await read($, tool) }
     await loadFigureScene($)
+    await loadSize($)
     await refreshStats($)
 
     return next(e)
@@ -1392,18 +1429,24 @@ export const register: Register = on => {
     await read($, redraws)
     const isAsking = await read($, isConfirming)
     const figureScene = figureSceneNamed(await read($, sceneName))
-    const { scene, label } = isIdle ? idleScene(figures, now) : sceneFor(drawnMode, await read($, tool), shownAt)
+    const { scene, label, pick } = isIdle ? idleScene(figures, now) : sceneFor(drawnMode, await read($, tool), shownAt)
     const isOngoing = !isIdle && drawnMode !== 'compacted'
 
     // The terminal's band: Clawd and the figures as pictures of block
-    // characters, Clawd's state beside it. Where both don't fit, Clawd with
-    // the figures in words; where Clawd doesn't either, words alone.
+    // characters, Clawd's state beside it, in the size the person picked: the
+    // compact scenes (hooks/compact.ts), or the large ones the desktop shows.
+    // A scene of figures with no compact drawing shows its large one. Where
+    // both don't fit, Clawd with the figures in words; where Clawd doesn't
+    // either, words alone.
     if (e.surface === 'terminal') {
       const { Box, Button, Raster, Text } = $.ui.resolve(e)
       const bg = await terminalBackground($)
       const said = `${label[lang]}${isOngoing ? '…' : ''}`
-      const clawd = pictureOf(svgFor(scene))
-      const shelf = pictureOf(figureScene.svg(figures))
+      const isCompact = (await read($, sizeName)) === 'compact'
+      const clawd = isCompact ? pictureOf(compactSvg(compactScene(pick)), 'quadrants') : pictureOf(svgFor(scene))
+      const small = isCompact ? figureScene.compact : undefined
+      const shelf = pictureOf(small === undefined ? figureScene.svg(figures) : small.svg(figures))
+      const numbers = small === undefined ? null : numbersPicture(figures, small.centers, shelf.columns)
       const controls = isAsking ? (
         <Box flexDirection="row" alignItems="center" gap={1}>
           <Text dimColor>{t.compactAsk}</Text>
@@ -1422,9 +1465,9 @@ export const register: Register = on => {
       const controlsWidth = isAsking ? columnsOf(t.compactAsk) + columnsOf(t.yes) + columnsOf(t.no) + 10 : isLow ? columnsOf(t.compact) + 4 : 0
       const room = e.props.bodyColumns
       const labelRoom = room - clawd.columns - 1 - 2 - (controlsWidth > 0 ? controlsWidth + 1 : 0) - shelf.columns
-      const fitsAll = labelRoom >= MIN_LABEL_COLUMNS && e.props.maxRows >= shelf.rows
+      const fitsAll = labelRoom >= MIN_LABEL_COLUMNS && e.props.maxRows >= shelf.rows + (numbers?.rows ?? 0)
       const fitsClawd = room - clawd.columns - 1 >= MIN_LABEL_COLUMNS && e.props.maxRows >= clawd.rows
-      forgetPictures(e.requestId, fitsAll ? ['clawd', 'figures'] : fitsClawd ? ['clawd'] : [])
+      forgetPictures(e.requestId, fitsAll ? ['clawd', 'figures', 'numbers'] : fitsClawd ? ['clawd'] : [])
 
       if (fitsAll) {
         return (
@@ -1439,7 +1482,10 @@ export const register: Register = on => {
             </Box>
             <Box flexDirection="row" alignItems="center" gap={1}>
               {controls}
-              <Raster key="figures" columns={shelf.columns} rows={shelf.rows} cells={livePicture($, e.requestId, 'figures', shelf, now, bg)} />
+              <Box flexDirection="column">
+                <Raster key="figures" columns={shelf.columns} rows={shelf.rows} cells={livePicture($, e.requestId, 'figures', shelf, now, bg)} />
+                {numbers && <Raster key="numbers" columns={numbers.columns} rows={numbers.rows} cells={livePicture($, e.requestId, 'numbers', numbers, now, bg)} />}
+              </Box>
             </Box>
           </Box>
         )
@@ -1530,6 +1576,13 @@ export const register: Register = on => {
             options={LANG_CHOICES.map(c => ({ value: c, label: choiceName(c) }))}
             value={choice}
             onSelect={value => chooseLang($, LANG_CHOICES.find(c => c === value) ?? 'auto')}
+          />
+          <Select
+            key="size"
+            label={t.size}
+            options={SIZES.map(s => ({ value: s, label: t.sizes[s] }))}
+            value={await read($, sizeName)}
+            onSelect={value => chooseSize($, SIZES.find(s => s === value) ?? 'compact')}
           />
         </Box>
       )

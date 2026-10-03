@@ -79,5 +79,7 @@ export const ja: Texts = {
   inUse: '使用中',
   use: '使う',
   language: '言語',
+  size: 'サイズ',
+  sizes: { compact: 'コンパクト', large: '大きい' },
   auto: (name: string) => `自動（${name}）`,
 }

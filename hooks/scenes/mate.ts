@@ -10,7 +10,7 @@
 
 import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
+import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the tablecloth, which takes rows 8 and 9.
 const CLOTH_Y = 8
@@ -168,6 +168,65 @@ const mateSvg = (f: Figures) =>
   ${pack(f.week, SLOT * 3)}`,
   )
 
+// The scene in the compact size, on a row of the tablecloth: the thermos, its
+// strip of water as full as the context left (no kettle: while compacting the
+// strip fills up); the mate, its steam thinning over the cache's hour, the
+// yerba washed out once it expires; the plate with three medialunas, two, one
+// or crumbs; and the pack of yerba, flatter as the week is used.
+const CENTERS = [4, 15.5, 26, 35.5]
+
+const mateCompact = (f: Figures) => {
+  const water = f.isCompacting ? 5 : ([0, 1, 3, 5][stageOf(f.contextLeft)] ?? 0)
+  const thermos = `
+    <g fill="${STEEL_DARK}">${px(3, 0, 2, 1)}</g>
+    <g fill="${STEEL}">${px(2, 1, 4, 1)}</g>
+    <g fill="${THERMOS}">${px(2, 2, 3, 5)}</g>
+    <g fill="${THERMOS_DARK}">${px(6, 3, 1, 2)}</g>
+    <g fill="${GAUGE}">${px(5, 2, 1, 5)}</g>
+    ${water > 0 ? `<g${f.isCompacting ? ' class="fill"' : ''} fill="${WATER}">${px(5, 7 - water, 1, water)}</g>` : ''}`
+
+  const gourd = (yerba: string) => `
+    <g fill="${GOURD}">${px(13, 4, 5, 2)}${px(14, 6, 3, 1)}</g>
+    <g fill="${GOURD_LIGHT}">${px(14, 4)}</g>
+    <g fill="${GOURD_DARK}">${px(17, 4, 1, 2)}</g>
+    <g fill="${yerba}">${px(14, 3, 3, 1)}</g>
+    <g fill="${STEEL}">${px(16, 2)}${px(17, 1)}${px(18, 0)}</g>`
+  const steam = (wisps: number, opacity: number) =>
+    `<g fill="${CREAM}" opacity="${opacity}">${[px(14, 2), px(15, 1)]
+      .slice(0, wisps)
+      .map((p, i) => `<g class="wisp${i}">${p}</g>`)
+      .join('')}</g>`
+  const mate = hourSteps(f, [gourd(YERBA) + steam(2, 0.6), gourd(YERBA) + steam(1, 0.6), gourd(YERBA) + steam(1, 0.3)], gourd(WASHED))
+
+  const fiveLeft = f.fiveHour === null ? null : 100 - f.fiveHour
+  const count = [0, 1, 2, 3][stageOf(fiveLeft)] ?? 0
+  const medialuna = ([x, y]: readonly [number, number]) =>
+    `<g fill="${PASTRY}">${px(x + 1, y, 1, 2)}</g><g fill="${PASTRY_DARK}">${px(x, y + 1)}${px(x + 2, y + 1)}</g>`
+  const plate = `
+    <g fill="${CREAM}">${px(22, 6, 9, 1)}</g>
+    ${([[23, 4], [27, 4], [25, 2]] as const).slice(0, count).map(medialuna).join('')}
+    ${fiveLeft !== null && count === 0 ? `<g fill="${PASTRY_DARK}">${px(24, 5)}${px(28, 5)}</g>` : ''}`
+
+  const weekLeft = f.week === null ? null : 100 - f.week
+  const top = [6, 5, 3, 1][stageOf(weekLeft)] ?? 6
+  const pack = `
+    <g fill="${PACK}">${px(34, top, 3, 7 - top)}</g>
+    <g fill="${PACK_DARK}">${px(37, top, 1, 7 - top)}</g>
+    ${top <= 3 ? `<g fill="${CREAM}">${px(34, top + 2, 3, top === 1 ? 2 : 1)}</g>` : ''}`
+
+  const cloth = Array.from({ length: 10 }, (_, i) => `<g fill="${i % 2 === 0 ? CLOTH : CREAM}">${px(i * 4, 7, 2, 1)}</g><g fill="${i % 2 === 0 ? CREAM : CLOTH}">${px(i * 4 + 2, 7, 2, 1)}</g>`).join('')
+
+  return smallSceneSvg(
+    `
+    .fill { animation: fill 2s steps(5) both; }
+    @keyframes fill { from { clip-path: inset(5px 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+    .wisp0 { animation: wisp 1.6s steps(1) infinite; }
+    .wisp1 { animation: wisp 1.6s steps(1) -0.8s infinite; }
+    @keyframes wisp { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, -1px); } }`,
+    `${cloth}${thermos}${mate}${plate}${pack}`,
+  )
+}
+
 export const mateScene: FigureScene = {
   name: 'mate',
   label: wordsOf(t => t.scenes.mate),
@@ -175,4 +234,5 @@ export const mateScene: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: mateSvg,
+  compact: { svg: mateCompact, centers: CENTERS },
 }

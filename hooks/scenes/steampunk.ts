@@ -12,7 +12,7 @@
 
 import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
+import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the planks at y 9.
 const FLOOR_Y = 9
@@ -200,6 +200,73 @@ const steampunkSvg = (f: Figures) =>
   ${airship(f.week, SLOT * 3)}`,
   )
 
+// The scene in the compact size, on the workshop's planks: the boiler, its
+// sight glass as full as the context left, its fire dying down at a quarter
+// or less, whistling and filling up while compacting; the pocket watch, its
+// minute hand going round over the cache's hour and stopped once it expires;
+// the scuttle of coal, emptier as the five-hour limit goes; and the airship,
+// coming down over the week.
+const CENTERS = [3.5, 14, 25, 36]
+
+const steampunkCompact = (f: Figures) => {
+  const water = f.isCompacting ? 4 : ([0, 1, 2, 4][stageOf(f.contextLeft)] ?? 0)
+  const isLow = !f.isCompacting && f.contextLeft !== null && f.contextLeft <= 25
+  const boiler = `
+    <g fill="${COPPER_DARK}">${px(3, 0)}${px(5, 2, 1, 4)}</g>
+    <g fill="${COPPER}">${px(2, 1, 3, 1)}${px(1, 2, 4, 4)}</g>
+    <g fill="${RIVET}">${px(2, 3)}${px(4, 3)}</g>
+    <g fill="${GLASS}">${px(6, 2, 1, 4)}</g>
+    ${water > 0 ? `<g${f.isCompacting ? ' class="fill"' : ''} fill="${WATER}">${px(6, 6 - water, 1, water)}</g>` : ''}
+    <g fill="${IRON}">${px(1, 6, 6, 1)}</g>
+    <g class="${isLow ? 'embers' : 'fire'}" fill="${isLow ? RED : FIRE}">${px(2, 6, 3, 1)}</g>
+    ${isLow ? '' : `<g class="fire" fill="${FIRE_LIGHT}">${px(3, 6)}</g>`}
+    ${f.isCompacting ? `<g fill="${STEAM}" opacity="0.7"><g class="puff">${px(4, 0)}</g></g>` : ''}`
+
+  const watch = (hand: string, center = HAND) => `
+    <g fill="${BRASS_DARK}">${px(14, 0)}${px(17, 3)}${px(18, 4)}</g>
+    <g fill="${BRASS}">${px(13, 1, 3, 1)}${px(12, 2, 1, 3)}${px(16, 2, 1, 3)}${px(13, 5, 3, 1)}</g>
+    <g fill="${FACE}">${px(13, 2, 3, 3)}</g>
+    <g fill="${HAND}">${hand}</g><g fill="${center}">${px(14, 3)}</g>`
+  const clock = hourSteps(f, [watch(px(14, 2)), watch(px(15, 3)), watch(px(14, 4))], watch(px(13, 3), RED))
+
+  const fiveLeft = f.fiveHour === null ? null : 100 - f.fiveHour
+  const coal = [0, 1, 2, 3][stageOf(fiveLeft)] ?? 0
+  const scuttle = `
+    <g fill="${IRON}">${px(23, 1)}${px(24, 0, 3, 1)}${px(27, 1)}</g>
+    ${coal > 0 ? `<g fill="${COAL}">${px(23, 6 - coal, 5, coal)}${coal === 3 ? px(24, 2, 3, 1) : ''}</g><g fill="${COAL_LIGHT}">${px(24, 6 - coal)}${coal > 1 ? px(26, 5) : ''}</g>` : ''}
+    <g fill="${IRON}">${px(22, 3, 1, 4)}${px(28, 3, 1, 4)}${px(23, 6, 5, 1)}</g>`
+
+  const weekLeft = f.week === null ? null : 100 - f.week
+  const step = stageOf(weekLeft)
+  const top = [5, 3, 2, 0][step] ?? 5
+  const airship =
+    step === 0
+      ? `<g fill="${CANVAS_DARK}">${px(33, 5, 7, 1)}${px(34, 4, 5, 1)}</g><g fill="${WOOD}">${px(35, 6, 3, 1)}</g>`
+      : `<g class="bob">
+          <g fill="${CANVAS}">${px(34, top, 5, 1)}${px(33, top + 1, 7, 1)}</g>
+          <g fill="${CANVAS_DARK}">${px(34, top + 1, 5, 1)}</g>
+          <g fill="${WOOD}">${px(35, top + 2, 3, 1)}</g>
+          <g class="prop" fill="${IRON}">${px(32, top + 1)}</g>
+        </g>`
+
+  const planks = `<g fill="${PLANK}">${px(0, 7, 40, 1)}</g><g fill="${PLANK_DARK}">${Array.from({ length: 8 }, (_, i) => px(i * 5 + 2, 7)).join('')}</g>`
+
+  return smallSceneSvg(
+    `
+    .fill { animation: fill 2s steps(4) both; }
+    @keyframes fill { from { clip-path: inset(4px 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+    .fire { animation: fire 0.5s steps(1) infinite; }
+    @keyframes fire { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0.6; } }
+    .embers { animation: fire 1.6s steps(1) infinite; }
+    .puff { animation: puff 0.6s steps(1) infinite; }
+    @keyframes puff { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    .prop { animation: puff 0.3s steps(1) infinite; }
+    .bob { animation: bob 2.4s steps(1) infinite; }
+    @keyframes bob { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, 1px); } }`,
+    `${planks}${boiler}${clock}${scuttle}${airship}`,
+  )
+}
+
 export const steampunkScene: FigureScene = {
   name: 'steampunk',
   label: wordsOf(t => t.scenes.steampunk),
@@ -207,4 +274,5 @@ export const steampunkScene: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: steampunkSvg,
+  compact: { svg: steampunkCompact, centers: CENTERS },
 }

@@ -38,6 +38,11 @@ export type FigureScene = {
   height: number
   scale: number
   svg: (f: Figures) => string
+  // The scene in the terminal's compact size: square pixels half a cell each
+  // (hooks/raster.ts, `halves`), with no numbers, which the band writes
+  // under it as text, each centered at its figure's middle (`centers`, in
+  // pixels from the left).
+  compact?: { svg: (f: Figures) => string; centers: readonly number[] }
 }
 
 export const FIGURE_SCENES: readonly FigureScene[] = [shelfScene, mateScene, balconyScene, windowScene, adventureScene, gamerScene, cyberpunkScene, steampunkScene]
@@ -46,6 +51,27 @@ export const DEFAULT_FIGURE_SCENE = shelfScene
 
 // The scene a stored name names; the default for one no scene has.
 export const figureSceneNamed = (name: unknown) => FIGURE_SCENES.find(s => s.name === name) ?? DEFAULT_FIGURE_SCENE
+
+// The figures' numbers as a compact scene shows them: a line `columns` wide,
+// each number centered at its figure's middle; the cache's minutes
+// `elapsed` seconds after `f` was read, as the large scenes' countdown reads
+// them.
+export const numbersLine = (f: Figures, centers: readonly number[], columns: number, elapsed: number) => {
+  const pct = (n: number | null) => (n === null ? '--' : `${Math.round(n)}%`)
+  const left = f.cacheLeft === null ? null : f.cacheLeft - elapsed
+  const minutes = left === null ? '--' : left <= 0 ? '0m' : `${String(Math.floor(Math.min(left, 3600 - 0.001) / 60)).padStart(2, '0')}m`
+  const texts = [pct(f.contextLeft), minutes, pct(f.fiveHour === null ? null : 100 - f.fiveHour), pct(f.week === null ? null : 100 - f.week)]
+  const line = Array<string>(columns).fill(' ')
+  texts.forEach((text, i) => {
+    const start = Math.round((centers[i] ?? 0) - text.length / 2)
+    ;[...text].forEach((char, k) => {
+      if (start + k >= 0 && start + k < columns) {
+        line[start + k] = char
+      }
+    })
+  })
+  return line.join('')
+}
 
 // The figures in words, for a reader that cannot see the scene.
 export const figuresAlt = (f: Figures, lang: Lang) => {

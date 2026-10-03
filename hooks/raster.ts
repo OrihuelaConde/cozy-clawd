@@ -1,16 +1,24 @@
 // The terminal draws no SVG, so there the band paints the scenes itself: a
 // scene's image is read once into its groups and rects, with their classes and
 // CSS animations, then painted at any moment of those animations into the
-// cells of a Raster. A cell holds two square pixels, the upper and lower
-// halves of a block character, so a unit of the image's viewBox is a column
-// across and half a row down.
+// cells of a Raster, in one of two layouts:
+//
+// - `halves`: a cell holds two square pixels, the upper and lower halves of a
+//   block character, so a unit of the image's viewBox is a column across and
+//   half a row down. Each pixel keeps its color.
+// - `quadrants`: a cell holds four pixels, each twice as tall as wide, as
+//   Claude Code draws Clawd on its welcome screen, so a unit is half a column
+//   across and half a row down. A cell shows two colors: where its pixels
+//   have more, each takes the nearer of the two it has most of.
 //
 // It reads the SVG and CSS the scenes are drawn with, and no more: `svg` (a
-// nested one is a window over its content), `g`, `rect`, and `clipPath` in
-// `defs`; type, class and descendant selectors; fill, opacity, transform
-// (translate and scale), clip-path (`url()` or `inset()`), custom properties
-// through `var()`, and animations with their keyframes, `steps()` and the
-// cubic timing functions. A scene drawn with anything more needs it here too.
+// nested one is a window over its content), `g`, `rect`, `text` of one
+// character (painted as that character, in the cell that holds its x and
+// y), and `clipPath` in `defs`; type, class and descendant selectors; fill,
+// opacity, transform (translate and scale), clip-path (`url()` or
+// `inset()`), custom properties through `var()`, and animations with their
+// keyframes, `steps()` and the cubic timing functions. A scene drawn with
+// anything more needs it here too.
 
 // A scene's image as the terminal paints it: its size in cells, and its cells
 // at `t` seconds after it was drawn, as a Raster's `cells` (RasterProps).
@@ -59,6 +67,8 @@ type Node = {
   animations: Animation[]
   // A rect's geometry, in its own units.
   rect?: Box
+  // A text's one character and where it stands, in its own units.
+  char?: { x: number; y: number; code: number }
   // A nested svg: how its content maps into its parent, and the window it shows.
   viewport?: { map: Affine; window: Box | null }
 }
@@ -88,6 +98,15 @@ const SPACE = 0x20
 const UPPER_HALF = 0x2580
 const LOWER_HALF = 0x2584
 const FULL_BLOCK = 0x2588
+
+// The quadrant characters by the pixels they fill: bit 0 the top left, bit 1
+// the top right, bit 2 the bottom left, bit 3 the bottom right.
+const QUADRANTS = [SPACE, 0x2598, 0x259d, UPPER_HALF, 0x2596, 0x258c, 0x259e, 0x259b, 0x2597, 0x259a, 0x2590, 0x259c, LOWER_HALF, 0x2599, 0x259f, FULL_BLOCK]
+
+// How a picture lays its pixels in cells (see the top of this file).
+export type Layout = 'halves' | 'quadrants'
+
+const distance = (a: number, b: number) => [16, 8, 0].reduce((sum, shift) => sum + (((a >> shift) & 0xff) - ((b >> shift) & 0xff)) ** 2, 0)
 
 // `n` applied first, then `m`.
 const compose = (m: Affine, n: Affine): Affine => ({ a: m.a * n.a, d: m.d * n.d, e: m.a * n.e + m.e, f: m.d * n.f + m.f })
@@ -644,6 +663,10 @@ const build = (raw: Raw, parent: Node | null, sheet: ReturnType<typeof parseCss>
   if (raw.tag === 'rect') {
     node.rect = boxOf(raw.attrs, 'x', 'y', 'width', 'height')
   }
+  const code = raw.tag === 'text' ? raw.text.trim().codePointAt(0) : undefined
+  if (code !== undefined) {
+    node.char = { x: parseFloat(raw.attrs.x ?? '0') || 0, y: parseFloat(raw.attrs.y ?? '0') || 0, code }
+  }
   if (raw.tag === 'svg' && parent !== null) {
     const port = boxOf(raw.attrs, 'x', 'y', 'width', 'height')
     const view = numbers(raw.attrs.viewBox ?? '')
@@ -692,7 +715,8 @@ const maskOf = (boxes: Box[], width: number, height: number, within: Uint8Array 
   return mask
 }
 
-type Canvas = { width: number; height: number; rgba: Float64Array; ids: Map<string, Node> }
+// The pixels painted so far, and the characters to lay over them, in pixels.
+type Canvas = { width: number; height: number; rgba: Float64Array; ids: Map<string, Node>; chars: { x: number; y: number; code: number; color: number }[] }
 
 const paintNode = (canvas: Canvas, node: Node, t: number, m: Affine, alpha: number, fill: number | null, within: Uint8Array | null) => {
   if (UNPAINTED.has(node.tag)) {
@@ -741,6 +765,11 @@ const paintNode = (canvas: Canvas, node: Node, t: number, m: Affine, alpha: numb
       }
     }
   }
+  // A character shows whole or not at all.
+  if (node.char !== undefined && v.fill !== null && a >= 0.5) {
+    const at = mapBox(inner, { x0: node.char.x, y0: node.char.y, x1: node.char.x, y1: node.char.y })
+    canvas.chars.push({ x: at.x0, y: at.y0, code: node.char.code, color: v.fill })
+  }
   for (const child of node.children) {
     paintNode(canvas, child, t, inner, a, v.fill, mask)
   }
@@ -758,8 +787,27 @@ const toBase64 = (bytes: Uint8Array) => {
   return (globalThis as unknown as { btoa: (s: string) => string }).btoa(text)
 }
 
+// The character and colors of a cell of quadrants, from its four pixels: the
+// two colors most of them have, the others taking the nearer of those. Only
+// the background can be the terminal's own color, which counts as
+// `background` for nearness.
+const quadrantCell = (pixels: number[], background: number): [number, number, number] => {
+  const counts = new Map<number, number>()
+  for (const c of pixels) {
+    counts.set(c, (counts.get(c) ?? 0) + 1)
+  }
+  const [most = DEFAULT_COLOR, other = most] = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c)
+  const [fg, bg] = most === DEFAULT_COLOR ? [other, most] : [most, other]
+  if (fg === DEFAULT_COLOR) {
+    return [SPACE, DEFAULT_COLOR, DEFAULT_COLOR]
+  }
+  const near = (c: number) => (c === DEFAULT_COLOR ? background : c)
+  const mask = pixels.reduce((m, c, i) => (c === fg || (c !== bg && distance(near(c), near(fg)) < distance(near(c), near(bg))) ? m | (1 << i) : m), 0)
+  return mask === 0b1111 ? [FULL_BLOCK, fg, fg] : [QUADRANTS[mask] ?? SPACE, fg, bg]
+}
+
 // Reads a scene's image into a picture the terminal can paint.
-export const compile = (svg: string): Picture => {
+export const compile = (svg: string, layout: Layout = 'halves'): Picture => {
   const doc = parseXml(svg)
   const rootRaw = doc.children.find(c => c.tag === 'svg') ?? { tag: 'svg', attrs: {}, children: [], text: '' }
   const styles: string[] = []
@@ -776,57 +824,93 @@ export const compile = (svg: string): Picture => {
   const [vx = 0, vy = 0, vw = 0, vh = 0] = numbers(rootRaw.attrs.viewBox ?? '')
   const width = Math.max(1, Math.round(vw))
   const height = Math.max(2, Math.round(vh))
+  const across = layout === 'quadrants' ? 2 : 1
+  const columns = Math.ceil(width / across)
   const rows = Math.ceil(height / 2)
   const origin: Affine = { a: 1, d: 1, e: -vx, f: -vy }
 
   const paint = (t: number, background: number) => {
-    const canvas: Canvas = { width, height: rows * 2, rgba: new Float64Array(width * rows * 2 * 4), ids }
+    const canvas: Canvas = { width: columns * across, height: rows * 2, rgba: new Float64Array(columns * across * rows * 2 * 4), ids, chars: [] }
     paintNode(canvas, root, t, origin, 1, 0x000000, null)
-    const bg = [(background >> 16) & 0xff, (background >> 8) & 0xff, background & 0xff]
+    const base = [(background >> 16) & 0xff, (background >> 8) & 0xff, background & 0xff]
     const colorAt = (x: number, y: number) => {
-      const p = (y * width + x) * 4
+      // The cells round the image up; what lies beyond its viewBox stays unpainted.
+      if (x >= width || y >= height) {
+        return DEFAULT_COLOR
+      }
+      const p = (y * canvas.width + x) * 4
       const a = canvas.rgba[p + 3] ?? 0
       if (a < MIN_ALPHA) {
         return DEFAULT_COLOR
       }
-      return [0, 1, 2].reduce((c, i) => (c << 8) | Math.min(255, Math.round((canvas.rgba[p + i] ?? 0) + (bg[i] ?? 0) * (1 - a))), 0)
+      return [0, 1, 2].reduce((c, i) => (c << 8) | Math.min(255, Math.round((canvas.rgba[p + i] ?? 0) + (base[i] ?? 0) * (1 - a))), 0)
     }
-    const view = new DataView(new ArrayBuffer(width * rows * 12))
+    const cells: [number, number, number][] = []
     for (let row = 0; row < rows; row++) {
-      for (let x = 0; x < width; x++) {
-        const top = colorAt(x, row * 2)
-        const bottom = colorAt(x, row * 2 + 1)
-        const cell =
+      for (let column = 0; column < columns; column++) {
+        if (layout === 'quadrants') {
+          const [x, y] = [column * 2, row * 2]
+          cells.push(quadrantCell([colorAt(x, y), colorAt(x + 1, y), colorAt(x, y + 1), colorAt(x + 1, y + 1)], background))
+          continue
+        }
+        const top = colorAt(column, row * 2)
+        const bottom = colorAt(column, row * 2 + 1)
+        cells.push(
           top === DEFAULT_COLOR && bottom === DEFAULT_COLOR
             ? [SPACE, DEFAULT_COLOR, DEFAULT_COLOR]
             : top === bottom
               ? [FULL_BLOCK, top, top]
               : top === DEFAULT_COLOR
                 ? [LOWER_HALF, bottom, DEFAULT_COLOR]
-                : [UPPER_HALF, top, bottom]
-        const at = (row * width + x) * 12
-        view.setUint32(at, cell[0] ?? SPACE, true)
-        view.setUint32(at + 4, cell[1] ?? DEFAULT_COLOR, true)
-        view.setUint32(at + 8, cell[2] ?? DEFAULT_COLOR, true)
+                : [UPPER_HALF, top, bottom],
+        )
       }
     }
+    // A character takes its cell, over the cell's color where it has one.
+    for (const char of canvas.chars) {
+      const [column, row] = [Math.floor(char.x / across), Math.floor(char.y / 2)]
+      const under = cells[row * columns + column]
+      if (column >= 0 && column < columns && row >= 0 && row < rows && under !== undefined) {
+        cells[row * columns + column] = [char.code, char.color, under[0] === SPACE ? DEFAULT_COLOR : under[1]]
+      }
+    }
+    const view = new DataView(new ArrayBuffer(columns * rows * 12))
+    cells.forEach(([code, fg, bg], i) => {
+      view.setUint32(i * 12, code, true)
+      view.setUint32(i * 12 + 4, fg, true)
+      view.setUint32(i * 12 + 8, bg, true)
+    })
     return toBase64(new Uint8Array(view.buffer))
   }
 
-  return { columns: width, rows, paint }
+  return { columns, rows, paint }
+}
+
+// A line of text as a Raster's cells, a column a character, in `color` over
+// the terminal's own.
+export const textCells = (line: string, color: number) => {
+  const chars = [...line]
+  const view = new DataView(new ArrayBuffer(chars.length * 12))
+  chars.forEach((char, i) => {
+    view.setUint32(i * 12, char.codePointAt(0) ?? SPACE, true)
+    view.setUint32(i * 12 + 4, color, true)
+    view.setUint32(i * 12 + 8, DEFAULT_COLOR, true)
+  })
+  return toBase64(new Uint8Array(view.buffer))
 }
 
 // The pictures read last, so a band drawn again with the same image reads it once.
 const pictures = new Map<string, Picture>()
 const KEPT_PICTURES = 24
 
-export const pictureOf = (svg: string): Picture => {
-  const kept = pictures.get(svg)
+export const pictureOf = (svg: string, layout: Layout = 'halves'): Picture => {
+  const key = `${layout} ${svg}`
+  const kept = pictures.get(key)
   if (kept !== undefined) {
     return kept
   }
-  const picture = compile(svg)
-  pictures.set(svg, picture)
+  const picture = compile(svg, layout)
+  pictures.set(key, picture)
   if (pictures.size > KEPT_PICTURES) {
     const oldest = pictures.keys().next().value
     if (oldest !== undefined) {

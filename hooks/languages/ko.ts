@@ -79,5 +79,7 @@ export const ko: Texts = {
   inUse: '사용 중',
   use: '사용',
   language: '언어',
+  size: '크기',
+  sizes: { compact: '작게', large: '크게' },
   auto: (name: string) => `자동(${name})`,
 }

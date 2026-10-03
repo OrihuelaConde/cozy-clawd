@@ -1,6 +1,10 @@
 // What the figure scenes share: the layout of four slots, one per figure, with
 // its number underneath; the 3x5 pixel font of the numbers; and the cache's
 // minutes, which count down by themselves. Square pixels, three CSS pixels each.
+// Also what their compact drawings share: the image's size, a figure's steps,
+// and the cache's hour in steps.
+
+import type { Figures } from './index'
 
 // CSS pixels per scene pixel.
 export const SCALE = 3
@@ -52,6 +56,54 @@ export const pixelText = (text: string, slotX: number) => {
 // there is anything, all only near full. From five steps up, 100, 75, 50, 25,
 // 10 and 0 each fill a different number.
 export const level = (left: number, n: number) => (left <= 0 ? 0 : Math.min(n, Math.ceil((left / 100) * n - 1e-9)))
+
+// A figure's step in a compact scene, from the percent left: 3 above half,
+// 2 above a quarter, 1 above nothing, and 0 at nothing or before the first
+// reading.
+export const stageOf = (left: number | null) => (left === null || left <= 0 ? 0 : left > 50 ? 3 : left > 25 ? 2 : 1)
+
+// A compact scene's image: 40 pixels across and eight down, two to a cell,
+// its pixels below a style.
+export const smallSceneSvg = (css: string, body: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 8" shape-rendering="crispEdges">
+  <style>
+    g { transform-box: view-box; }
+    ${HOUR_CSS}${css}
+  </style>${body}
+</svg>`
+
+// Keyframes that jump a thing from point to point, each held an equal share
+// of the cycle; the points are offsets from where it is drawn.
+export const hops = (name: string, points: readonly (readonly [number, number])[]) =>
+  `@keyframes ${name} { ${points
+    .map(([x, y], i) => `${((i / points.length) * 100).toFixed(2)}% { transform: translate(${x}px, ${y}px); }`)
+    .join(' ')} 100% { transform: translate(${points[0]?.[0] ?? 0}px, ${points[0]?.[1] ?? 0}px); } }`
+
+// The steps of the cache's hour in a compact scene, each a group shown in its
+// turn by itself (hourSteps).
+const HOUR_CSS = `
+    .h3, .h2, .h1 { animation-timing-function: steps(1); animation-fill-mode: forwards; }
+    .h3 { animation-name: h3; }
+    .h2 { animation-name: h2; }
+    .h1 { animation-name: h1; }
+    @keyframes h3 { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    @keyframes h2 { 0%, 49.9% { opacity: 0; } 50%, 74.9% { opacity: 1; } 75%, 100% { opacity: 0; } }
+    @keyframes h1 { 0%, 74.9% { opacity: 0; } 75%, 100% { opacity: 1; } }`
+
+// A cache figure in a compact scene: `steps[0]` while more than half the
+// hour is left, `steps[1]` while more than a quarter is, `steps[2]` to the
+// end, going from one to the next by themselves; `expired` once the cache
+// has, and `steps[0]` before the first answer.
+export const hourSteps = (f: Figures, steps: readonly [string, string, string], expired: string) => {
+  const left = f.cacheLeft
+  if (left === null) {
+    return steps[0]
+  }
+  if (left <= 0) {
+    return expired
+  }
+  const style = `animation-duration: ${f.cacheTtl}s; animation-delay: -${(f.cacheTtl - left).toFixed(1)}s`
+  return steps.map((drawing, i) => `<g class="h${3 - i}" style="${style}">${drawing}</g>`).join('')
+}
 
 // A figure's percent, or dashes before the first reading.
 export const percentText = (n: number | null, slotX: number) => pixelText(n === null ? '--' : `${Math.round(n)}%`, slotX)

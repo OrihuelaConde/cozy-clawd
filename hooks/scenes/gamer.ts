@@ -10,7 +10,7 @@
 
 import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
+import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, percentText, pixelText, px, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the desk's lit edge at y 9.
 const DESK_Y = 9
@@ -169,6 +169,90 @@ const gamerSvg = (f: Figures) =>
   ${gamepad(f.week, SLOT * 3)}`,
   )
 
+// The scene in the compact size, on the desk's RGB strip: the monitor, a
+// heart of health for each step of the context left, the last one blinking
+// at a quarter or less, healing while compacting; the arcade cabinet, its
+// hero walking to the flag over the cache's hour, game over once it expires;
+// the cans of energy drink, crushed as the five-hour limit goes; and the
+// gamepad's battery, running down over the week.
+const CENTERS = [4.5, 15.5, 25.5, 36]
+
+// The strip's colors, repeated along it and shifting by themselves.
+const STRIP = [HEART, MARQUEE, GROUND, BUTTON_B, PANEL, HEART_LIGHT]
+
+const gamerCompact = (f: Figures) => {
+  const hearts = f.isCompacting ? 3 : ([0, 1, 2, 3][stageOf(f.contextLeft)] ?? 0)
+  const heart = (i: number) => {
+    const x = 1 + i * 3
+    if (f.isCompacting) {
+      return `<g fill="${HEART_EMPTY}">${px(x, 2, 2, 2)}</g><g class="heal${i}"><g fill="${HEART}">${px(x, 2, 2, 2)}</g><g fill="${HEART_LIGHT}">${px(x, 2)}</g></g>`
+    }
+    if (i >= hearts) {
+      return `<g fill="${HEART_EMPTY}">${px(x, 2, 2, 2)}</g>`
+    }
+    const full = `<g fill="${HEART}">${px(x, 2, 2, 2)}</g><g fill="${HEART_LIGHT}">${px(x, 2)}</g>`
+    return hearts === 1 ? `<g fill="${HEART_EMPTY}">${px(x, 2, 2, 2)}</g><g class="blink">${full}</g>` : full
+  }
+  const monitor = `
+    <g fill="${BEZEL}">${px(0, 0, 10, 6)}${px(4, 6, 2, 1)}</g>
+    <g fill="${SCREEN}">${px(1, 1, 8, 4)}</g>
+    ${[0, 1, 2].map(heart).join('')}`
+
+  const cabinet = (screen: string) => `
+    <g fill="${CABINET}">${px(12, 0, 7, 7)}</g>
+    <g fill="${CABINET_DARK}">${px(19, 0, 1, 7)}</g>
+    <g fill="${MARQUEE}">${px(13, 0, 5, 1)}</g>
+    <g fill="${SCREEN}">${px(13, 1, 5, 3)}</g>
+    ${screen}
+    <g fill="${PANEL}">${px(13, 5, 5, 1)}</g>
+    <g fill="${BUTTON_A}">${px(14, 5)}</g><g fill="${BUTTON_B}">${px(16, 5)}</g>`
+  const screenAt = (hero: number) => `
+    <g fill="${GROUND}">${px(13, 3, 5, 1)}</g>
+    <g fill="${FLAG}">${px(17, 1)}</g><g fill="${RIM}">${px(17, 2)}</g>
+    <g class="walk" fill="${HERO}">${px(hero, 2)}</g>`
+  const arcade = hourSteps(
+    f,
+    [cabinet(screenAt(13)), cabinet(screenAt(14)), cabinet(screenAt(16))],
+    cabinet(`<g fill="${HEART}">${px(14, 1)}${px(16, 1)}${px(15, 2)}${px(14, 3)}${px(16, 3)}</g>`),
+  )
+
+  const fiveLeft = f.fiveHour === null ? null : 100 - f.fiveHour
+  const standing = [0, 1, 2, 3][stageOf(fiveLeft)] ?? 0
+  const can = (x: number, i: number) =>
+    i < standing
+      ? `<g fill="${RIM}">${px(x, 3, 2, 1)}</g><g fill="${CAN}">${px(x, 4, 1, 3)}</g><g fill="${CAN_DARK}">${px(x + 1, 4, 1, 3)}</g><g fill="${BOLT}">${px(x, 5)}</g>`
+      : `<g fill="${CRUSHED}">${px(x, 6, 2, 1)}</g>`
+  const cans = [22, 25, 28].map(can).join('')
+
+  const weekLeft = f.week === null ? null : 100 - f.week
+  const cells = [0, 1, 2, 3][stageOf(weekLeft)] ?? 0
+  const gamepad = `
+    <g fill="${SHELL}">${px(34, 1, 5, 1)}${px(34, 3, 5, 1)}${px(34, 2)}${px(38, 2)}${px(39, 2)}</g>
+    ${cells > 0 ? `<g fill="${cells === 1 ? CELL_LOW : CELL}">${px(35, 2, cells, 1)}</g>` : ''}
+    <g fill="${PAD_LIGHT}">${px(34, 5, 5, 1)}</g>
+    <g fill="${PAD}">${px(33, 6, 7, 1)}${px(35, 5)}</g>
+    <g fill="${BUTTON_A}">${px(37, 5)}</g><g fill="${BUTTON_B}">${px(38, 6)}</g>`
+
+  const strip = Array.from({ length: 46 }, (_, i) => `<g fill="${STRIP[i % STRIP.length]}">${px(i, 7)}</g>`).join('')
+
+  return smallSceneSvg(
+    `
+    .blink { animation: blink 0.8s steps(1) infinite; }
+    @keyframes blink { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0; } }
+    .heal0, .heal1, .heal2 { animation: heal 2s steps(1) both; }
+    .heal1 { animation-name: heal1; }
+    .heal2 { animation-name: heal2; }
+    @keyframes heal { 0%, 32.9% { opacity: 0; } 33%, 100% { opacity: 1; } }
+    @keyframes heal1 { 0%, 65.9% { opacity: 0; } 66%, 100% { opacity: 1; } }
+    @keyframes heal2 { 0%, 98.9% { opacity: 0; } 99%, 100% { opacity: 1; } }
+    .walk { animation: walk 0.8s steps(1) infinite; }
+    @keyframes walk { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, -1px); } }
+    .strip { animation: strip 1.2s steps(6) infinite; }
+    @keyframes strip { from { transform: translate(0, 0); } to { transform: translate(-6px, 0); } }`,
+    `<g class="strip">${strip}</g>${monitor}${arcade}${cans}${gamepad}`,
+  )
+}
+
 export const gamerScene: FigureScene = {
   name: 'gamer',
   label: wordsOf(t => t.scenes.gamer),
@@ -176,4 +260,5 @@ export const gamerScene: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: gamerSvg,
+  compact: { svg: gamerCompact, centers: CENTERS },
 }

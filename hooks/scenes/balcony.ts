@@ -10,7 +10,7 @@
 
 import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
+import { COUNTDOWN_CSS, countdown, HEIGHT, hops, hourSteps, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the floor tiles at y 9.
 const FLOOR_Y = 9
@@ -225,6 +225,78 @@ const balconySvg = (f: Figures) =>
   ${honeyJar(f.week, SLOT * 3)}`,
   )
 
+// The scene in the compact size, on the tiles: the watering can, as full as
+// the context left, a rain cloud over it at a quarter or less that rains into
+// it while compacting; the daisy, upright, nodding, wilting and fallen over
+// the cache's hour; the feeder, its seeds going with the five-hour limit, the
+// bluebird pecking at it; and the jar of honey, emptying over the week, the
+// bee buzzing around it.
+const CENTERS = [5, 13, 23, 33]
+
+// Where the bee flies, from where it is drawn: around the jar's right side,
+// then over its lid and back.
+const BEE_PATH: [number, number][] = [[0, 0], [1, 1], [1, 3], [0, 4], [1, 2], [-2, 0], [-4, 0], [-2, 0]]
+
+const balconyCompact = (f: Figures) => {
+  const water = f.isCompacting ? 3 : ([0, 1, 2, 3][stageOf(f.contextLeft)] ?? 0)
+  const isLow = f.isCompacting || (f.contextLeft !== null && f.contextLeft <= 25)
+  const can = `
+    <g fill="${CAN_DARK}">${px(4, 3, 3, 3)}${px(8, 3, 1, 2)}</g>
+    ${water > 0 ? `<g${f.isCompacting ? ' class="fill"' : ''} fill="${WATER}">${px(4, 6 - water, 3, water)}</g>` : ''}
+    <g fill="${CAN}">${px(3, 3, 1, 4)}${px(7, 3, 1, 4)}${px(4, 6, 3, 1)}${px(2, 4)}${px(1, 3)}</g>
+    ${isLow ? `<g fill="${CLOUD}">${px(5, 0, 3, 1)}${px(4, 1, 5, 1)}</g><g fill="${CLOUD_DARK}">${px(5, 1, 3, 1)}</g>` : ''}
+    ${f.isCompacting ? `<g fill="${WATER}"><g class="drop0">${px(4, 2)}</g><g class="drop1">${px(6, 2)}</g></g>` : ''}`
+
+  const pot = `<g fill="${POT}">${px(11, 5, 5, 1)}</g><g fill="${POT_DARK}">${px(12, 6, 3, 1)}</g>`
+  const head = (x: number, y: number, petal: string) =>
+    `<g fill="${petal}">${px(x - 1, y)}${px(x + 1, y)}${px(x, y - 1)}${px(x, y + 1)}</g><g fill="${HEART}">${px(x, y)}</g>`
+  const daisy = hourSteps(
+    f,
+    [
+      `${pot}<g fill="${STEM}">${px(13, 3, 1, 2)}</g>${head(13, 1, PETAL)}`,
+      `${pot}<g fill="${STEM}">${px(13, 4)}${px(14, 3)}</g>${head(15, 2, PETAL)}`,
+      `${pot}<g fill="${STEM_DRY}">${px(13, 4)}${px(14, 3)}</g>${head(15, 4, PETAL_DRY)}`,
+    ],
+    `${pot}<g fill="${STEM_DRY}">${px(13, 3, 1, 2)}</g><g fill="${PETAL_DRY}">${px(16, 6)}${px(17, 6)}</g>`,
+  )
+
+  const fiveLeft = f.fiveHour === null ? null : 100 - f.fiveHour
+  const seeds = [0, 1, 2, 3][stageOf(fiveLeft)] ?? 0
+  const feeder = `
+    <g fill="${GLASS}">${px(24, 2, 3, 3)}</g>
+    ${seeds > 0 ? `<g fill="${SEED}">${px(24, 5 - seeds, 3, seeds)}</g><g fill="${SEED_DARK}">${px(25, 4)}</g>` : ''}
+    <g fill="${WOOD_DARK}">${px(23, 1, 5, 1)}${px(25, 6)}</g>
+    <g fill="${WOOD}">${px(23, 5, 6, 1)}</g>
+    <g fill="${BIRD_DARK}">${px(18, 4)}</g>
+    <g fill="${BIRD}">${px(19, 4, 2, 1)}</g>
+    <g fill="${BIRD_BELLY}">${px(19, 5, 2, 1)}</g>
+    <g class="peck"><g fill="${BIRD}">${px(21, 3)}</g><g fill="${BEAK}">${px(22, 3)}</g></g>`
+
+  const weekLeft = f.week === null ? null : 100 - f.week
+  const honey = [0, 1, 2, 4][stageOf(weekLeft)] ?? 0
+  const jar = `
+    ${honey > 0 ? `<g fill="${HONEY}">${px(32, 6 - honey, 3, honey)}</g><g fill="${HONEY_LIGHT}">${px(32, 6 - honey, 3, 1)}</g>` : ''}
+    <g fill="${GLASS}">${px(31, 2, 1, 5)}${px(35, 2, 1, 5)}${px(32, 6, 3, 1)}</g>
+    <g fill="${CLOTH}">${px(31, 1, 5, 1)}</g><g fill="${CREAM}">${px(32, 1)}${px(34, 1)}</g>
+    <g class="bee"><g fill="${BEE}">${px(37, 0)}</g><g fill="${STRIPE}">${px(38, 0)}</g></g>`
+
+  const tiles = `<g fill="${TILE}">${px(0, 7, 40, 1)}</g><g fill="${TILE_DARK}">${[3, 7, 11, 15, 19, 23, 27, 31, 35, 39].map(x => px(x, 7)).join('')}</g>`
+
+  return smallSceneSvg(
+    `
+    .fill { animation: fill 2s steps(3) both; }
+    @keyframes fill { from { clip-path: inset(3px 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+    .drop0 { animation: drop 0.6s steps(1) infinite; }
+    .drop1 { animation: drop 0.6s steps(1) -0.3s infinite; }
+    @keyframes drop { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, 1px); } }
+    .peck { animation: peck 1.4s steps(1) infinite; }
+    @keyframes peck { 0%, 69.9% { transform: translate(0, 0); } 70%, 84.9% { transform: translate(0, 1px); } 85%, 100% { transform: translate(0, 0); } }
+    .bee { animation: buzz 2.4s steps(1) infinite; }
+    ${hops('buzz', BEE_PATH)}`,
+    `${tiles}${can}${daisy}${feeder}${jar}`,
+  )
+}
+
 export const balconyScene: FigureScene = {
   name: 'balcony',
   label: wordsOf(t => t.scenes.balcony),
@@ -232,4 +304,5 @@ export const balconyScene: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: balconySvg,
+  compact: { svg: balconyCompact, centers: CENTERS },
 }

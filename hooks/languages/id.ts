@@ -79,5 +79,7 @@ export const id: Texts = {
   inUse: 'digunakan',
   use: 'Gunakan',
   language: 'Bahasa',
+  size: 'Ukuran',
+  sizes: { compact: 'Ringkas', large: 'Besar' },
   auto: (name: string) => `Otomatis (${name})`,
 }

@@ -13,7 +13,7 @@ cozy-clawd is an unofficial fan project. It isn't affiliated with or endorsed by
   | Idle | Clawd rests, breathing slowly, blinking, and glancing around. After 30 seconds it takes up a pastime for 9 seconds, picked at random: looking around, whistling, juggling, playing with a yo-yo, blowing soap bubbles, reading, dancing, or following a ladybug. With 10 minutes or less of prompt cache left, Clawd frets with a drop of sweat; with 2 minutes or less, it yawns; once the cache expires, it sleeps with z's drifting up. |
   | Working on the answer | Clawd stacks colored blocks. |
   | Thinking | Thought dots rise to a light bulb that switches on. |
-  | Writing the answer | Clawd walks in place while lines of text appear. |
+  | Writing the answer | Clawd types, a hand at a time, while lines of text appear. |
   | Reading or searching files | A magnifying glass sweeps over a page. |
   | Editing or writing files | A pencil writes line after line. |
   | Running a command | Clawd types at a monitor with green code raining down. |
@@ -31,14 +31,15 @@ cozy-clawd is an unofficial fan project. It isn't affiliated with or endorsed by
   - A moon lamp wanes, its glow shrinking, as you use the weekly limit.
 - **Scenes to choose from.** The `/cozy-clawd-scene` command and the `/cozy-clawd` pane each switch the scene. For more information, see [Choose a scene](#choose-a-scene).
 - **A compact button.** When 25% or less of the context is free, a **Compactar** (Compact) button appears next to the scene. It asks for confirmation before it compacts the conversation.
+- **Two sizes in the terminal.** The terminal band is compact unless you pick the large size, the one the desktop app shows. For more information, see [Choose the size](#choose-the-size).
 - **The desktop app's languages.** The band, the `/cozy-clawd` pane, and the commands speak the languages the Claude desktop app shows: English, French, German, Hindi, Indonesian, Italian, Japanese, Korean, Portuguese, and Spanish. For more information, see [Choose the language](#choose-the-language).
 
-The band draws in the Code tab of the Claude desktop app and in the terminal. The terminal draws no SVG images, so there the mod paints each scene in block characters, two pixels to a character cell, and moves it frame by frame. Clawd and the figures side by side take 9 rows and at least 105 columns, a few more while the **Compactar** button shows. A narrower terminal shows Clawd with the figures in words, and one under 39 columns shows words alone. Claude Code's own spinner stays as it is.
+The band draws in the Code tab of the Claude desktop app and in the terminal. The terminal draws no SVG images, so there the mod paints each scene in block characters and moves it frame by frame. Claude Code's own spinner stays as it is.
 
 ## Requirements
 
 - Claude Code 2.1.286 or later, with function hooks (mods) enabled.
-- To see the band, the Claude desktop app or a terminal with 24-bit color (truecolor), such as Windows Terminal or iTerm2.
+- To see the band, the Claude desktop app or a terminal with 24-bit color (truecolor), such as Windows Terminal or iTerm2. In Windows Terminal, Claude Code can paint in 256 colors, which shifts the band's colors; to have it paint in 24-bit color, set the `FORCE_COLOR` environment variable to `3` before you start it.
 
 ## Install
 
@@ -88,6 +89,19 @@ The band switches to the new scene at once, and later sessions start with it.
 | `cyberpunk` | A rooftop in the rain under a neon skyline. A power cell's charge shows the context left; at 25% or less it flickers pink beside a loose cable, and while the conversation is compacted the cable is plugged in and the cell charges. A neon sign of a bowl of noodles goes out tube by tube over the prompt cache's hour, until it's dark. A stack of credit chips is what's left of the five-hour limit, and signal bars drop as you use the weekly limit. |
 | `steampunk` | Brass and copper machines in a workshop. A boiler's sight glass shows the context left; at 25% or less its fire dies down, the gauge drops into the red, and while the conversation is compacted it whistles and the glass fills up. A pocket watch's minute hand goes round over the prompt cache's hour and stops when the cache expires. A scuttle of coal is what's left of the five-hour limit, and an airship comes down as you use the weekly limit. |
 
+## Choose the size
+
+In the terminal, the band comes in two sizes:
+
+| Size | What it shows |
+| --- | --- |
+| Compact | Clawd drawn the way Claude Code draws it on its welcome screen, four pixels to a character cell, and a smaller drawing of the scene, two pixels to a cell, with the figures' numbers in plain text under it. Each figure shows four steps: more than half left, half or less, a quarter or less, and nothing. Clawd and the figures side by side take 5 rows and at least 71 columns. A few extras of the large drawings have no room in the compact ones, such as the shelf's teapot and the mate's kettle. |
+| Large | The scenes the desktop app shows, two pixels to a character cell. Clawd and the figures side by side take 9 rows and at least 105 columns. |
+
+The compact size is the default. To choose the size, open the `/cozy-clawd` pane in the terminal and select **Compacta** (Compact) or **Grande** (Large) in the **Tamaño** (Size) picker. The band switches at once, and later sessions start with the size you chose. The desktop app always shows the large size.
+
+While the **Compactar** button shows, the band takes a few more columns. A terminal too narrow for Clawd and the figures side by side shows Clawd with the figures in words, and a narrower one shows words alone.
+
 ## Choose the language
 
 The mod speaks English, French, German, Hindi, Indonesian, Italian, Japanese, Korean, Portuguese (as spoken in Brazil), and Spanish. Claude Code doesn't tell a mod which language the app shows, so by default the mod goes by the following, in order:
@@ -110,9 +124,10 @@ The mod is a Claude Code plugin of function hooks:
 | Path | Contents |
 | --- | --- |
 | `hooks/register.tsx` | The hooks module: Clawd's scenes, how the mod follows the turn, the band, and the `/cozy-clawd` pane. |
+| `hooks/compact.ts` | Clawd's scenes in the terminal's compact size. |
 | `hooks/language.ts` | The languages the mod speaks, and how it tells which one you use. |
 | `hooks/languages/` | The mod's texts, one file per language. `en.ts` sets the texts every language has. |
-| `hooks/raster.ts` | How the terminal paints the scenes: a reader of the SVG and CSS they're drawn with that paints any moment of their animations in block characters. Also how many columns a text takes there. |
+| `hooks/raster.ts` | How the terminal paints the scenes: a reader of the SVG and CSS they're drawn with that paints any moment of their animations in block characters, two or four pixels to a cell. Also how many columns a text takes there. |
 | `hooks/scenes/index.ts` | The scenes the session figures can be drawn as, and the figures in words. |
 | `hooks/scenes/pixels.ts` | What the figure scenes share: their layout, the pixel font of the numbers, the cache's countdown, and the refill while compacting. |
 | `hooks/scenes/shelf.ts` | The `shelf` scene: a shelf of objects. |

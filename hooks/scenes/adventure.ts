@@ -10,7 +10,7 @@
 
 import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
+import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the stone floor at y 9.
 const FLOOR_Y = 9
@@ -167,6 +167,76 @@ const adventureSvg = (f: Figures) =>
   ${quiver(f.week, SLOT * 3)}`,
   )
 
+// The scene in the compact size, on the stone floor: the mana potion, as full
+// as the context left, a spare vial beside it at a quarter or less, filling up
+// while compacting; the hourglass, its sand running over the cache's hour;
+// the chest, its heap of gold going with the five-hour limit; and the quiver,
+// losing its arrows over the week.
+const CENTERS = [4, 15, 25.5, 35]
+
+// The potion's inside, row by row from the bottom: [y, first x, last x].
+const SMALL_FLASK: readonly (readonly [number, number, number])[] = [[6, 3, 5], [5, 2, 6], [4, 2, 6], [3, 2, 6], [2, 3, 5]]
+
+const adventureCompact = (f: Figures) => {
+  const mana = f.isCompacting ? 5 : ([0, 1, 3, 5][stageOf(f.contextLeft)] ?? 0)
+  const isLow = !f.isCompacting && f.contextLeft !== null && f.contextLeft <= 25
+  const inside = (rows: readonly (readonly [number, number, number])[]) => rows.map(([y, a, b]) => px(a, y, b - a + 1, 1)).join('')
+  const potion = `
+    <g fill="${CORK}">${px(4, 0)}</g>
+    <g fill="${GLASS}">${px(4, 1)}${inside(SMALL_FLASK)}</g>
+    ${mana > 0 ? `<g${f.isCompacting ? ' class="fill"' : ''} fill="${MANA}">${inside(SMALL_FLASK.slice(0, mana))}</g>` : ''}
+    ${mana > 1 ? `<g fill="${MANA_LIGHT}">${px(3, 7 - mana)}</g><g class="bubble" fill="${SPARK}">${px(4, 5)}</g>` : ''}
+    ${isLow ? `<g fill="${CORK}">${px(8, 4)}</g><g fill="${GLASS}">${px(8, 5)}</g><g fill="${MANA}">${px(8, 6)}</g>` : ''}`
+
+  const glass = `<g fill="${GLASS}">${px(14, 1, 3, 2)}${px(15, 3)}${px(14, 4, 3, 2)}</g>`
+  const frame = `<g fill="${WOOD_DARK}">${px(13, 0, 5, 1)}${px(13, 6, 5, 1)}</g><g fill="${WOOD}">${px(13, 1, 1, 5)}${px(17, 1, 1, 5)}</g>`
+  const grain = `<g class="grain" fill="${SAND}">${px(15, 3)}</g>`
+  const hourglass = hourSteps(
+    f,
+    [
+      `${glass}<g fill="${SAND}">${px(14, 1, 3, 2)}${px(15, 5)}</g>${grain}${frame}`,
+      `${glass}<g fill="${SAND}">${px(14, 2, 3, 1)}${px(14, 5, 3, 1)}</g>${grain}${frame}`,
+      `${glass}<g fill="${SAND}">${px(15, 2)}${px(14, 5, 3, 1)}${px(15, 4)}</g>${grain}${frame}`,
+    ],
+    `${glass}<g fill="${SAND}">${px(14, 4, 3, 2)}</g>${frame}`,
+  )
+
+  const fiveLeft = f.fiveHour === null ? null : 100 - f.fiveHour
+  const step = stageOf(fiveLeft)
+  const gold = [
+    '',
+    px(25, 2, 2, 1),
+    px(23, 2, 6, 1),
+    `${px(24, 1, 4, 1)}${px(23, 2, 6, 1)}`,
+  ][step]
+  const chest = `
+    <g fill="${WOOD_DARK}">${px(23, 0, 6, 1)}${px(22, 3, 8, 1)}</g>
+    ${gold ? `<g fill="${GOLD}">${gold}</g><g fill="${GOLD_DARK}">${step > 1 ? px(24, 2) + px(27, 2) : px(26, 2)}</g>` : ''}
+    <g fill="${WOOD}">${px(22, 4, 8, 3)}</g>
+    <g fill="${IRON}">${px(22, 4, 1, 3)}${px(29, 4, 1, 3)}</g>
+    <g fill="${GOLD}">${px(25, 5, 2, 1)}</g>`
+
+  const weekLeft = f.week === null ? null : 100 - f.week
+  const arrows = [0, 1, 2, 3][stageOf(weekLeft)] ?? 0
+  const quiver = `
+    ${[35, 34, 36].slice(0, arrows).map(x => `<g fill="${SHAFT}">${px(x, 1, 1, 2)}</g><g fill="${x === 35 ? FEATHER_LIGHT : FEATHER}">${px(x, 0)}</g>`).join('')}
+    <g fill="${LEATHER}">${px(34, 3, 3, 4)}</g>
+    <g fill="${LEATHER_DARK}">${px(36, 3, 1, 4)}${px(34, 4, 2, 1)}</g>`
+
+  const floor = `<g fill="${STONE}">${px(0, 7, 40, 1)}</g><g fill="${STONE_DARK}">${Array.from({ length: 13 }, (_, i) => px(i * 3 + 2, 7)).join('')}</g>`
+
+  return smallSceneSvg(
+    `
+    .fill { animation: fill 2s steps(5) both; }
+    @keyframes fill { from { clip-path: inset(5px 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+    .bubble { animation: bubble 1.2s steps(1) infinite; }
+    @keyframes bubble { 0%, 32.9% { transform: translate(0, 0); } 33%, 65.9% { transform: translate(0, -1px); } 66%, 100% { opacity: 0; } }
+    .grain { animation: grain 0.6s steps(1) infinite; }
+    @keyframes grain { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, 1px); } }`,
+    `${floor}${potion}${hourglass}${chest}${quiver}`,
+  )
+}
+
 export const adventureScene: FigureScene = {
   name: 'adventure',
   label: wordsOf(t => t.scenes.adventure),
@@ -174,4 +244,5 @@ export const adventureScene: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: adventureSvg,
+  compact: { svg: adventureCompact, centers: CENTERS },
 }

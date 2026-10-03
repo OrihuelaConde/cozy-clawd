@@ -11,7 +11,7 @@
 
 import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, level, percentText, pixelText, px, refill, REFILL_CSS, rise, RISE_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
+import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, level, percentText, pixelText, px, refill, REFILL_CSS, rise, RISE_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the desk at y 9.
 const DESK_Y = 9
@@ -225,6 +225,80 @@ const windowSvg = (f: Figures) =>
   ${yarn(f.week, SLOT * 3)}`,
   )
 
+// The scene in the compact size, on the desk: the candle, as tall as the
+// context left, a spare one beside it at a quarter or less, growing back
+// while compacting; the window, the moon crossing it over the cache's hour
+// and gone once it expires; the cup of cocoa, its steam thinning with the
+// five-hour limit; and the ball of yarn, smaller as the week is used.
+const CENTERS = [3, 13, 24, 33]
+
+// The ball of yarn at each step, as [row, first column, last column].
+const BALLS: readonly (readonly [number, number, number])[][] = [
+  [[6, 31, 35]],
+  [[4, 32, 34], [5, 32, 34], [6, 32, 34]],
+  [[3, 32, 34], [4, 31, 35], [5, 31, 35], [6, 32, 34]],
+  [[2, 32, 34], [3, 31, 35], [4, 31, 35], [5, 31, 35], [6, 32, 34]],
+]
+
+const windowCompact = (f: Figures) => {
+  const wax = f.isCompacting ? 3 : ([0, 1, 2, 3][stageOf(f.contextLeft)] ?? 0)
+  const isLow = !f.isCompacting && f.contextLeft !== null && f.contextLeft <= 25
+  const top = 6 - wax
+  const candle = `
+    <g fill="${BRASS}">${px(1, 6, 5, 1)}</g><g fill="${BRASS_DARK}">${px(1, 6)}${px(5, 6)}</g>
+    ${wax > 0 ? `<g${f.isCompacting ? ' class="grow"' : ''}><g fill="${WAX}">${px(2, top, 3, wax)}</g><g fill="${WAX_SHADE}">${px(4, top, 1, wax)}</g></g>` : ''}
+    <g fill="${WICK}">${px(3, top - 1)}</g>
+    ${wax > 0 ? `<g fill="${FLAME}">${px(3, top - 2)}</g><g class="flicker" fill="${FLAME_TIP}">${px(3, top - 3)}</g>` : ''}
+    ${isLow ? `<g fill="${WAX}">${px(7, 4, 1, 3)}</g><g fill="${WICK}">${px(7, 3)}</g>` : ''}`
+
+  const frame = (sky: string) => `
+    <g fill="${FRAME}">${px(9, 0, 9, 7)}</g>
+    <g fill="${sky}">${px(10, 1, 3, 2)}${px(14, 1, 3, 2)}${px(10, 4, 3, 2)}${px(14, 4, 3, 2)}</g>
+    <g fill="${FRAME_DARK}">${px(13, 1, 1, 5)}${px(10, 3, 7, 1)}</g>`
+  const moon = (x: number, y: number) => `<g fill="${MOON}">${px(x, y, 2, 2)}</g><g fill="${MOON_SHADE}">${px(x + 1, y + 1)}</g>`
+  const star = (x: number, y: number) => `<g class="twinkle" fill="${STAR}">${px(x, y)}</g>`
+  const pane = hourSteps(
+    f,
+    [`${frame(SKY)}${moon(10, 1)}${star(15, 5)}`, `${frame(SKY)}${moon(14, 1)}${star(11, 4)}`, `${frame(SKY)}${moon(15, 4)}${star(11, 1)}`],
+    `${frame(SKY_LATE)}${star(11, 1)}${star(15, 5)}${star(11, 4)}`,
+  )
+
+  const fiveLeft = f.fiveHour === null ? null : 100 - f.fiveHour
+  const step = stageOf(fiveLeft)
+  const cup = `
+    <g fill="${CREAM}">${px(21, 6, 7, 1)}</g>
+    <g fill="${CUP}">${px(22, 3, 3, 3)}${px(26, 3)}${px(27, 4)}${px(26, 5)}</g>
+    <g fill="${CUP_DARK}">${px(25, 3, 1, 3)}</g>
+    <g fill="${step > 0 ? COCOA : CUP_DARK}">${px(23, 3, 2, 1)}</g>
+    <g fill="${CREAM}" opacity="0.6">${[px(23, 2), px(24, 1), px(23, 0)]
+      .slice(0, step)
+      .map((p, i) => `<g class="wisp${i}">${p}</g>`)
+      .join('')}</g>`
+
+  const weekLeft = f.week === null ? null : 100 - f.week
+  const rows = BALLS[stageOf(weekLeft)] ?? []
+  const [first] = rows
+  const yarn = `
+    <g fill="${YARN}">${rows.map(([y, a, b]) => px(a, y, b - a + 1, 1)).join('')}</g>
+    ${rows.length > 1 && first ? `<g fill="${YARN_DARK}">${px(33, 5)}${px(34, 4)}</g><g fill="${YARN_LIGHT}">${px(first[1], first[0])}</g>` : ''}
+    <g fill="${NEEDLE}">${px(35, 2)}${px(36, 1)}</g><g fill="${KNOB}">${px(37, 0)}</g>`
+
+  return smallSceneSvg(
+    `
+    .grow { animation: grow 2s steps(3) both; }
+    @keyframes grow { from { clip-path: inset(3px 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+    .flicker { animation: flicker 0.9s steps(1) infinite; }
+    @keyframes flicker { 0%, 66.9% { opacity: 1; } 67%, 100% { opacity: 0; } }
+    .twinkle { animation: twinkle 2.2s steps(1) infinite; }
+    @keyframes twinkle { 0%, 69.9% { opacity: 1; } 70%, 100% { opacity: 0.3; } }
+    .wisp0, .wisp1, .wisp2 { animation: wisp 1.6s steps(1) infinite; }
+    .wisp1 { animation-delay: -0.5s; }
+    .wisp2 { animation-delay: -1s; }
+    @keyframes wisp { 0%, 49.9% { opacity: 1; } 50%, 100% { opacity: 0.3; } }`,
+    `<g fill="${DESK}">${px(0, 7, 40, 1)}</g>${candle}${pane}${cup}${yarn}`,
+  )
+}
+
 export const windowScene: FigureScene = {
   name: 'window',
   label: wordsOf(t => t.scenes.window),
@@ -232,4 +306,5 @@ export const windowScene: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: windowSvg,
+  compact: { svg: windowCompact, centers: CENTERS },
 }

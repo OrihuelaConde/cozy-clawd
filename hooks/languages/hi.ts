@@ -79,5 +79,7 @@ export const hi: Texts = {
   inUse: 'इस्तेमाल में',
   use: 'इस्तेमाल करें',
   language: 'भाषा',
+  size: 'आकार',
+  sizes: { compact: 'छोटा', large: 'बड़ा' },
   auto: (name: string) => `स्वचालित (${name})`,
 }

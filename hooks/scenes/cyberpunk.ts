@@ -12,7 +12,7 @@
 
 import { wordsOf } from '../language'
 import type { FigureScene, Figures } from './index'
-import { COUNTDOWN_CSS, countdown, HEIGHT, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, WIDTH } from './pixels'
+import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the rooftop at y 9.
 const ROOF_Y = 9
@@ -171,6 +171,59 @@ const cyberpunkSvg = (f: Figures) =>
   ${rain()}`,
   )
 
+// The scene in the compact size, on the rooftop in the rain: the power cell,
+// charged as far as the context left, flickering pink beside a loose cable at
+// a quarter or less, plugged in and charging while compacting; the neon bowl
+// of noodles, its tubes going out over the cache's hour; the stack of credit
+// chips, lower as the five-hour limit goes; and the signal bars, dropping
+// over the week.
+const CENTERS = [4, 15, 26, 36]
+
+const cyberpunkCompact = (f: Figures) => {
+  const charge = f.isCompacting ? 4 : ([0, 1, 2, 4][stageOf(f.contextLeft)] ?? 0)
+  const isLow = !f.isCompacting && f.contextLeft !== null && f.contextLeft <= 25
+  const cell = `
+    <g fill="${METAL_LIGHT}">${px(4, 0)}</g>
+    <g fill="${METAL}">${px(2, 1, 5, 6)}</g>
+    <g fill="${WINDOW}">${px(3, 2, 3, 4)}</g>
+    ${charge > 0 ? `<g${f.isCompacting ? ' class="fill"' : isLow ? ' class="flicker"' : ''} fill="${isLow ? PINK : CYAN}">${px(3, 6 - charge, 3, charge)}</g>` : ''}
+    ${isLow ? `<g fill="${PINK}">${px(7, 6)}${px(8, 5)}</g>` : ''}
+    ${f.isCompacting ? `<g fill="${CYAN}">${px(7, 3)}${px(8, 3, 1, 4)}</g>` : ''}`
+
+  const tubes = (steam: string, sticks: string, bowl: string) => `
+    <g fill="${steam}">${px(13, 1)}${px(14, 0)}${px(14, 2)}</g>
+    <g fill="${sticks}">${px(16, 1, 1, 3)}${px(17, 0, 1, 3)}</g>
+    <g fill="${bowl}">${px(12, 4, 7, 1)}${px(13, 5, 5, 1)}</g>`
+  const sign = hourSteps(f, [tubes(CYAN, YELLOW, PINK), tubes(TUBE_OFF, YELLOW, PINK), tubes(TUBE_OFF, TUBE_OFF, PINK)], tubes(TUBE_OFF, TUBE_OFF, TUBE_OFF))
+
+  const fiveLeft = f.fiveHour === null ? null : 100 - f.fiveHour
+  const chips = [0, 1, 2, 4][stageOf(fiveLeft)] ?? 0
+  const stack = `
+    <g fill="${CYAN}">${px(23, 6, 7, 1)}</g>
+    ${Array.from({ length: chips }, (_, i) => `<g fill="${CHIP}">${px(24, 5 - i, 5, 1)}</g><g fill="${CHIP_DARK}">${px(24, 5 - i)}${px(28, 5 - i)}</g>`).join('')}`
+
+  const weekLeft = f.week === null ? null : 100 - f.week
+  const bars = [0, 1, 2, 4][stageOf(weekLeft)] ?? 0
+  const signal = [33, 35, 37, 39].map((x, i) => `<g fill="${i < bars ? (bars === 1 ? PINK : CYAN) : BAR_OFF}">${px(x, 5 - i, 1, 2 + i)}</g>`).join('')
+
+  const skyline = `<g fill="${SKYLINE}">${px(9, 3, 2, 4)}${px(20, 2, 2, 5)}${px(31, 4, 1, 3)}</g><g fill="${YELLOW}">${px(9, 4)}${px(21, 3)}</g>`
+  const rain = `<g fill="${RAIN}">${[1, 10, 19, 22, 30, 38].map((x, i) => `<g class="rain r${i % 3}">${px(x, 0)}</g>`).join('')}</g>`
+  const roof = `<g fill="${ROOF}">${px(0, 7, 40, 1)}</g><g fill="${ROOF_DARK}">${Array.from({ length: 8 }, (_, i) => px(i * 5 + 4, 7)).join('')}</g>`
+
+  return smallSceneSvg(
+    `
+    .fill { animation: fill 2s steps(4) both; }
+    @keyframes fill { from { clip-path: inset(4px 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+    .flicker { animation: flicker 1.1s steps(1) infinite; }
+    @keyframes flicker { 0%, 69.9% { opacity: 1; } 70%, 79.9% { opacity: 0.3; } 80%, 89.9% { opacity: 1; } 90%, 100% { opacity: 0.3; } }
+    .rain { animation: rain 0.9s steps(7) infinite; }
+    .r1 { animation-delay: -0.3s; }
+    .r2 { animation-delay: -0.6s; }
+    @keyframes rain { from { transform: translate(0, 0); } to { transform: translate(0, 7px); } }`,
+    `${skyline}${rain}${roof}${cell}${sign}${stack}${signal}`,
+  )
+}
+
 export const cyberpunkScene: FigureScene = {
   name: 'cyberpunk',
   label: wordsOf(t => t.scenes.cyberpunk),
@@ -178,4 +231,5 @@ export const cyberpunkScene: FigureScene = {
   height: HEIGHT,
   scale: SCALE,
   svg: cyberpunkSvg,
+  compact: { svg: cyberpunkCompact, centers: CENTERS },
 }
