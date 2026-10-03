@@ -2,10 +2,10 @@
 // under the same keys; this one sets their shape.
 
 export const en = {
-  // The language by its own name, as the pane's picker shows it.
+  // The language by its own name, as the panel's picker shows it.
   name: 'English',
 
-  // What Clawd is doing, as the band and the pane say it.
+  // What Clawd is doing, as the band and the panel say it.
   states: {
     working: 'Working',
     workingOnAnswer: 'Working on the answer',
@@ -44,7 +44,7 @@ export const en = {
     using: (tool: string) => `Using ${tool}`,
   },
 
-  // The scenes of figures, by the names the picker shows.
+  // The scenes of meters, by the names the picker shows.
   scenes: {
     shelf: 'Shelf',
     mate: 'Mate',
@@ -56,9 +56,9 @@ export const en = {
     steampunk: 'Steampunk',
   },
 
-  // The figures in words, for a reader that can't see the scene. A no-break
+  // The meters in words, for a reader that can't see the scene. A no-break
   // space (\u00a0) keeps a number with its unit, wherever the words wrap.
-  figures: {
+  meters: {
     none: 'no data',
     expired: 'expired',
     minutes: (n: number) => `${n}\u00a0min`,
@@ -66,12 +66,12 @@ export const en = {
       `Context free ${context}, cache ${cache}, 5-hour limit free ${fiveHour}, week free ${week}`,
   },
 
-  // The commands, the band's button, and the pane.
-  paneCommand: "Open the panel to pick the band's scene and language",
+  // The commands, the band's button, and the panel.
+  panelCommand: "Open the panel to pick the band's scene and language",
   sceneCommand: "Pick the scene on the band's right",
   sceneHint: '[scene]',
-  paneTitle: 'Scenes',
-  paneOpened: 'Scenes panel opened.',
+  panelTitle: 'Scenes',
+  panelOpened: 'Scenes panel opened.',
   sceneIs: (name: string) => `Scene: ${name}.`,
   available: (names: string) => `Available: ${names}.`,
   noScene: (name: string) => `There is no scene "${name}".`,
@@ -86,9 +86,9 @@ export const en = {
   inUse: 'in use',
   use: 'Use',
   language: 'Language',
-  // The band's size in the terminal, as the pane's picker names it.
+  // The band's size in the terminal, as the panel's picker names it.
   size: 'Size',
-  sizes: { compact: 'Compact', large: 'Large' },
+  sizes: { small: 'Small', large: 'Large' },
   auto: (name: string) => `Automatic (${name})`,
 }
 

@@ -1,4 +1,4 @@
-// The steampunk scene: the session's figures as brass and copper machines on
+// The steampunk scene: the session's meters as brass and copper machines on
 // a workshop's plank floor: a boiler's sight glass for the context, a clock
 // for the prompt cache, a scuttle of coal for the five-hour limit, and an
 // airship's altitude for the week. Each has its number underneath in the 3x5
@@ -11,7 +11,7 @@
 // fills.
 
 import { wordsOf } from '../language'
-import type { FigureScene, Figures } from './index'
+import type { MeterScene, Meters } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the planks at y 9.
@@ -171,7 +171,7 @@ const airship = (used: number | null, x: number) => {
 const floor = () =>
   Array.from({ length: WIDTH / 8 }, (_, i) => `<g fill="${i % 2 === 0 ? PLANK : PLANK_DARK}">${px(i * 8, FLOOR_Y, 8, 1)}</g>`).join('')
 
-const steampunkSvg = (f: Figures) =>
+const steampunkSvg = (f: Meters) =>
   sceneSvg(
     `${COUNTDOWN_CSS}
     ${REFILL_CSS}
@@ -200,7 +200,7 @@ const steampunkSvg = (f: Figures) =>
   ${airship(f.week, SLOT * 3)}`,
   )
 
-// The scene in the compact size, on the workshop's planks: the boiler, its
+// The scene in the small size, on the workshop's planks: the boiler, its
 // sight glass as full as the context left, its fire dying down at a quarter
 // or less, whistling and filling up while compacting; the pocket watch, its
 // minute hand going round over the cache's hour and stopped once it expires;
@@ -208,7 +208,7 @@ const steampunkSvg = (f: Figures) =>
 // coming down over the week.
 const CENTERS = [3.5, 14, 25, 36]
 
-const steampunkCompact = (f: Figures) => {
+const steampunkSmall = (f: Meters) => {
   const water = f.isCompacting ? 4 : ([0, 1, 2, 4][stageOf(f.contextLeft)] ?? 0)
   const isLow = !f.isCompacting && f.contextLeft !== null && f.contextLeft <= 25
   const boiler = `
@@ -267,12 +267,12 @@ const steampunkCompact = (f: Figures) => {
   )
 }
 
-export const steampunkScene: FigureScene = {
+export const steampunkScene: MeterScene = {
   name: 'steampunk',
   label: wordsOf(t => t.scenes.steampunk),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
   svg: steampunkSvg,
-  compact: { svg: steampunkCompact, centers: CENTERS },
+  small: { svg: steampunkSmall, centers: CENTERS },
 }

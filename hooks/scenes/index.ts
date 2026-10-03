@@ -1,5 +1,5 @@
 // The scenes the band's right side can be drawn as. Each one draws the same
-// figures of the session its own way, as one plain SVG image; the one picked
+// meters of the session its own way, as one plain SVG image; the one picked
 // last is kept in the plugin's store under `scene`.
 
 import { adventureScene } from './adventure'
@@ -12,8 +12,8 @@ import { shelfScene } from './shelf'
 import { steampunkScene } from './steampunk'
 import { windowScene } from './window'
 
-// The figures every scene shows.
-export type Figures = {
+// The meters every scene shows.
+export type Meters = {
   // Percent of the context window still free.
   contextLeft: number | null
   // Percent used of the five-hour and seven-day limits.
@@ -24,11 +24,11 @@ export type Figures = {
   // The cache's whole life, in seconds.
   cacheTtl: number
   // The conversation is being compacted right now: each scene refills its
-  // context figure while it lasts.
+  // context meter while it lasts.
   isCompacting: boolean
 }
 
-export type FigureScene = {
+export type MeterScene = {
   // What /cozy-clawd-scene takes and the plugin's store keeps.
   name: string
   // The name the picker shows.
@@ -37,26 +37,26 @@ export type FigureScene = {
   width: number
   height: number
   scale: number
-  svg: (f: Figures) => string
-  // The scene in the terminal's compact size: square pixels half a cell each
+  svg: (f: Meters) => string
+  // The scene in the terminal's small size: square pixels half a cell each
   // (hooks/raster.ts, `halves`), with no numbers, which the band writes
-  // under it as text, each centered at its figure's middle (`centers`, in
+  // under it as text, each centered at its meter's middle (`centers`, in
   // pixels from the left).
-  compact?: { svg: (f: Figures) => string; centers: readonly number[] }
+  small?: { svg: (f: Meters) => string; centers: readonly number[] }
 }
 
-export const FIGURE_SCENES: readonly FigureScene[] = [shelfScene, mateScene, balconyScene, windowScene, adventureScene, gamerScene, cyberpunkScene, steampunkScene]
+export const METER_SCENES: readonly MeterScene[] = [shelfScene, mateScene, balconyScene, windowScene, adventureScene, gamerScene, cyberpunkScene, steampunkScene]
 
-export const DEFAULT_FIGURE_SCENE = shelfScene
+export const DEFAULT_METER_SCENE = shelfScene
 
 // The scene a stored name names; the default for one no scene has.
-export const figureSceneNamed = (name: unknown) => FIGURE_SCENES.find(s => s.name === name) ?? DEFAULT_FIGURE_SCENE
+export const meterSceneNamed = (name: unknown) => METER_SCENES.find(s => s.name === name) ?? DEFAULT_METER_SCENE
 
-// The figures' numbers as a compact scene shows them: a line `columns` wide,
-// each number centered at its figure's middle; the cache's minutes
+// The meters' numbers as a small scene shows them: a line `columns` wide,
+// each number centered at its meter's middle; the cache's minutes
 // `elapsed` seconds after `f` was read, as the large scenes' countdown reads
 // them.
-export const numbersLine = (f: Figures, centers: readonly number[], columns: number, elapsed: number) => {
+export const numbersLine = (f: Meters, centers: readonly number[], columns: number, elapsed: number) => {
   const pct = (n: number | null) => (n === null ? '--' : `${Math.round(n)}%`)
   const left = f.cacheLeft === null ? null : f.cacheLeft - elapsed
   const minutes = left === null ? '--' : left <= 0 ? '0m' : `${String(Math.floor(Math.min(left, 3600 - 0.001) / 60)).padStart(2, '0')}m`
@@ -73,9 +73,9 @@ export const numbersLine = (f: Figures, centers: readonly number[], columns: num
   return line.join('')
 }
 
-// The figures in words, for a reader that cannot see the scene.
-export const figuresAlt = (f: Figures, lang: Lang) => {
-  const words = TEXTS[lang].figures
+// The meters in words, for a reader that cannot see the scene.
+export const metersAlt = (f: Meters, lang: Lang) => {
+  const words = TEXTS[lang].meters
   const pct = (n: number | null) => (n === null ? words.none : `${Math.round(n)}%`)
   const cache = f.cacheLeft === null ? words.none : f.cacheLeft > 0 ? words.minutes(Math.ceil(f.cacheLeft / 60)) : words.expired
   return words.line(pct(f.contextLeft), cache, pct(f.fiveHour === null ? null : 100 - f.fiveHour), pct(f.week === null ? null : 100 - f.week))

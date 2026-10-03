@@ -52,7 +52,7 @@ export const hi: Texts = {
     steampunk: 'स्टीमपंक',
   },
 
-  figures: {
+  meters: {
     none: 'कोई डेटा नहीं',
     expired: 'खत्म',
     minutes: (n: number) => `${n}\u00a0मिनट`,
@@ -60,11 +60,11 @@ export const hi: Texts = {
       `खाली कॉन्टेक्स्ट ${context}, कैश ${cache}, 5\u00a0घंटे की सीमा में बाकी ${fiveHour}, हफ़्ते में बाकी ${week}`,
   },
 
-  paneCommand: 'पट्टी का दृश्य और भाषा चुनने के लिए पैनल खोलें',
+  panelCommand: 'पट्टी का दृश्य और भाषा चुनने के लिए पैनल खोलें',
   sceneCommand: 'पट्टी के दाईं ओर का दृश्य चुनें',
   sceneHint: '[दृश्य]',
-  paneTitle: 'दृश्य',
-  paneOpened: 'दृश्य पैनल खुल गया।',
+  panelTitle: 'दृश्य',
+  panelOpened: 'दृश्य पैनल खुल गया।',
   sceneIs: (name: string) => `दृश्य: ${name}।`,
   available: (names: string) => `उपलब्ध: ${names}।`,
   noScene: (name: string) => `"${name}" नाम का कोई दृश्य नहीं है।`,
@@ -80,6 +80,6 @@ export const hi: Texts = {
   use: 'इस्तेमाल करें',
   language: 'भाषा',
   size: 'आकार',
-  sizes: { compact: 'छोटा', large: 'बड़ा' },
+  sizes: { small: 'छोटा', large: 'बड़ा' },
   auto: (name: string) => `स्वचालित (${name})`,
 }

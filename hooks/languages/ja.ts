@@ -52,7 +52,7 @@ export const ja: Texts = {
     steampunk: 'スチームパンク',
   },
 
-  figures: {
+  meters: {
     none: 'データなし',
     expired: '期限切れ',
     minutes: (n: number) => `${n}分`,
@@ -60,11 +60,11 @@ export const ja: Texts = {
       `空きコンテキスト ${context}、キャッシュ ${cache}、5時間制限の残り ${fiveHour}、週間制限の残り ${week}`,
   },
 
-  paneCommand: 'バーのシーンと言語を選ぶパネルを開く',
+  panelCommand: 'バーのシーンと言語を選ぶパネルを開く',
   sceneCommand: 'バー右側のシーンを選ぶ',
   sceneHint: '[シーン]',
-  paneTitle: 'シーン',
-  paneOpened: 'シーンのパネルを開きました。',
+  panelTitle: 'シーン',
+  panelOpened: 'シーンのパネルを開きました。',
   sceneIs: (name: string) => `シーン：${name}。`,
   available: (names: string) => `選べるシーン：${names}。`,
   noScene: (name: string) => `「${name}」というシーンはありません。`,
@@ -80,6 +80,6 @@ export const ja: Texts = {
   use: '使う',
   language: '言語',
   size: 'サイズ',
-  sizes: { compact: 'コンパクト', large: '大きい' },
+  sizes: { small: '小さい', large: '大きい' },
   auto: (name: string) => `自動（${name}）`,
 }

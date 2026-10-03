@@ -1,4 +1,4 @@
-// The shelf scene: one pixel-art object per figure of the session, standing on
+// The shelf scene: one pixel-art object per meter of the session, standing on
 // a wooden shelf, each with its number underneath in a 3x5 pixel font: a mug
 // of tea for the context, a candle for the prompt cache, a cookie jar for the
 // five-hour limit, and a moon lamp for the week. Drawn as one plain SVG image
@@ -10,7 +10,7 @@
 // the conversation is compacted it pours and the mug fills up again.
 
 import { wordsOf } from '../language'
-import type { FigureScene, Figures } from './index'
+import type { MeterScene, Meters } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, INK, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the shelf, whose top is at y 9; the numbers sit under it.
@@ -217,7 +217,7 @@ const moonLamp = (used: number | null, x: number) => {
     ${percentText(left, x)}`
 }
 
-const shelfSvg = (f: Figures) =>
+const shelfSvg = (f: Meters) =>
   sceneSvg(
     `${COUNTDOWN_CSS}
     ${REFILL_CSS}
@@ -246,11 +246,11 @@ const shelfSvg = (f: Figures) =>
   ${moonLamp(f.week, SLOT * 3)}`,
   )
 
-// The shelf in the compact size, eight pixels tall: the same four objects
+// The shelf in the small size, eight pixels tall: the same four objects
 // drawn small, four pixels apart, on the board at the bottom. Each shows
-// four steps of its figure: more than half, down to half, down to a quarter,
+// four steps of its meter: more than half, down to half, down to a quarter,
 // and nothing. No teapot: the mug alone fills up while compacting.
-const compactShelfSvg = (f: Figures) => {
+const smallShelfSvg = (f: Meters) => {
   const tea = [0, 1, 2, 4][stageOf(f.contextLeft)] ?? 0
   const isWarm = f.isCompacting || (f.contextLeft !== null && f.contextLeft > 25)
   const mugTea = f.isCompacting
@@ -333,12 +333,12 @@ const compactShelfSvg = (f: Figures) => {
 </svg>`
 }
 
-export const shelfScene: FigureScene = {
+export const shelfScene: MeterScene = {
   name: 'shelf',
   label: wordsOf(t => t.scenes.shelf),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
   svg: shelfSvg,
-  compact: { svg: compactShelfSvg, centers: [4.5, 16, 26.5, 36] },
+  small: { svg: smallShelfSvg, centers: [4.5, 16, 26.5, 36] },
 }

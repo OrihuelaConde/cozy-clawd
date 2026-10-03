@@ -24,7 +24,7 @@ export type { Texts } from './languages/en'
 // A text in every language the mod speaks.
 export type Words = Record<Lang, string>
 
-// The languages in the order the pane offers them.
+// The languages in the order the panel offers them.
 export const LANGS: readonly Lang[] = ['es', 'en', 'fr', 'de', 'it', 'pt', 'id', 'hi', 'ja', 'ko']
 
 // Every text the mod shows, by language.

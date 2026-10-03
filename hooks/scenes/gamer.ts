@@ -1,4 +1,4 @@
-// The gamer scene: the session's figures as a gaming desk lit by an RGB strip:
+// The gamer scene: the session's meters as a gaming desk lit by an RGB strip:
 // a monitor's health hearts for the context, an arcade cabinet for the prompt
 // cache, cans of energy drink for the five-hour limit, and a gamepad's battery
 // for the week. Each has its number underneath in the 3x5 pixel font.
@@ -9,7 +9,7 @@
 // while the conversation is compacted the hearts heal back to full.
 
 import { wordsOf } from '../language'
-import type { FigureScene, Figures } from './index'
+import type { MeterScene, Meters } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, percentText, pixelText, px, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the desk's lit edge at y 9.
@@ -148,7 +148,7 @@ const strip = () =>
 const HEAL_CSS = Array.from({ length: 12 }, (_, n) =>
   `@keyframes heal${n} { from { clip-path: inset(0 ${n}px 0 0); } to { clip-path: inset(0 0 0 0); } }`).join('\n    ')
 
-const gamerSvg = (f: Figures) =>
+const gamerSvg = (f: Meters) =>
   sceneSvg(
     `${COUNTDOWN_CSS}
     ${HEAL_CSS}
@@ -169,7 +169,7 @@ const gamerSvg = (f: Figures) =>
   ${gamepad(f.week, SLOT * 3)}`,
   )
 
-// The scene in the compact size, on the desk's RGB strip: the monitor, a
+// The scene in the small size, on the desk's RGB strip: the monitor, a
 // heart of health for each step of the context left, the last one blinking
 // at a quarter or less, healing while compacting; the arcade cabinet, its
 // hero walking to the flag over the cache's hour, game over once it expires;
@@ -180,7 +180,7 @@ const CENTERS = [4.5, 15.5, 25.5, 36]
 // The strip's colors, repeated along it and shifting by themselves.
 const STRIP = [HEART, MARQUEE, GROUND, BUTTON_B, PANEL, HEART_LIGHT]
 
-const gamerCompact = (f: Figures) => {
+const gamerSmall = (f: Meters) => {
   const hearts = f.isCompacting ? 3 : ([0, 1, 2, 3][stageOf(f.contextLeft)] ?? 0)
   const heart = (i: number) => {
     const x = 1 + i * 3
@@ -253,12 +253,12 @@ const gamerCompact = (f: Figures) => {
   )
 }
 
-export const gamerScene: FigureScene = {
+export const gamerScene: MeterScene = {
   name: 'gamer',
   label: wordsOf(t => t.scenes.gamer),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
   svg: gamerSvg,
-  compact: { svg: gamerCompact, centers: CENTERS },
+  small: { svg: gamerSmall, centers: CENTERS },
 }

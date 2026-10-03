@@ -1,4 +1,4 @@
 # Preview pages the tools in tools/ generate.
 .preview/
-# Playwright, installed without saving to render the README's images.
+# Playwright, installed without saving to render the documentation's images.
 node_modules/

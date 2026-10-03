@@ -2,28 +2,28 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register, SessionCompactResult, Timer } from 'claude-code'
 
 import type { ClawdMode, Size, Stats } from '../types'
-import { compactScene, compactSvg } from './compact'
-import type { ScenePick } from './compact'
-import { DEFAULT_FIGURE_SCENE, FIGURE_SCENES, figureSceneNamed, figuresAlt, numbersLine } from './scenes/index'
-import type { Figures } from './scenes/index'
+import { smallScene, smallSvg } from './small'
+import type { ScenePick } from './small'
+import { DEFAULT_METER_SCENE, METER_SCENES, meterSceneNamed, metersAlt, numbersLine } from './scenes/index'
+import type { Meters } from './scenes/index'
 import { INK } from './scenes/pixels'
 import { DEFAULT_LANG, LANG_NAMES, LANGS, langOf, TEXTS, wordsOf } from './language'
 import type { Lang, LangChoice, Words } from './language'
 import { columnsOf, isMeasuredShort, pictureOf, textCells } from './raster'
 import type { Picture } from './raster'
 
-const PANE = 'clawd'
-// The slash commands: the pane, and the scene by name.
-const PANE_COMMAND = 'cozy-clawd'
+const PANEL = 'clawd'
+// The slash commands: the panel, and the scene by name.
+const PANEL_COMMAND = 'cozy-clawd'
 const SCENE_COMMAND = 'cozy-clawd-scene'
 const mode = atom({ plugin: 'cozy-clawd', key: 'mode' } as const, 'idle')
 const tool = atom({ plugin: 'cozy-clawd', key: 'tool' } as const, null)
 const stats = atom({ plugin: 'cozy-clawd', key: 'stats' } as const, { contextLeft: null, fiveHour: null, week: null, cacheAt: null })
 const isConfirming = atom({ plugin: 'cozy-clawd', key: 'isConfirming' } as const, false)
 const redraws = atom({ plugin: 'cozy-clawd', key: 'redraws' } as const, 0)
-const sceneName = atom({ plugin: 'cozy-clawd', key: 'sceneName' } as const, DEFAULT_FIGURE_SCENE.name)
+const sceneName = atom({ plugin: 'cozy-clawd', key: 'sceneName' } as const, DEFAULT_METER_SCENE.name)
 const langChoice = atom({ plugin: 'cozy-clawd', key: 'langChoice' } as const, 'auto')
-const sizeName = atom({ plugin: 'cozy-clawd', key: 'sizeName' } as const, 'compact')
+const sizeName = atom({ plugin: 'cozy-clawd', key: 'sizeName' } as const, 'small')
 
 const BODY = '#D97757'
 const EYE = '#1F1E1D'
@@ -442,7 +442,7 @@ const shortName = (tool: string) => (tool.startsWith('mcp__') ? tool.split('__')
 // asked for) or anything else, a tool waiting for the person's approval.
 // While Clawd waits on the person it passes the time with one pastime after
 // another, from the moment the wait began (`since`) to `now`.
-// `pick` names the scene for the compact size (hooks/compact.ts).
+// `pick` names the scene for the small size (hooks/small.ts).
 const sceneFor = (m: ClawdMode, tool: string | null, since = 0, now = since): { scene: Scene; label: Words; pick: ScenePick } => {
   const turns = waitTurns(since, now)
   if (m === 'waiting') {
@@ -862,7 +862,7 @@ const COMPACT_AT = 25
 // Claude Code's requests use the one-hour cache.
 const CACHE_TTL_MIN = 60
 
-// The picks of the pane's language row, in its order.
+// The picks of the panel's language row, in its order.
 const LANG_CHOICES: readonly LangChoice[] = ['auto', ...LANGS]
 
 type Shown = { mode: ClawdMode; tool: string | null }
@@ -997,31 +997,31 @@ async function whileCompacting($: EngineInterface, compact: () => Promise<Sessio
     isDone = result.skip === undefined
     return result
   } finally {
-    // The fresh figures first, so the celebration shows the scene refilled.
+    // The fresh meters first, so the celebration shows the scene refilled.
     await refreshStats($)
     await (isDone ? celebrate($) : show($, 'idle'))
   }
 }
 
 // Switches the scene the band draws on its right: in the session's state,
-// which draws the band and the pane again, and in the plugin's store, which
+// which draws the band and the panel again, and in the plugin's store, which
 // the next session starts from. Not a userConfig field: the desktop app lists
 // no plugin rows in /config, so $.config.set cannot reach one there.
-async function chooseFigureScene($: EngineInterface, name: string) {
+async function chooseMeterScene($: EngineInterface, name: string) {
   await update($, sceneName, () => name)
   await $.store.set('scene', name)
 }
 
-// Whether the person had given the pane the keyboard, as it was last drawn or
-// focused. On the desktop, a click on a Button of a pane without the keyboard
+// Whether the person had given the panel the keyboard, as it was last drawn or
+// focused. On the desktop, a click on a Button of a panel without the keyboard
 // only hands it the keyboard: `ui.focus` lands on the Button, and no press.
-let isPaneFocused = false
+let isPanelFocused = false
 
 // The scene the last pick left in the store, for a new session.
-async function loadFigureScene($: EngineInterface) {
+async function loadMeterScene($: EngineInterface) {
   const stored = await $.store.get('scene')
   if (typeof stored === 'string') {
-    await update($, sceneName, () => figureSceneNamed(stored).name)
+    await update($, sceneName, () => meterSceneNamed(stored).name)
   }
 }
 
@@ -1078,8 +1078,8 @@ async function detectedLang($: EngineInterface) {
   return detected
 }
 
-// The language the band, the pane and the commands speak: the person's pick
-// in the pane, or the one detected.
+// The language the band, the panel and the commands speak: the person's pick
+// in the panel, or the one detected.
 async function langNow($: EngineInterface): Promise<Lang> {
   const choice = await read($, langChoice)
   return choice === 'auto' ? await detectedLang($) : choice
@@ -1089,12 +1089,12 @@ async function langNow($: EngineInterface): Promise<Lang> {
 // when it changes.
 async function registerCommands($: EngineInterface) {
   const t = TEXTS[await langNow($)]
-  await $.command.register({ name: PANE_COMMAND, description: t.paneCommand })
+  await $.command.register({ name: PANEL_COMMAND, description: t.panelCommand })
   await $.command.register({ name: SCENE_COMMAND, description: t.sceneCommand, argumentHint: t.sceneHint })
 }
 
-// Switches the language as the person picked it in the pane: in the
-// session's state, which draws the band and the pane again, and in the
+// Switches the language as the person picked it in the panel: in the
+// session's state, which draws the band and the panel again, and in the
 // plugin's store, which the next session starts from.
 async function chooseLang($: EngineInterface, choice: LangChoice) {
   await update($, langChoice, () => choice)
@@ -1112,10 +1112,10 @@ async function loadLang($: EngineInterface) {
 }
 
 // The sizes the terminal band draws in, the default first.
-const SIZES: readonly Size[] = ['compact', 'large']
+const SIZES: readonly Size[] = ['small', 'large']
 
 // Switches the size of the terminal band: in the session's state, which draws
-// the band and the pane again, and in the plugin's store, which the next
+// the band and the panel again, and in the plugin's store, which the next
 // session starts from.
 async function chooseSize($: EngineInterface, size: Size) {
   await update($, sizeName, () => size)
@@ -1131,9 +1131,9 @@ async function loadSize($: EngineInterface) {
   }
 }
 
-// What the scene on the right shows: the figures, the cache's seconds left
+// What the scene on the right shows: the meters, the cache's seconds left
 // right now, and whether the conversation is being compacted.
-const figuresOf = (s: Stats, now: number, isCompacting = false): Figures => ({
+const metersOf = (s: Stats, now: number, isCompacting = false): Meters => ({
   contextLeft: s.contextLeft,
   fiveHour: s.fiveHour,
   week: s.week,
@@ -1146,8 +1146,8 @@ const figuresOf = (s: Stats, now: number, isCompacting = false): Figures => ({
 // with a pastime now and then (`now` sets where in their round), worried with
 // ten minutes or less left, yawning with two or less, and asleep once the
 // cache has expired.
-const idleScene = (figures: Figures, now: number): { scene: Scene; label: Words; pick: ScenePick } => {
-  const left = figures.cacheLeft
+const idleScene = (meters: Meters, now: number): { scene: Scene; label: Words; pick: ScenePick } => {
+  const left = meters.cacheLeft
   const [scene, pick]: [Scene, ScenePick] =
     left === null || left > WORRY_S
       ? [waitingScene(now / 1000), { kind: 'round', turns: waitingTurns(now / 1000) }]
@@ -1160,7 +1160,7 @@ const idleScene = (figures: Figures, now: number): { scene: Scene; label: Words;
 }
 
 // The terminal draws no SVG: there the band paints Clawd and the scene of
-// figures as Rasters of block characters (hooks/raster.ts), and moves them a
+// meters as Rasters of block characters (hooks/raster.ts), and moves them a
 // frame at a time with $.ui.blit. A picture counts its animations' time from
 // when the band drew it, as the desktop starts an image over when it draws it
 // again; drawn again with the very same image, it carries on.
@@ -1234,10 +1234,10 @@ function livePicture($: EngineInterface, requestId: string, key: string, picture
   return cells
 }
 
-// The figures' numbers under a compact scene, as a line of text with each
-// centered under its figure: the pixel font can't be read at that size. The
+// The meters' numbers under a small scene, as a line of text with each
+// centered under its meter: the pixel font can't be read at that size. The
 // cache's minutes count down by the clock.
-const numbersPicture = (f: Figures, centers: readonly number[], columns: number): Picture => {
+const numbersPicture = (f: Meters, centers: readonly number[], columns: number): Picture => {
   const color = parseInt(INK.slice(1), 16)
   return { columns, rows: 1, paint: t => textCells(numbersLine(f, centers, columns, t), color) }
 }
@@ -1304,29 +1304,29 @@ export const register: Register = on => {
     await loadLang($)
     await registerCommands($)
     current = { mode: await read($, mode), tool: await read($, tool) }
-    await loadFigureScene($)
+    await loadMeterScene($)
     await loadSize($)
     await refreshStats($)
 
     return next(e)
   })
 
-  // The first click on Usar or a language, in a pane without the keyboard,
-  // arrives as a focus move and no press (see isPaneFocused), so it picks the
+  // The first click on Usar or a language, in a panel without the keyboard,
+  // arrives as a focus move and no press (see isPanelFocused), so it picks the
   // scene or the language here. Tab and
-  // the arrows move the ring only in a pane that holds the keyboard.
-  on('ui.focus', { requestId: PANE }, async ($, e, next) => {
-    const wasFocused = isPaneFocused
+  // the arrows move the ring only in a panel that holds the keyboard.
+  on('ui.focus', { requestId: PANEL }, async ($, e, next) => {
+    const wasFocused = isPanelFocused
     const result = await next(e)
     if (result.deny === undefined) {
-      isPaneFocused = true
+      isPanelFocused = true
     }
     if (wasFocused || e.origin.kind !== 'person') {
       return result
     }
     const name = e.element?.startsWith('use-') ? e.element.slice('use-'.length) : undefined
-    if (name !== undefined && FIGURE_SCENES.some(s => s.name === name)) {
-      await chooseFigureScene($, name)
+    if (name !== undefined && METER_SCENES.some(s => s.name === name)) {
+      await chooseMeterScene($, name)
     }
     const choice = LANG_CHOICES.find(c => e.element === `language-${c}`)
     if (choice !== undefined) {
@@ -1336,28 +1336,28 @@ export const register: Register = on => {
     return result
   })
 
-  on('command.run', { command: PANE_COMMAND }, async $ => {
+  on('command.run', { command: PANEL_COMMAND }, async $ => {
     const t = TEXTS[await langNow($)]
-    await $.ui.open({ id: PANE, title: t.paneTitle })
+    await $.ui.open({ id: PANEL, title: t.panelTitle })
 
-    return { text: t.paneOpened }
+    return { text: t.panelOpened }
   })
 
   on('command.run', { command: SCENE_COMMAND }, async ($, e) => {
     const t = TEXTS[await langNow($)]
-    const names = FIGURE_SCENES.map(s => s.name).join(', ')
-    const shown = figureSceneNamed(await read($, sceneName)).name
+    const names = METER_SCENES.map(s => s.name).join(', ')
+    const shown = meterSceneNamed(await read($, sceneName)).name
     const name = e.args.trim().toLowerCase()
     if (name === '') {
       return { text: `${t.sceneIs(shown)} ${t.available(names)}` }
     }
-    if (!FIGURE_SCENES.some(s => s.name === name)) {
+    if (!METER_SCENES.some(s => s.name === name)) {
       return { text: `${t.noScene(name)} ${t.available(names)}` }
     }
     if (name === shown) {
       return { text: t.alreadyScene(name) }
     }
-    await chooseFigureScene($, name)
+    await chooseMeterScene($, name)
 
     return { text: t.sceneIs(name) }
   })
@@ -1472,7 +1472,7 @@ export const register: Register = on => {
   })
 
   // The band above the prompt, always there: Clawd and what it is doing on the
-  // left, the scene of the session's figures and the compact button on the
+  // left, the scene of the session's meters and the compact button on the
   // right. Drawn as plain images (no isInteractive): the sandboxed frame paints
   // a white backdrop. Redrawing reloads the images and restarts their
   // animations, so the band reads only values that change on a new mode, a new
@@ -1489,30 +1489,30 @@ export const register: Register = on => {
     // A turn that ended without telling (an interruption) leaves no stale mode.
     const isIdle = !e.props.isWorking && drawnMode !== 'compacting' && drawnMode !== 'compacted'
     const now = await $.clock.now()
-    const figures = figuresOf(await read($, stats), now, drawnMode === 'compacting')
+    const meters = metersOf(await read($, stats), now, drawnMode === 'compacting')
     // No Compactar while a compaction runs.
-    const isLow = drawnMode !== 'compacting' && figures.contextLeft !== null && figures.contextLeft <= COMPACT_AT
+    const isLow = drawnMode !== 'compacting' && meters.contextLeft !== null && meters.contextLeft <= COMPACT_AT
     await read($, redraws)
     const isAsking = await read($, isConfirming)
-    const figureScene = figureSceneNamed(await read($, sceneName))
-    const { scene, label, pick } = isIdle ? idleScene(figures, now) : sceneFor(drawnMode, await read($, tool), shownAt, now)
+    const meterScene = meterSceneNamed(await read($, sceneName))
+    const { scene, label, pick } = isIdle ? idleScene(meters, now) : sceneFor(drawnMode, await read($, tool), shownAt, now)
     const isOngoing = !isIdle && drawnMode !== 'compacted'
 
-    // The terminal's band: Clawd and the figures as pictures of block
+    // The terminal's band: Clawd and the meters as pictures of block
     // characters, Clawd's state beside it, in the size the person picked: the
-    // compact scenes (hooks/compact.ts), or the large ones the desktop shows.
-    // A scene of figures with no compact drawing shows its large one. Where
-    // both don't fit, Clawd with the figures in words; where Clawd doesn't
+    // small scenes (hooks/small.ts), or the large ones the desktop shows.
+    // A scene of meters with no small drawing shows its large one. Where
+    // both don't fit, Clawd with the meters in words; where Clawd doesn't
     // either, words alone.
     if (e.surface === 'terminal') {
       const { Box, Button, Raster, Text } = $.ui.resolve(e)
       const bg = await terminalBackground($)
       const said = `${label[lang]}${isOngoing ? '…' : ''}`
-      const isCompact = (await read($, sizeName)) === 'compact'
-      const clawd = isCompact ? pictureOf(compactSvg(compactScene(pick)), 'quadrants') : pictureOf(svgFor(scene))
-      const small = isCompact ? figureScene.compact : undefined
-      const shelf = pictureOf(small === undefined ? figureScene.svg(figures) : small.svg(figures))
-      const numbers = small === undefined ? null : numbersPicture(figures, small.centers, shelf.columns)
+      const isSmall = (await read($, sizeName)) === 'small'
+      const clawd = isSmall ? pictureOf(smallSvg(smallScene(pick)), 'quadrants') : pictureOf(svgFor(scene))
+      const drawing = isSmall ? meterScene.small : undefined
+      const shelf = pictureOf(drawing === undefined ? meterScene.svg(meters) : drawing.svg(meters))
+      const numbers = drawing === undefined ? null : numbersPicture(meters, drawing.centers, shelf.columns)
       const controls = isAsking ? (
         <Box flexDirection="row" alignItems="center" gap={1}>
           <Text dimColor>{t.compactAsk}</Text>
@@ -1534,7 +1534,7 @@ export const register: Register = on => {
       const fitsAll = labelRoom >= MIN_LABEL_COLUMNS && e.props.maxRows >= shelf.rows + (numbers?.rows ?? 0)
       const fitsClawd = room - clawd.columns - 1 >= MIN_LABEL_COLUMNS && e.props.maxRows >= clawd.rows
       forgetOtherSites(e.requestId)
-      forgetPictures(e.requestId, fitsAll ? ['clawd', 'figures', 'numbers'] : fitsClawd ? ['clawd'] : [])
+      forgetPictures(e.requestId, fitsAll ? ['clawd', 'meters', 'numbers'] : fitsClawd ? ['clawd'] : [])
 
       if (fitsAll) {
         return (
@@ -1550,7 +1550,7 @@ export const register: Register = on => {
             <Box flexDirection="row" alignItems="center" gap={1}>
               {controls}
               <Box flexDirection="column">
-                <Raster key="figures" columns={shelf.columns} rows={shelf.rows} cells={livePicture($, e.requestId, 'figures', shelf, now, bg)} />
+                <Raster key="meters" columns={shelf.columns} rows={shelf.rows} cells={livePicture($, e.requestId, 'meters', shelf, now, bg)} />
                 {numbers && <Raster key="numbers" columns={numbers.columns} rows={numbers.rows} cells={livePicture($, e.requestId, 'numbers', numbers, now, bg)} />}
               </Box>
             </Box>
@@ -1563,7 +1563,7 @@ export const register: Register = on => {
             {fitsClawd ? said : `Clawd: ${said}`}
           </Text>
           <Text dimColor wrap="wrap">
-            {figuresAlt(figures, lang)}
+            {metersAlt(meters, lang)}
           </Text>
           {controls}
         </Box>
@@ -1596,35 +1596,35 @@ export const register: Register = on => {
             isLow && <Button key="compact" label={t.compact} onPress={() => update($, isConfirming, () => true)} />
           )}
           <Svg
-            source={figureScene.svg(figures)}
-            alt={figuresAlt(figures, lang)}
-            width={figureScene.width * figureScene.scale}
-            height={figureScene.height * figureScene.scale}
+            source={meterScene.svg(meters)}
+            alt={metersAlt(meters, lang)}
+            width={meterScene.width * meterScene.scale}
+            height={meterScene.height * meterScene.scale}
           />
         </Box>
       </Box>
     )
   })
 
-  // The pane where the person picks the scene on the band's right. Where
-  // images draw, a gallery: each scene with the session's figures as they are
+  // The panel where the person picks the scene on the band's right. Where
+  // images draw, a gallery: each scene with the session's meters as they are
   // now, the one in use marked. The terminal, which draws no images, shows what Clawd is
   // doing in words and a picker of the scenes.
-  on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    isPaneFocused = e.props.isFocused
+  on('ui.render', { component: 'Pane', requestId: PANEL }, async ($, e) => {
+    isPanelFocused = e.props.isFocused
     await read($, redraws)
     const lang = langOn(e.surface, await langNow($))
     const t = TEXTS[lang]
     const choice = await read($, langChoice)
     const auto = LANG_NAMES[await detectedLang($)]
     const choiceName = (c: LangChoice) => (c === 'auto' ? t.auto(auto) : LANG_NAMES[c])
-    const shown = figureSceneNamed(await read($, sceneName)).name
+    const shown = meterSceneNamed(await read($, sceneName)).name
     if (e.surface === 'terminal') {
       const { Box, Select, Text } = $.ui.resolve(e)
       const shownMode = await read($, mode)
       const now = await $.clock.now()
       const { label } =
-        shownMode === 'idle' ? idleScene(figuresOf(await read($, stats), now), now) : sceneFor(shownMode, await read($, tool), shownAt, now)
+        shownMode === 'idle' ? idleScene(metersOf(await read($, stats), now), now) : sceneFor(shownMode, await read($, tool), shownAt, now)
       const isOngoing = shownMode !== 'idle' && shownMode !== 'compacted'
 
       return (
@@ -1633,9 +1633,9 @@ export const register: Register = on => {
           <Select
             key="scene"
             label={t.scene}
-            options={FIGURE_SCENES.map(s => ({ value: s.name, label: s.label[lang] }))}
+            options={METER_SCENES.map(s => ({ value: s.name, label: s.label[lang] }))}
             value={shown}
-            onSelect={name => chooseFigureScene($, name)}
+            onSelect={name => chooseMeterScene($, name)}
           />
           <Select
             key="language"
@@ -1649,14 +1649,14 @@ export const register: Register = on => {
             label={t.size}
             options={SIZES.map(s => ({ value: s, label: t.sizes[s] }))}
             value={await read($, sizeName)}
-            onSelect={value => chooseSize($, SIZES.find(s => s === value) ?? 'compact')}
+            onSelect={value => chooseSize($, SIZES.find(s => s === value) ?? 'small')}
           />
         </Box>
       )
     }
 
     const { Box, Button, Svg, Text } = $.ui.resolve(e)
-    const figures = figuresOf(await read($, stats), await $.clock.now())
+    const meters = metersOf(await read($, stats), await $.clock.now())
 
     return (
       <Box flexDirection="column" gap={1} paddingY={1}>
@@ -1673,7 +1673,7 @@ export const register: Register = on => {
           )}
         </Box>
         <Text dimColor>{t.pickScene}</Text>
-        {FIGURE_SCENES.map(s => {
+        {METER_SCENES.map(s => {
           const isInUse = s.name === shown
 
           return (
@@ -1687,13 +1687,13 @@ export const register: Register = on => {
               borderColor={isInUse ? BODY : undefined}
               borderDimColor={!isInUse}
             >
-              <Svg source={s.svg(figures)} alt={`${s.label[lang]}: ${figuresAlt(figures, lang)}`} width={s.width * s.scale} height={s.height * s.scale} />
+              <Svg source={s.svg(meters)} alt={`${s.label[lang]}: ${metersAlt(meters, lang)}`} width={s.width * s.scale} height={s.height * s.scale} />
               <Box flexDirection="row" alignItems="center" gap={1}>
                 <Text bold>{s.label[lang]}</Text>
                 {isInUse ? (
                   <Text dimColor>{t.inUse}</Text>
                 ) : (
-                  <Button key={`use-${s.name}`} label={t.use} onPress={() => chooseFigureScene($, s.name)} />
+                  <Button key={`use-${s.name}`} label={t.use} onPress={() => chooseMeterScene($, s.name)} />
                 )}
               </Box>
             </Box>

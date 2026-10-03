@@ -52,7 +52,7 @@ export const pt: Texts = {
     steampunk: 'Steampunk',
   },
 
-  figures: {
+  meters: {
     none: 'sem dados',
     expired: 'expirado',
     minutes: (n: number) => `${n}\u00a0min`,
@@ -60,11 +60,11 @@ export const pt: Texts = {
       `Contexto livre ${context}, cache ${cache}, limite de 5\u00a0h livre ${fiveHour}, semana livre ${week}`,
   },
 
-  paneCommand: 'Abra o painel para escolher a cena e o idioma da faixa',
+  panelCommand: 'Abra o painel para escolher a cena e o idioma da faixa',
   sceneCommand: 'Escolha a cena à direita da faixa',
   sceneHint: '[cena]',
-  paneTitle: 'Cenas',
-  paneOpened: 'Painel de cenas aberto.',
+  panelTitle: 'Cenas',
+  panelOpened: 'Painel de cenas aberto.',
   sceneIs: (name: string) => `Cena: ${name}.`,
   available: (names: string) => `Disponíveis: ${names}.`,
   noScene: (name: string) => `Não existe uma cena "${name}".`,
@@ -80,6 +80,6 @@ export const pt: Texts = {
   use: 'Usar',
   language: 'Idioma',
   size: 'Tamanho',
-  sizes: { compact: 'Compacta', large: 'Grande' },
+  sizes: { small: 'Pequena', large: 'Grande' },
   auto: (name: string) => `Automático (${name})`,
 }

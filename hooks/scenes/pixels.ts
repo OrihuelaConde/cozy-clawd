@@ -1,14 +1,14 @@
-// What the figure scenes share: the layout of four slots, one per figure, with
+// What the meter scenes share: the layout of four slots, one per meter, with
 // its number underneath; the 3x5 pixel font of the numbers; and the cache's
 // minutes, which count down by themselves. Square pixels, three CSS pixels each.
-// Also what their compact drawings share: the image's size, a figure's steps,
+// Also what their small drawings share: the image's size, a meter's steps,
 // and the cache's hour in steps.
 
-import type { Figures } from './index'
+import type { Meters } from './index'
 
 // CSS pixels per scene pixel.
 export const SCALE = 3
-// Each figure has a slot this wide; a scene is four slots across.
+// Each meter has a slot this wide; a scene is four slots across.
 export const SLOT = 16
 export const WIDTH = SLOT * 4
 // Two rows above y 0, for flames and steam, then sixteen rows: objects stand
@@ -52,17 +52,17 @@ export const pixelText = (text: string, slotX: number) => {
   return `<g fill="${INK}">${[...text].map((ch, i) => glyph(ch, x0 + i * 4, DIGITS_Y)).join('')}</g>`
 }
 
-// How many of a figure's `n` steps the percent left fills: one as soon as
+// How many of a meter's `n` steps the percent left fills: one as soon as
 // there is anything, all only near full. From five steps up, 100, 75, 50, 25,
 // 10 and 0 each fill a different number.
 export const level = (left: number, n: number) => (left <= 0 ? 0 : Math.min(n, Math.ceil((left / 100) * n - 1e-9)))
 
-// A figure's step in a compact scene, from the percent left: 3 above half,
+// A meter's step in a small scene, from the percent left: 3 above half,
 // 2 above a quarter, 1 above nothing, and 0 at nothing or before the first
 // reading.
 export const stageOf = (left: number | null) => (left === null || left <= 0 ? 0 : left > 50 ? 3 : left > 25 ? 2 : 1)
 
-// A compact scene's image: 40 pixels across and eight down, two to a cell,
+// A small scene's image: 40 pixels across and eight down, two to a cell,
 // its pixels below a style.
 export const smallSceneSvg = (css: string, body: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 8" shape-rendering="crispEdges">
   <style>
@@ -78,7 +78,7 @@ export const hops = (name: string, points: readonly (readonly [number, number])[
     .map(([x, y], i) => `${((i / points.length) * 100).toFixed(2)}% { transform: translate(${x}px, ${y}px); }`)
     .join(' ')} 100% { transform: translate(${points[0]?.[0] ?? 0}px, ${points[0]?.[1] ?? 0}px); } }`
 
-// The steps of the cache's hour in a compact scene, each a group shown in its
+// The steps of the cache's hour in a small scene, each a group shown in its
 // turn by itself (hourSteps).
 const HOUR_CSS = `
     .h3, .h2, .h1 { animation-timing-function: steps(1); animation-fill-mode: forwards; }
@@ -89,11 +89,11 @@ const HOUR_CSS = `
     @keyframes h2 { 0%, 49.9% { opacity: 0; } 50%, 74.9% { opacity: 1; } 75%, 100% { opacity: 0; } }
     @keyframes h1 { 0%, 74.9% { opacity: 0; } 75%, 100% { opacity: 1; } }`
 
-// A cache figure in a compact scene: `steps[0]` while more than half the
+// A cache meter in a small scene: `steps[0]` while more than half the
 // hour is left, `steps[1]` while more than a quarter is, `steps[2]` to the
 // end, going from one to the next by themselves; `expired` once the cache
 // has, and `steps[0]` before the first answer.
-export const hourSteps = (f: Figures, steps: readonly [string, string, string], expired: string) => {
+export const hourSteps = (f: Meters, steps: readonly [string, string, string], expired: string) => {
   const left = f.cacheLeft
   if (left === null) {
     return steps[0]
@@ -105,7 +105,7 @@ export const hourSteps = (f: Figures, steps: readonly [string, string, string], 
   return steps.map((drawing, i) => `<g class="h${3 - i}" style="${style}">${drawing}</g>`).join('')
 }
 
-// A figure's percent, or dashes before the first reading.
+// A meter's percent, or dashes before the first reading.
 export const percentText = (n: number | null, slotX: number) => pixelText(n === null ? '--' : `${Math.round(n)}%`, slotX)
 
 // The cache's minutes counting down by themselves: each digit is a window over
@@ -132,7 +132,7 @@ export const COUNTDOWN_CSS = `
     @keyframes roll10 { from { transform: translateY(0); } to { transform: translateY(-60px); } }
     @keyframes roll6 { from { transform: translateY(0); } to { transform: translateY(-36px); } }`
 
-// A figure refilling while the conversation is compacted: the group holding it
+// A meter refilling while the conversation is compacted: the group holding it
 // full is uncovered from the bottom up, from `short` rows below the top, over
 // two seconds. Needs REFILL_CSS in the scene's style.
 export const refill = (short: number) => `animation: refill${short} 2s steps(${Math.max(1, short)}) both`
@@ -140,7 +140,7 @@ export const refill = (short: number) => `animation: refill${short} 2s steps(${M
 export const REFILL_CSS = Array.from({ length: 9 }, (_, n) =>
   `@keyframes refill${n} { from { clip-path: inset(${n}px 0 0 0); } to { clip-path: inset(0 0 0 0); } }`).join('\n    ')
 
-// What sits on top of a refilling figure, a flame or a float, rising with it
+// What sits on top of a refilling meter, a flame or a float, rising with it
 // from `short` rows down over the same two seconds. Needs RISE_CSS.
 export const rise = (short: number) => `animation: rise${short} 2s steps(${Math.max(1, short)}) both`
 

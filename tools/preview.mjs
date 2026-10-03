@@ -1,4 +1,4 @@
-// Renders every scene of Clawd and a few states of each figure scene as plain
+// Renders every scene of Clawd and a few states of each meter scene as plain
 // images, the way the desktop app draws a non-interactive Svg, on the app's
 // dark background; beside each, the same scene as the terminal paints it in
 // block characters (hooks/raster.ts, run live in the page), each cell 9 by 18
@@ -35,7 +35,7 @@ const scenesFile = join(outDir, 'scenes.gen.ts')
 const languageUrl = pathToFileURL(join(root, 'hooks', 'language.ts')).href
 writeFileSync(scenesFile, `import { wordsOf } from '${languageUrl}'\ntype ClawdMode = string\n${body}\nexport { scenes, toolScenes, cacheScenes, REST, PASTIMES, pastimeScene, waitingScene, roundScene, waitTurns, svgFor, SCALE, VIEW_W, VIEW_H }\n`)
 const { scenes, toolScenes, cacheScenes, REST, PASTIMES, pastimeScene, waitingScene, roundScene, waitTurns, svgFor, SCALE, VIEW_W, VIEW_H } = await import(pathToFileURL(scenesFile).href + '?t=' + Date.now())
-const { FIGURE_SCENES, figuresAlt } = await import(pathToFileURL(join(root, 'hooks', 'scenes', 'index.ts')).href + '?t=' + Date.now())
+const { METER_SCENES, metersAlt } = await import(pathToFileURL(join(root, 'hooks', 'scenes', 'index.ts')).href + '?t=' + Date.now())
 
 const uri = svg => 'data:image/svg+xml;base64,' + Buffer.from(svg).toString('base64')
 
@@ -69,19 +69,19 @@ const shelfCases = [
   ['Cache about to expire', { contextLeft: 100, fiveHour: 0, week: 0, cacheLeft: 125, cacheTtl: 3600 }],
   ['Compacting', { contextLeft: 20, fiveHour: 42, week: 18, cacheLeft: 47 * 60 + 12, cacheTtl: 3600, isCompacting: true }],
 ]
-const figureSections = FIGURE_SCENES.map(scene => {
+const meterSections = METER_SCENES.map(scene => {
   const w = scene.width * scene.scale
   const h = scene.height * scene.scale
   const rows = shelfCases
     .map(([name, f]) => `
   <div class="row">
-    <img src="${uri(scene.svg(f))}" width="${w}" height="${h}" title="${figuresAlt(f, 'en')}">
+    <img src="${uri(scene.svg(f))}" width="${w}" height="${h}" title="${metersAlt(f, 'en')}">
     <small>${name}</small>
     <img src="${uri(scene.svg(f))}" width="${w * 2.5}" height="${h * 2.5}">
     ${terminal(scene.svg(f))}
   </div>`)
     .join('')
-  return `\n<h2>Figures: ${scene.label.en} (${scene.name})</h2>${rows}`
+  return `\n<h2>Meters: ${scene.label.en} (${scene.name})</h2>${rows}`
 }).join('')
 
 writeFileSync(join(outDir, 'index.html'), `<!doctype html><meta charset="utf-8"><title>cozy-clawd preview</title>
@@ -94,7 +94,7 @@ writeFileSync(join(outDir, 'index.html'), `<!doctype html><meta charset="utf-8">
   .row { flex-wrap: wrap; }
 </style>
 <h2>Scenes</h2>${sceneRows}
-${figureSections}
+${meterSections}
 <script type="module">
 ${rasterJs}
 // Each canvas plays its scene as the terminal would: a frame every 66 ms,

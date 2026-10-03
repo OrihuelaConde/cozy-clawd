@@ -1,4 +1,4 @@
-// Clawd's scenes in the compact size, which the terminal band shows unless the
+// Clawd's scenes in the small size, which the terminal band shows unless the
 // person picks the large one. Clawd is drawn as Claude Code's welcome screen
 // draws it, a pixel a quadrant of a cell (hooks/raster.ts, `quadrants`):
 // pixels twice as tall as wide, two colors to a cell. A scene is 30 pixels
@@ -594,8 +594,8 @@ const pastimeBody = (p: Pastime, turn = '') =>
 
 const pastimeNamed = (name: string) => PASTIMES.find(p => p.name === name) ?? REST
 
-// The scene a pick names, in the compact size.
-export const compactScene = (pick: ScenePick): Scene => {
+// The scene a pick names, in the small size.
+export const smallScene = (pick: ScenePick): Scene => {
   if (pick.kind === 'round') {
     return {
       body: [pastimeBody(REST, `turn-${REST.name}`), ...PASTIMES.map(p => pastimeBody(p, `turn-${p.name}`))].join(''),
@@ -613,8 +613,8 @@ export const compactScene = (pick: ScenePick): Scene => {
   return table[pick.key] ?? scenes.requesting ?? toolUse
 }
 
-// The compact scene's image, the head at y 4 of the 10 rows of pixels.
-export const compactSvg = (scene: Scene) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 10" shape-rendering="crispEdges">
+// The small scene's image, the head at y 4 of the 10 rows of pixels.
+export const smallSvg = (scene: Scene) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 10" shape-rendering="crispEdges">
   <style>
     g { transform-box: view-box; }
     .props { animation: fadein 0.4s steps(2) 1 both; }

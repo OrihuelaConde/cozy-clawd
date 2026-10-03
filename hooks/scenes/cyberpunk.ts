@@ -1,4 +1,4 @@
-// The cyberpunk scene: the session's figures as neon things on a rooftop in
+// The cyberpunk scene: the session's meters as neon things on a rooftop in
 // the rain, a dark skyline behind: a power cell for the context, a neon sign
 // of a bowl of noodles for the prompt cache, a stack of credit chips for the
 // five-hour limit, and signal bars for the week. Each has its number
@@ -11,7 +11,7 @@
 // cable is plugged in and the cell charges.
 
 import { wordsOf } from '../language'
-import type { FigureScene, Figures } from './index'
+import type { MeterScene, Meters } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the rooftop at y 9.
@@ -134,7 +134,7 @@ const rain = () =>
 const roof = () =>
   Array.from({ length: WIDTH / 4 }, (_, i) => `<g fill="${i % 2 === 0 ? ROOF : ROOF_DARK}">${px(i * 4, ROOF_Y, 4, 1)}</g>`).join('')
 
-const cyberpunkSvg = (f: Figures) =>
+const cyberpunkSvg = (f: Meters) =>
   sceneSvg(
     `${COUNTDOWN_CSS}
     ${REFILL_CSS}
@@ -171,7 +171,7 @@ const cyberpunkSvg = (f: Figures) =>
   ${rain()}`,
   )
 
-// The scene in the compact size, on the rooftop in the rain: the power cell,
+// The scene in the small size, on the rooftop in the rain: the power cell,
 // charged as far as the context left, flickering pink beside a loose cable at
 // a quarter or less, plugged in and charging while compacting; the neon bowl
 // of noodles, its tubes going out over the cache's hour; the stack of credit
@@ -179,7 +179,7 @@ const cyberpunkSvg = (f: Figures) =>
 // over the week.
 const CENTERS = [4, 15, 26, 36]
 
-const cyberpunkCompact = (f: Figures) => {
+const cyberpunkSmall = (f: Meters) => {
   const charge = f.isCompacting ? 4 : ([0, 1, 2, 4][stageOf(f.contextLeft)] ?? 0)
   const isLow = !f.isCompacting && f.contextLeft !== null && f.contextLeft <= 25
   const cell = `
@@ -224,12 +224,12 @@ const cyberpunkCompact = (f: Figures) => {
   )
 }
 
-export const cyberpunkScene: FigureScene = {
+export const cyberpunkScene: MeterScene = {
   name: 'cyberpunk',
   label: wordsOf(t => t.scenes.cyberpunk),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
   svg: cyberpunkSvg,
-  compact: { svg: cyberpunkCompact, centers: CENTERS },
+  small: { svg: cyberpunkSmall, centers: CENTERS },
 }

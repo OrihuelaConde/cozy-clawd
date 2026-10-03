@@ -52,7 +52,7 @@ export const id: Texts = {
     steampunk: 'Steampunk',
   },
 
-  figures: {
+  meters: {
     none: 'tidak ada data',
     expired: 'kedaluwarsa',
     minutes: (n: number) => `${n}\u00a0menit`,
@@ -60,11 +60,11 @@ export const id: Texts = {
       `Konteks tersisa ${context}, cache ${cache}, batas 5\u00a0jam tersisa ${fiveHour}, mingguan tersisa ${week}`,
   },
 
-  paneCommand: 'Buka panel untuk memilih adegan dan bahasa bilah',
+  panelCommand: 'Buka panel untuk memilih adegan dan bahasa bilah',
   sceneCommand: 'Pilih adegan di sisi kanan bilah',
   sceneHint: '[adegan]',
-  paneTitle: 'Adegan',
-  paneOpened: 'Panel adegan dibuka.',
+  panelTitle: 'Adegan',
+  panelOpened: 'Panel adegan dibuka.',
   sceneIs: (name: string) => `Adegan: ${name}.`,
   available: (names: string) => `Tersedia: ${names}.`,
   noScene: (name: string) => `Tidak ada adegan "${name}".`,
@@ -80,6 +80,6 @@ export const id: Texts = {
   use: 'Gunakan',
   language: 'Bahasa',
   size: 'Ukuran',
-  sizes: { compact: 'Ringkas', large: 'Besar' },
+  sizes: { small: 'Kecil', large: 'Besar' },
   auto: (name: string) => `Otomatis (${name})`,
 }

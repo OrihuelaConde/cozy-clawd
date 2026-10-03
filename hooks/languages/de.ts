@@ -52,7 +52,7 @@ export const de: Texts = {
     steampunk: 'Steampunk',
   },
 
-  figures: {
+  meters: {
     none: 'keine Daten',
     expired: 'abgelaufen',
     minutes: (n: number) => `${n}\u00a0Min.`,
@@ -60,11 +60,11 @@ export const de: Texts = {
       `Kontext frei ${context}, Cache ${cache}, 5-Stunden-Limit frei ${fiveHour}, Woche frei ${week}`,
   },
 
-  paneCommand: 'Öffne den Bereich, um Szene und Sprache der Leiste zu wählen',
+  panelCommand: 'Öffne den Bereich, um Szene und Sprache der Leiste zu wählen',
   sceneCommand: 'Wähle die Szene rechts in der Leiste',
   sceneHint: '[Szene]',
-  paneTitle: 'Szenen',
-  paneOpened: 'Szenenbereich geöffnet.',
+  panelTitle: 'Szenen',
+  panelOpened: 'Szenenbereich geöffnet.',
   sceneIs: (name: string) => `Szene: ${name}.`,
   available: (names: string) => `Verfügbar: ${names}.`,
   noScene: (name: string) => `Es gibt keine Szene „${name}“.`,
@@ -80,6 +80,6 @@ export const de: Texts = {
   use: 'Verwenden',
   language: 'Sprache',
   size: 'Größe',
-  sizes: { compact: 'Kompakt', large: 'Groß' },
+  sizes: { small: 'Klein', large: 'Groß' },
   auto: (name: string) => `Automatisch (${name})`,
 }

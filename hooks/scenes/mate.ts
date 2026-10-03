@@ -1,4 +1,4 @@
-// The mate scene: the session's figures as things on a checked tablecloth
+// The mate scene: the session's meters as things on a checked tablecloth
 // for a mate: a thermos of hot water for the context, the mate for the prompt
 // cache, a plate of medialunas for the five-hour limit, and a pack of yerba for
 // the week. Each has its number underneath in the 3x5 pixel font.
@@ -9,7 +9,7 @@
 // fills up.
 
 import { wordsOf } from '../language'
-import type { FigureScene, Figures } from './index'
+import type { MeterScene, Meters } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the tablecloth, which takes rows 8 and 9.
@@ -145,7 +145,7 @@ const tablecloth = () =>
     )
     .join('')
 
-const mateSvg = (f: Figures) =>
+const mateSvg = (f: Meters) =>
   sceneSvg(
     `${COUNTDOWN_CSS}
     .steam1 { animation: steam 2s steps(4) infinite; }
@@ -168,14 +168,14 @@ const mateSvg = (f: Figures) =>
   ${pack(f.week, SLOT * 3)}`,
   )
 
-// The scene in the compact size, on a row of the tablecloth: the thermos, its
+// The scene in the small size, on a row of the tablecloth: the thermos, its
 // strip of water as full as the context left (no kettle: while compacting the
 // strip fills up); the mate, its steam thinning over the cache's hour, the
 // yerba washed out once it expires; the plate with three medialunas, two, one
 // or crumbs; and the pack of yerba, flatter as the week is used.
 const CENTERS = [4, 15.5, 26, 35.5]
 
-const mateCompact = (f: Figures) => {
+const mateSmall = (f: Meters) => {
   const water = f.isCompacting ? 5 : ([0, 1, 3, 5][stageOf(f.contextLeft)] ?? 0)
   const thermos = `
     <g fill="${STEEL_DARK}">${px(3, 0, 2, 1)}</g>
@@ -227,12 +227,12 @@ const mateCompact = (f: Figures) => {
   )
 }
 
-export const mateScene: FigureScene = {
+export const mateScene: MeterScene = {
   name: 'mate',
   label: wordsOf(t => t.scenes.mate),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
   svg: mateSvg,
-  compact: { svg: mateCompact, centers: CENTERS },
+  small: { svg: mateSmall, centers: CENTERS },
 }

@@ -52,7 +52,7 @@ export const ko: Texts = {
     steampunk: '스팀펑크',
   },
 
-  figures: {
+  meters: {
     none: '데이터 없음',
     expired: '만료됨',
     minutes: (n: number) => `${n}분`,
@@ -60,11 +60,11 @@ export const ko: Texts = {
       `남은 컨텍스트 ${context}, 캐시 ${cache}, 5시간 한도 남은 양 ${fiveHour}, 주간 한도 남은 양 ${week}`,
   },
 
-  paneCommand: '띠의 장면과 언어를 고르는 패널 열기',
+  panelCommand: '띠의 장면과 언어를 고르는 패널 열기',
   sceneCommand: '띠 오른쪽 장면 고르기',
   sceneHint: '[장면]',
-  paneTitle: '장면',
-  paneOpened: '장면 패널을 열었어요.',
+  panelTitle: '장면',
+  panelOpened: '장면 패널을 열었어요.',
   sceneIs: (name: string) => `장면: ${name}.`,
   available: (names: string) => `고를 수 있는 장면: ${names}.`,
   noScene: (name: string) => `"${name}" 장면은 없어요.`,
@@ -80,6 +80,6 @@ export const ko: Texts = {
   use: '사용',
   language: '언어',
   size: '크기',
-  sizes: { compact: '작게', large: '크게' },
+  sizes: { small: '작게', large: '크게' },
   auto: (name: string) => `자동(${name})`,
 }

@@ -1,4 +1,4 @@
-// The window scene: the session's figures as things on a desk by a window at
+// The window scene: the session's meters as things on a desk by a window at
 // night: a candle for the context, the moon crossing the window for the prompt
 // cache, a cup of cocoa for the five-hour limit, and a ball of yarn for the
 // week. Each has its number underneath in the 3x5 pixel font.
@@ -10,7 +10,7 @@
 // back to its full height.
 
 import { wordsOf } from '../language'
-import type { FigureScene, Figures } from './index'
+import type { MeterScene, Meters } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, level, percentText, pixelText, px, refill, REFILL_CSS, rise, RISE_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the desk at y 9.
@@ -198,7 +198,7 @@ const desk = () => `
   <g fill="${DESK}">${px(0, DESK_Y, WIDTH, 1)}</g>
   <g fill="${DESK_DARK}">${px(2, DESK_Y + 1, 1, 1)}${px(WIDTH - 3, DESK_Y + 1, 1, 1)}</g>`
 
-const windowSvg = (f: Figures) =>
+const windowSvg = (f: Meters) =>
   sceneSvg(
     `${COUNTDOWN_CSS}
     ${REFILL_CSS}
@@ -225,7 +225,7 @@ const windowSvg = (f: Figures) =>
   ${yarn(f.week, SLOT * 3)}`,
   )
 
-// The scene in the compact size, on the desk: the candle, as tall as the
+// The scene in the small size, on the desk: the candle, as tall as the
 // context left, a spare one beside it at a quarter or less, growing back
 // while compacting; the window, the moon crossing it over the cache's hour
 // and gone once it expires; the cup of cocoa, its steam thinning with the
@@ -240,7 +240,7 @@ const BALLS: readonly (readonly [number, number, number])[][] = [
   [[2, 32, 34], [3, 31, 35], [4, 31, 35], [5, 31, 35], [6, 32, 34]],
 ]
 
-const windowCompact = (f: Figures) => {
+const windowSmall = (f: Meters) => {
   const wax = f.isCompacting ? 3 : ([0, 1, 2, 3][stageOf(f.contextLeft)] ?? 0)
   const isLow = !f.isCompacting && f.contextLeft !== null && f.contextLeft <= 25
   const top = 6 - wax
@@ -299,12 +299,12 @@ const windowCompact = (f: Figures) => {
   )
 }
 
-export const windowScene: FigureScene = {
+export const windowScene: MeterScene = {
   name: 'window',
   label: wordsOf(t => t.scenes.window),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
   svg: windowSvg,
-  compact: { svg: windowCompact, centers: CENTERS },
+  small: { svg: windowSmall, centers: CENTERS },
 }

@@ -1,4 +1,4 @@
-// The adventure scene: the session's figures as an adventurer's gear on the
+// The adventure scene: the session's meters as an adventurer's gear on the
 // stone floor of a keep: a mana potion for the context, an hourglass for the
 // prompt cache, a chest of gold for the five-hour limit, and a quiver of
 // arrows for the week. Each has its number underneath in the 3x5 pixel font.
@@ -9,7 +9,7 @@
 // potion fills up again, sparkling.
 
 import { wordsOf } from '../language'
-import type { FigureScene, Figures } from './index'
+import type { MeterScene, Meters } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, hourSteps, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the stone floor at y 9.
@@ -140,7 +140,7 @@ const quiver = (used: number | null, x: number) => {
 const floor = () =>
   Array.from({ length: WIDTH / 4 }, (_, i) => `<g fill="${i % 2 === 0 ? STONE : STONE_DARK}">${px(i * 4, FLOOR_Y, 4, 1)}</g>`).join('')
 
-const adventureSvg = (f: Figures) =>
+const adventureSvg = (f: Meters) =>
   sceneSvg(
     `${COUNTDOWN_CSS}
     ${REFILL_CSS}
@@ -167,7 +167,7 @@ const adventureSvg = (f: Figures) =>
   ${quiver(f.week, SLOT * 3)}`,
   )
 
-// The scene in the compact size, on the stone floor: the mana potion, as full
+// The scene in the small size, on the stone floor: the mana potion, as full
 // as the context left, a spare vial beside it at a quarter or less, filling up
 // while compacting; the hourglass, its sand running over the cache's hour;
 // the chest, its heap of gold going with the five-hour limit; and the quiver,
@@ -177,7 +177,7 @@ const CENTERS = [4, 15, 25.5, 35]
 // The potion's inside, row by row from the bottom: [y, first x, last x].
 const SMALL_FLASK: readonly (readonly [number, number, number])[] = [[6, 3, 5], [5, 2, 6], [4, 2, 6], [3, 2, 6], [2, 3, 5]]
 
-const adventureCompact = (f: Figures) => {
+const adventureSmall = (f: Meters) => {
   const mana = f.isCompacting ? 5 : ([0, 1, 3, 5][stageOf(f.contextLeft)] ?? 0)
   const isLow = !f.isCompacting && f.contextLeft !== null && f.contextLeft <= 25
   const inside = (rows: readonly (readonly [number, number, number])[]) => rows.map(([y, a, b]) => px(a, y, b - a + 1, 1)).join('')
@@ -237,12 +237,12 @@ const adventureCompact = (f: Figures) => {
   )
 }
 
-export const adventureScene: FigureScene = {
+export const adventureScene: MeterScene = {
   name: 'adventure',
   label: wordsOf(t => t.scenes.adventure),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
   svg: adventureSvg,
-  compact: { svg: adventureCompact, centers: CENTERS },
+  small: { svg: adventureSmall, centers: CENTERS },
 }

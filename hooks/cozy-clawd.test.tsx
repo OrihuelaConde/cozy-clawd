@@ -1,40 +1,40 @@
 import { expect, mock, test, type TestBody } from 'claude-code/testing'
 
 import { columnsOf, compile } from './raster'
-import { FIGURE_SCENES } from './scenes/index'
+import { METER_SCENES } from './scenes/index'
 
 // What a site's props carry beside its own: where it scrolls, and whose conversation it shows.
 const SITE = { scroll: { offset: 0, bodyRows: 10 }, view: {} }
 
 const BAND = { ...SITE, hasSurvey: false, maxRows: 10, bodyColumns: 120 }
 
-const PANE_PROPS = { ...SITE, title: 'Escenas', isFocused: false, bodyColumns: 40, placement: 'dock' } as const
+const PANEL_PROPS = { ...SITE, title: 'Escenas', isFocused: false, bodyColumns: 40, placement: 'dock' } as const
 
 // The locale of someone who reads Spanish, and of someone who reads English.
 const SPANISH = { LANG: 'es_AR.UTF-8' }
 const ENGLISH = { LANG: 'en_US.UTF-8' }
 
-test('the pane shows every scene on the desktop, the one in use marked', async ($, on) => {
+test('the panel shows every scene on the desktop, the one in use marked', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.env(on, SPANISH)
-  const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
-  expect(await pane.findAll({ type: 'Svg' })).toHaveLength(8)
-  expect(await pane.find({ type: 'Text', text: 'en uso' })).toBeDefined()
-  expect(await pane.find({ key: 'use-shelf' })).toBeUndefined()
+  const panel = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANEL_PROPS })
+  expect(await panel.findAll({ type: 'Svg' })).toHaveLength(8)
+  expect(await panel.find({ type: 'Text', text: 'en uso' })).toBeDefined()
+  expect(await panel.find({ key: 'use-shelf' })).toBeUndefined()
   for (const name of ['mate', 'balcony', 'window', 'adventure', 'gamer', 'cyberpunk', 'steampunk']) {
-    expect(await pane.find({ key: `use-${name}` })).toBeDefined()
+    expect(await panel.find({ key: `use-${name}` })).toBeDefined()
   }
-  await pane.unmount()
+  await panel.unmount()
 })
 
-test('the pane on the terminal says what Clawd does and offers pickers', async ($, on) => {
+test('the panel on the terminal says what Clawd does and offers pickers', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.env(on, SPANISH)
-  const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
-  expect(await pane.find({ type: 'Text', text: 'Esperando' })).toBeDefined()
-  expect((await pane.find({ key: 'scene' }))?.type).toBe('Select')
-  expect((await pane.find({ key: 'language' }))?.type).toBe('Select')
-  await pane.unmount()
+  const panel = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'Pane', requestId: 'clawd', props: PANEL_PROPS })
+  expect(await panel.find({ type: 'Text', text: 'Esperando' })).toBeDefined()
+  expect((await panel.find({ key: 'scene' }))?.type).toBe('Select')
+  expect((await panel.find({ key: 'language' }))?.type).toBe('Select')
+  await panel.unmount()
 })
 
 test('the band shows Clawd on the desktop whether or not a turn runs', async ($, on) => {
@@ -69,11 +69,11 @@ test('the band paints Clawd and the scene in the terminal, and moves them by the
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 160, maxRows: 20, isWorking: true } })
   const clawd = await band.find({ type: 'Raster', key: 'clawd' })
-  const figures = await band.find({ type: 'Raster', key: 'figures' })
+  const meters = await band.find({ type: 'Raster', key: 'meters' })
   const numbers = await band.find({ type: 'Raster', key: 'numbers' })
-  // The compact size: Clawd in quadrants, the shelf in half blocks, its numbers as text under it.
+  // The small size: Clawd in quadrants, the shelf in half blocks, its numbers as text under it.
   expect([clawd?.props.columns, clawd?.props.rows]).toEqual([15, 5])
-  expect([figures?.props.columns, figures?.props.rows]).toEqual([40, 4])
+  expect([meters?.props.columns, meters?.props.rows]).toEqual([40, 4])
   expect([numbers?.props.columns, numbers?.props.rows]).toEqual([40, 1])
   expect(textOf(String(numbers?.props.cells)).split(/ +/).filter(Boolean)).toEqual(['70%', '59m', '--', '--'])
   expect(await band.find({ type: 'Text', text: 'Trabajando en la respuesta…' })).toBeDefined()
@@ -170,39 +170,39 @@ test('the large size draws in the terminal the scenes the desktop shows', async 
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 160, maxRows: 20, isWorking: false } })
   const clawd = await band.find({ type: 'Raster', key: 'clawd' })
-  const figures = await band.find({ type: 'Raster', key: 'figures' })
+  const meters = await band.find({ type: 'Raster', key: 'meters' })
   expect([clawd?.props.columns, clawd?.props.rows]).toEqual([25, 8])
-  expect([figures?.props.columns, figures?.props.rows]).toEqual([64, 9])
+  expect([meters?.props.columns, meters?.props.rows]).toEqual([64, 9])
   expect(await band.find({ type: 'Raster', key: 'numbers' })).toBeUndefined()
   await band.unmount()
 })
 
-test('every scene has a compact drawing, its numbers under it', async ($, on) => {
+test('every scene has a small drawing, its numbers under it', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.store(on)
   mock.env(on, SPANISH)
   for (const name of ['shelf', 'mate', 'balcony', 'window', 'adventure', 'gamer', 'cyberpunk', 'steampunk']) {
-    const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
-    await pane.select({ key: 'scene', value: name })
-    await pane.unmount()
+    const panel = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'Pane', requestId: 'clawd', props: PANEL_PROPS })
+    await panel.select({ key: 'scene', value: name })
+    await panel.unmount()
     const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 160, maxRows: 20, isWorking: false } })
-    const figures = await band.find({ type: 'Raster', key: 'figures' })
-    expect([name, figures?.props.columns, figures?.props.rows]).toEqual([name, 40, 4])
+    const meters = await band.find({ type: 'Raster', key: 'meters' })
+    expect([name, meters?.props.columns, meters?.props.rows]).toEqual([name, 40, 4])
     expect(await band.find({ type: 'Raster', key: 'numbers' })).toBeDefined()
     await band.unmount()
   }
 })
 
-test('a compact scene draws every moment of its figures', () => {
+test('a small scene draws every moment of its meters', () => {
   const moments = [
     { contextLeft: null, cacheLeft: null, fiveHour: null, week: null, cacheTtl: 3600, isCompacting: false },
     { contextLeft: 94, cacheLeft: 2280, fiveHour: 3, week: 15, cacheTtl: 3600, isCompacting: false },
     { contextLeft: 20, cacheLeft: 0, fiveHour: 80, week: 90, cacheTtl: 3600, isCompacting: false },
     { contextLeft: 10, cacheLeft: 600, fiveHour: 100, week: 100, cacheTtl: 3600, isCompacting: true },
   ]
-  for (const scene of FIGURE_SCENES) {
+  for (const scene of METER_SCENES) {
     for (const f of moments) {
-      const picture = compile(scene.compact?.svg(f) ?? '', 'halves')
+      const picture = compile(scene.small?.svg(f) ?? '', 'halves')
       expect([scene.name, picture.columns, picture.rows]).toEqual([scene.name, 40, 4])
       // Something is drawn, and only the characters a cell of pixels takes.
       const codes = cellsOf(picture.paint(1, 0x1f1e1d)).filter((_, i) => i % 3 === 0)
@@ -212,15 +212,15 @@ test('a compact scene draws every moment of its figures', () => {
   }
 })
 
-test('Tamaño in the terminal pane switches the band', async ($, on) => {
+test('Tamaño in the terminal panel switches the band', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.store(on)
   mock.env(on, SPANISH)
-  const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
-  expect((await pane.find({ key: 'size' }))?.props.value).toBe('compact')
-  await pane.select({ key: 'size', value: 'large' })
-  expect((await pane.find({ key: 'size' }))?.props.value).toBe('large')
-  await pane.unmount()
+  const panel = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'Pane', requestId: 'clawd', props: PANEL_PROPS })
+  expect((await panel.find({ key: 'size' }))?.props.value).toBe('small')
+  await panel.select({ key: 'size', value: 'large' })
+  expect((await panel.find({ key: 'size' }))?.props.value).toBe('large')
+  await panel.unmount()
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 160, maxRows: 20, isWorking: false } })
   expect((await band.find({ type: 'Raster', key: 'clawd' }))?.props.rows).toBe(8)
@@ -267,13 +267,13 @@ test('in Hindi the terminal band speaks English, and the desktop band Hindi', as
   await desktop.unmount()
 })
 
-test('a narrow terminal shows Clawd with the figures in words, a narrower one words alone', async ($, on) => {
+test('a narrow terminal shows Clawd with the meters in words, a narrower one words alone', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.env(on, SPANISH)
 
   const narrow = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'AbovePrompt', props: { ...BAND, bodyColumns: 60, isWorking: false } })
   expect(await narrow.find({ type: 'Raster', key: 'clawd' })).toBeDefined()
-  expect(await narrow.find({ type: 'Raster', key: 'figures' })).toBeUndefined()
+  expect(await narrow.find({ type: 'Raster', key: 'meters' })).toBeUndefined()
   expect(await narrow.find({ type: 'Text', text: /^Contexto libre sin datos/ })).toBeDefined()
   await narrow.unmount()
 
@@ -359,20 +359,20 @@ test('/cozy-clawd-scene names the scenes and turns down one that does not exist'
   expect(same.text).toMatch(/ya es shelf/)
 })
 
-test('Usar in the pane switches the band to that scene', async ($, on) => {
+test('Usar in the panel switches the band to that scene', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.store(on)
   mock.env(on, SPANISH)
-  const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
-  await pane.press({ key: 'use-mate' })
-  expect(await pane.find({ key: 'use-mate' })).toBeUndefined()
-  expect(await pane.find({ key: 'use-shelf' })).toBeDefined()
-  await pane.unmount()
+  const panel = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANEL_PROPS })
+  await panel.press({ key: 'use-mate' })
+  expect(await panel.find({ key: 'use-mate' })).toBeUndefined()
+  expect(await panel.find({ key: 'use-shelf' })).toBeDefined()
+  await panel.unmount()
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
-  const figures = (await band.findAll({ type: 'Svg' })).find(svg => String(svg.props.alt).startsWith('Contexto libre'))
+  const meters = (await band.findAll({ type: 'Svg' })).find(svg => String(svg.props.alt).startsWith('Contexto libre'))
   // The mate scene's checked tablecloth.
-  expect(figures?.props.source).toContain('#B5483E')
+  expect(meters?.props.source).toContain('#B5483E')
   await band.unmount()
 })
 
@@ -396,11 +396,11 @@ const typed = (args: string) =>
 const clawdOf = async (band: { findAll: (q: { type: 'Svg' }) => Promise<{ props: { alt?: unknown } }[]> }) =>
   (await band.findAll({ type: 'Svg' })).map(svg => String(svg.props.alt)).find(alt => alt.startsWith('Clawd: '))
 
-// Picks a scene the way the person does: Usar in the pane.
+// Picks a scene the way the person does: Usar in the panel.
 const useScene = async ($: Parameters<TestBody>[0], name: string) => {
-  const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
-  await pane.press({ key: `use-${name}` })
-  await pane.unmount()
+  const panel = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANEL_PROPS })
+  await panel.press({ key: `use-${name}` })
+  await panel.unmount()
 }
 
 // The model beneath the plugins: it answers each request with nothing.
@@ -508,12 +508,12 @@ test('a locale in any language the desktop app shows picks it', async ($, on) =>
   expect((await band.findAll({ type: 'Svg' })).some(svg => String(svg.props.alt).startsWith('空きコンテキスト'))).toBe(true)
   await band.unmount()
 
-  const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
-  expect(await pane.find({ type: 'Text', text: '自動（日本語）' })).toBeDefined()
+  const panel = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANEL_PROPS })
+  expect(await panel.find({ type: 'Text', text: '自動（日本語）' })).toBeDefined()
   for (const lang of ['es', 'en', 'fr', 'de', 'it', 'pt', 'id', 'hi', 'ja', 'ko']) {
-    expect(await pane.find({ key: `language-${lang}` })).toBeDefined()
+    expect(await panel.find({ key: `language-${lang}` })).toBeDefined()
   }
-  await pane.unmount()
+  await panel.unmount()
 })
 
 test('the Language row of /config can name a language in its own words', async ($, on) => {
@@ -554,20 +554,20 @@ test('on macOS with no locale variables, the first of AppleLanguages counts', as
   await band.unmount()
 })
 
-test('a language picked in the pane switches the band', async ($, on) => {
+test('a language picked in the panel switches the band', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.store(on)
   mock.env(on, SPANISH)
   // The pick declares the commands again, their menu lines in the new language.
   on('command.register', ($, e) => ({ value: { command: e.name } }))
 
-  const pane = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANE_PROPS })
-  expect(await pane.find({ type: 'Text', text: 'Automático (Español)' })).toBeDefined()
-  await pane.press({ key: 'language-en' })
-  expect(await pane.find({ key: 'language-en' })).toBeUndefined()
-  expect(await pane.find({ key: 'language-auto' })).toBeDefined()
-  expect(await pane.find({ type: 'Text', text: 'in use' })).toBeDefined()
-  await pane.unmount()
+  const panel = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANEL_PROPS })
+  expect(await panel.find({ type: 'Text', text: 'Automático (Español)' })).toBeDefined()
+  await panel.press({ key: 'language-en' })
+  expect(await panel.find({ key: 'language-en' })).toBeUndefined()
+  expect(await panel.find({ key: 'language-auto' })).toBeDefined()
+  expect(await panel.find({ type: 'Text', text: 'in use' })).toBeDefined()
+  await panel.unmount()
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
   expect(await clawdOf(band)).toBe('Clawd: Waiting')

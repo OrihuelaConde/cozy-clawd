@@ -1,4 +1,4 @@
-// The balcony scene: the session's figures as things on a sunny balcony: a
+// The balcony scene: the session's meters as things on a sunny balcony: a
 // watering can for the context, a daisy in a pot for the prompt cache, a bird
 // feeder for the five-hour limit, and a jar of honey for the week. Each has its
 // number underneath in the 3x5 pixel font.
@@ -9,7 +9,7 @@
 // and the can fills up.
 
 import { wordsOf } from '../language'
-import type { FigureScene, Figures } from './index'
+import type { MeterScene, Meters } from './index'
 import { COUNTDOWN_CSS, countdown, HEIGHT, hops, hourSteps, level, percentText, pixelText, px, refill, REFILL_CSS, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the floor tiles at y 9.
@@ -189,7 +189,7 @@ const railing = () => `
 const floor = () =>
   Array.from({ length: WIDTH / 4 }, (_, i) => `<g fill="${i % 2 === 0 ? TILE : TILE_DARK}">${px(i * 4, FLOOR_Y, 4, 1)}</g>`).join('')
 
-const balconySvg = (f: Figures) =>
+const balconySvg = (f: Meters) =>
   sceneSvg(
     `${COUNTDOWN_CSS}
     ${REFILL_CSS}
@@ -225,7 +225,7 @@ const balconySvg = (f: Figures) =>
   ${honeyJar(f.week, SLOT * 3)}`,
   )
 
-// The scene in the compact size, on the tiles: the watering can, as full as
+// The scene in the small size, on the tiles: the watering can, as full as
 // the context left, a rain cloud over it at a quarter or less that rains into
 // it while compacting; the daisy, upright, nodding, wilting and fallen over
 // the cache's hour; the feeder, its seeds going with the five-hour limit, the
@@ -237,7 +237,7 @@ const CENTERS = [5, 13, 23, 33]
 // then over its lid and back.
 const BEE_PATH: [number, number][] = [[0, 0], [1, 1], [1, 3], [0, 4], [1, 2], [-2, 0], [-4, 0], [-2, 0]]
 
-const balconyCompact = (f: Figures) => {
+const balconySmall = (f: Meters) => {
   const water = f.isCompacting ? 3 : ([0, 1, 2, 3][stageOf(f.contextLeft)] ?? 0)
   const isLow = f.isCompacting || (f.contextLeft !== null && f.contextLeft <= 25)
   const can = `
@@ -297,12 +297,12 @@ const balconyCompact = (f: Figures) => {
   )
 }
 
-export const balconyScene: FigureScene = {
+export const balconyScene: MeterScene = {
   name: 'balcony',
   label: wordsOf(t => t.scenes.balcony),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
   svg: balconySvg,
-  compact: { svg: balconyCompact, centers: CENTERS },
+  small: { svg: balconySmall, centers: CENTERS },
 }

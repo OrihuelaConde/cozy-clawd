@@ -9,7 +9,7 @@ export type ClawdMode =
   | 'compacting'
   | 'compacted'
 
-// The figures the band shows on its right, read after each model request.
+// The meters the band shows on its right, read after each model request.
 export type Stats = {
   // Percent of the context window still free, when the engine has a reading.
   contextLeft: number | null
@@ -23,13 +23,13 @@ export type Stats = {
 // The languages the mod speaks: those the Claude desktop app shows.
 export type Lang = 'es' | 'en' | 'fr' | 'de' | 'it' | 'pt' | 'id' | 'hi' | 'ja' | 'ko'
 
-// The language the person picked in the /cozy-clawd pane, or `auto` to
+// The language the person picked in the /cozy-clawd panel, or `auto` to
 // follow the one Claude Code shows them.
 export type LangChoice = 'auto' | Lang
 
-// How big the band draws its scenes in the terminal: the compact ones, half
+// How big the band draws its scenes in the terminal: the small ones, half
 // the size, or the large ones the desktop app shows.
-export type Size = 'compact' | 'large'
+export type Size = 'small' | 'large'
 
 declare module 'claude-code' {
   interface PluginState {
@@ -43,7 +43,7 @@ declare module 'claude-code' {
       redraws: number
       // The name of the scene the band draws on its right.
       sceneName: string
-      // The language the band, the pane and the commands speak.
+      // The language the band, the panel and the commands speak.
       langChoice: LangChoice
       // How big the band draws its scenes in the terminal.
       sizeName: Size
