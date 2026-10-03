@@ -1,0 +1,15 @@
+{
+  "name": "cozy-clawd",
+  "description": "Cozy Clawd, a Claude Code mod: a pixel-art band above the prompt in the desktop app",
+  "owner": {
+    "name": "OrihuelaConde",
+    "url": "https://github.com/OrihuelaConde"
+  },
+  "plugins": [
+    {
+      "name": "cozy-clawd",
+      "source": "./",
+      "description": "A cozy pixel-art band above the prompt: Clawd acts out what Claude is doing, beside a scene of session figures"
+    }
+  ]
+}

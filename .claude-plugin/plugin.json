@@ -1,7 +1,12 @@
 {
   "name": "cozy-clawd",
+  "displayName": "Cozy Clawd",
   "version": "0.7.0",
   "description": "A cozy pixel-art band above the prompt: Clawd acts out what Claude is doing, beside a scene of session figures",
-  "author": { "name": "OrihuelaConde" },
+  "author": { "name": "OrihuelaConde", "url": "https://github.com/OrihuelaConde" },
+  "homepage": "https://github.com/OrihuelaConde/cozy-clawd",
+  "repository": "https://github.com/OrihuelaConde/cozy-clawd",
+  "license": "MIT",
+  "keywords": ["mod", "pixel-art", "clawd", "desktop", "status"],
   "types": "./types/index.d.ts"
 }
