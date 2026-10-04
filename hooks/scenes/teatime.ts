@@ -1,17 +1,17 @@
 // The teatime scene: one pixel-art object per meter of the session, standing on
 // a wooden shelf, each with its number underneath in a 3x5 pixel font: a mug
-// of tea for the context, a candle for the prompt cache, a cookie jar for the
-// five-hour limit, and a moon lamp for the week. Drawn as one plain SVG image
-// of square pixels.
+// of tea for the context, a clock that times the tea hour for the prompt
+// cache, a cookie jar for the five-hour limit, and a box of tea bags for the
+// week. Drawn as one plain SVG image of square pixels.
 //
 // Everything that moves runs on its own CSS animation, including the cache's
-// candle and minutes, so the band need not be redrawn to keep them current.
+// timer and minutes, so the band need not be redrawn to keep them current.
 // At a quarter of the context or less a teapot stands beside the mug; while
 // the conversation is compacted it pours and the mug fills up again.
 
 import { wordsOf } from '../language'
 import type { MeterScene, Meters } from './index'
-import { countdown, COUNTDOWN_CSS, HEIGHT, INK, level, percentText, pixelText, px, refill, REFILL_CSS, runsLow, SCALE, sceneSvg, SLOT, stageOf, WIDTH } from './pixels'
+import { countdown, COUNTDOWN_CSS, HEIGHT, hourSteps, level, percentText, pixelText, px, refill, REFILL_CSS, runsLow, SCALE, sceneSvg, SLOT, smallSceneSvg, stageOf, WIDTH } from './pixels'
 
 // Objects stand on the shelf, whose top is at y 9; the numbers sit under it.
 const BOARD_Y = 9
@@ -33,28 +33,17 @@ const POT_DARK = '#4F7A8E'
 const POT_LIGHT = '#8DB8CB'
 const BRASS = '#C9A54A'
 const BRASS_DARK = '#9C7E34'
-const WAX = '#EFE6D2'
-const WAX_LIGHT = '#FFF8E8'
-const WAX_SHADE = '#D9CDB4'
-const WICK = '#5A3A24'
-const FLAME = '#F5C26B'
-const FLAME_TIP = '#E8873A'
+const FACE = '#F4EEDC'
+const HAND = '#423D37'
 const GLASS = '#9FB8C4'
 const COOKIE = '#C98B4F'
 const COOKIE_LIGHT = '#DDA468'
 const COOKIE_DARK = '#A06A3A'
 const CHIP = '#5A3A24'
-const MOON = '#F2E9C9'
-const MOON_DARK = '#3A3934'
-const STAR = '#F5C26B'
-
-// A round blob of pixels: those whose centers lie within `r` of pixel (cx, cy).
-const blob = (cx: number, cy: number, r: number) =>
-  Array.from({ length: 2 * Math.floor(r) + 1 }, (_, i) => {
-    const dy = i - Math.floor(r)
-    const half = Math.floor(Math.sqrt(r * r - dy * dy))
-    return px(cx - half, cy + dy, 2 * half + 1, 1)
-  }).join('')
+const BOX = '#5E8C6A'
+const BOX_DARK = '#46705A'
+const BAG = '#EFE3C8'
+const BAG_DARK = '#D9C9A8'
 
 // The shelf: a board with a little grain on two iron brackets, a row clear
 // of the numbers.
@@ -111,58 +100,68 @@ const mug = (left: number | null, x: number, isCompacting: boolean) => {
     ${pixelText(left === null ? '--' : `${left}%`, x)}`
 }
 
-// How many rows of wax the candle has, and how many it burns down in steps
-// over the cache's life: five, so that with 100, 75, 50, 25 and 10 percent of
-// it left it stands at five different heights.
-const WAX_ROWS = 6
-const BURN = 5
+// The timer's disc goes by in eighths of the cache's life.
+const EIGHTHS = 8
 
-// A brass candleholder: a foot and a cup.
-const holder = (x: number) => `
-  <g fill="${BRASS_DARK}">${px(x + 4, 8, 7, 1)}</g>
-  <g fill="${BRASS}">${px(x + 5, 7, 5, 1)}${px(x + 5, 8, 2, 1)}</g>`
+// A brass clock's case and cream face, nine pixels across, centered on
+// (cx, cy), with the marks at twelve, three, six and nine.
+const clockFace = (cx: number, cy: number) => `
+  <g fill="${BRASS}">${px(cx - 1, cy - 4, 3, 1)}${px(cx - 2, cy - 3)}${px(cx - 3, cy - 2)}${px(cx - 4, cy - 1, 1, 3)}${px(cx - 3, cy + 2)}${px(cx - 2, cy + 3)}${px(cx + 2, cy - 3)}${px(cx + 3, cy - 2)}</g>
+  <g fill="${BRASS_DARK}">${px(cx + 4, cy - 1, 1, 3)}${px(cx + 3, cy + 2)}${px(cx + 2, cy + 3)}${px(cx - 1, cy + 4, 3, 1)}${px(cx, cy - 5)}${px(cx - 3, cy + 5, 7, 1)}</g>
+  <g fill="${FACE}">${px(cx - 1, cy - 3, 3, 1)}${px(cx - 2, cy - 2, 5, 1)}${px(cx - 3, cy - 1, 7, 3)}${px(cx - 2, cy + 2, 5, 1)}${px(cx - 1, cy + 3, 3, 1)}</g>
+  <g fill="${CERAMIC_DARK}">${px(cx, cy - 3)}${px(cx + 3, cy)}${px(cx, cy + 3)}${px(cx - 3, cy)}</g>`
 
-// A candle in its holder, rows of wax from `top` down to the cup, lit from
-// the left; a tall one has a drip running from its rim down its shaded side.
-const wax = (x: number, top: number) => `
-  <g fill="${WAX}">${px(x + 6, top, 3, 7 - top)}</g>
-  ${top < 4 ? `<g fill="${WAX_SHADE}">${px(x + 8, top + 3, 1, 4 - top)}</g>` : ''}
-  <g fill="${WAX_LIGHT}">${px(x + 6, top, 1, 7 - top)}${px(x + 7, top, 2, 1)}</g>`
+// The face's pixels, as [row, first column, last column] from its center:
+// seven across in the large size, five in the small one.
+type FaceRows = readonly (readonly [number, number, number])[]
+const FACE_ROWS: FaceRows = [[-3, -1, 1], [-2, -2, 2], [-1, -3, 3], [0, -3, 3], [1, -3, 3], [2, -2, 2], [3, -1, 1]]
+const SMALL_FACE_ROWS: FaceRows = [[-2, -1, 1], [-1, -2, 2], [0, -2, 2], [1, -2, 2], [2, -1, 1]]
 
-// A warm glow around the top of the candle, small enough that a whole
-// candle's glow fits under the top of the scene.
-const glow = (x: number, y: number) => `
-  <g fill="${FLAME}" opacity="0.08">${blob(x, y, 3)}</g>
-  <g fill="${FLAME}" opacity="0.08">${blob(x, y, 2)}</g>`
+// What is left of the tea hour on a face, as a timer's colored disc: the
+// pixels at or past `from` (a share of the hour, clockwise from twelve) round
+// to twelve, the center aside.
+const timeLeft = (rows: FaceRows, cx: number, cy: number, from: number) =>
+  `<g fill="${STRIPE}">${rows
+    .flatMap(([dy, a, b]) =>
+      Array.from({ length: b - a + 1 }, (_, k) => a + k)
+        .filter(dx => (dx !== 0 || dy !== 0) && ((Math.atan2(dx, -dy) / (2 * Math.PI) + 1) % 1) >= from - 1e-9)
+        .map(dx => px(cx + dx, cy + dy)),
+    )
+    .join('')}</g>`
 
-// Cache: a candle in a brass holder that burns down by itself over the
-// cache's hour, glowing around its flame, and is out, with a wisp of smoke,
-// once the cache has expired.
-const candle = (left: number | null, ttl: number, x: number) => {
-  const top = 7 - WAX_ROWS
+// Cache: the hour of tea on a brass clock that works as a timer. While the
+// cache lives a colored disc on its face shows the time left, an eighth of
+// it going by itself at each eighth of the cache's life, clockwise from
+// twelve; once the cache expires the face is bare and says six: the tea hour
+// is over. Before the first answer the disc is whole.
+const clock = (left: number | null, ttl: number, x: number) => {
+  const cx = x + 7
+  const cy = 3
+  const pin = `<g fill="${HAND}">${px(cx, cy)}</g>`
   if (left === null) {
-    return `${holder(x)}${wax(x, top)}<g fill="${WICK}">${px(x + 7, top - 1)}</g>${pixelText('--', x)}`
+    return `${clockFace(cx, cy)}${timeLeft(FACE_ROWS, cx, cy, 0)}${pin}${pixelText('--', x)}`
   }
   if (left <= 0) {
-    return `
-      ${holder(x)}${wax(x, 6)}<g fill="${WICK}">${px(x + 7, 5)}</g>
-      <g class="smoke" fill="${INK}" opacity="0.5">${px(x + 7, 3)}${px(x + 8, 2)}${px(x + 7, 1)}</g>
-      ${pixelText('0m', x)}`
+    return `${clockFace(cx, cy)}<g fill="${HAND}">${px(cx, cy - 2, 1, 5)}</g>${pixelText('0m', x)}`
   }
   const timing = `animation-duration: ${ttl}s; animation-delay: -${ttl - left}s`
   return `
-    <g class="sink" style="${timing}">${glow(x + 7, top)}</g>
-    ${holder(x)}
-    <g class="burn" style="${timing}">${wax(x, top)}</g>
-    <g class="sink" style="${timing}">
-      <g fill="${WICK}">${px(x + 7, top - 1)}</g>
-      <g class="flame">
-        <g fill="${FLAME}">${px(x + 7, top - 2)}</g>
-        <g fill="${FLAME_TIP}">${px(x + 7, top - 3)}</g>
-      </g>
-    </g>
+    ${clockFace(cx, cy)}
+    ${Array.from({ length: EIGHTHS }, (_, i) => `<g class="e${i}" style="${timing}">${timeLeft(FACE_ROWS, cx, cy, i / EIGHTHS)}</g>`).join('')}
+    ${pin}
     ${countdown(left, x)}`
 }
+
+// The keyframes that show each eighth of the timer's disc going for its
+// eighth of the cache's life, the last one to the end.
+const EIGHTHS_CSS = Array.from({ length: EIGHTHS }, (_, i) => {
+  const from = (i * 100) / EIGHTHS
+  const to = ((i + 1) * 100) / EIGHTHS
+  const shown = i === EIGHTHS - 1 ? `${from}%, 100% { opacity: 1; }` : `${from}%, ${to - 0.1}% { opacity: 1; } ${to}%, 100% { opacity: 0; }`
+  return `
+    .e${i} { animation-name: e${i}; animation-timing-function: steps(1); animation-fill-mode: forwards; }
+    @keyframes e${i} { ${i === 0 ? '' : `0%, ${from - 0.1}% { opacity: 0; } `}${shown} }`
+}).join('')
 
 // Where each cookie sits in the jar, by its top left corner, the last one
 // eaten first: two on the bottom, one on them, and two on top.
@@ -192,28 +191,22 @@ const jar = (used: number | null, x: number) => {
     ${percentText(left, x)}`
 }
 
-// The moon's disc, seven pixels across, as [row, first column, last column].
-const DISC: [number, number, number][] = [[1, 6, 8], [2, 5, 9], [3, 4, 10], [4, 4, 10], [5, 4, 10], [6, 5, 9], [7, 6, 8]]
+// Where each tea bag stands in the box, by its left column, the last one
+// taken first.
+const BAGS = [3, 6, 9]
 
-// Weekly limit: a moon lamp on a wooden base that wanes from full to new as
-// the week's limit is used, its glow shrinking with it, a star twinkling
-// beside it.
-const moonLamp = (used: number | null, x: number) => {
+// Weekly limit: a box of tea bags, their tops showing over its rim and their
+// tags hanging down its front, fewer as the week's limit is used.
+const teaBox = (used: number | null, x: number) => {
   const left = used === null ? null : 100 - used
-  const lit = level(left, 7)
-  const firstLit = 11 - lit
-  const part = (from: number, to: number) =>
-    DISC.map(([y, a, b]) => (Math.min(b, to) >= Math.max(a, from) ? px(x + Math.max(a, from), y, Math.min(b, to) - Math.max(a, from) + 1, 1) : '')).join('')
-  const halo = lit > 0
-    ? `<g fill="${MOON}" opacity="0.06">${blob(x + 7, 4, 4 + (1.6 * lit) / 7)}</g>
-       <g fill="${MOON}" opacity="${((0.08 * lit) / 7).toFixed(3)}">${blob(x + 7, 4, 4.6)}</g>`
-    : ''
+  const bags = BAGS.slice(0, level(left, BAGS.length))
   return `
-    ${halo}
-    <g fill="${MOON_DARK}">${part(4, firstLit - 1)}</g>
-    <g fill="${MOON}">${part(firstLit, 10)}</g>
-    <g fill="${WOOD}">${px(x + 5, 8, 5, 1)}</g><g fill="${IRON}">${px(x + 10, 8, 3, 1)}</g>
-    <g class="star" fill="${STAR}">${px(x + 13, 1)}</g>
+    <g fill="${INSIDE}">${px(x + 3, 2, 9, 1)}</g>
+    ${bags.map((dx, i) => `<g fill="${i % 2 === 0 ? BAG : BAG_DARK}">${px(x + dx, i === 1 ? 0 : 1, 3, i === 1 ? 3 : 2)}</g><g fill="${STRING}">${px(x + dx + 1, i === 1 ? -1 : 0)}</g>`).join('')}
+    <g fill="${BOX}">${px(x + 2, 3, 11, 6)}</g>
+    <g fill="${BOX_DARK}">${px(x + 2, 3, 11, 1)}${px(x + 2, 8, 11, 1)}</g>
+    <g fill="${STRING}">${bags.map(dx => px(x + dx + 1, 4)).join('')}</g>
+    <g fill="${TAG}">${bags.map(dx => px(x + dx + 1, 5, 1, 2)).join('')}</g>
     ${percentText(left, x)}`
 }
 
@@ -229,21 +222,13 @@ const teatimeSvg = (f: Meters) =>
     @keyframes lift { from { transform: translate(0, -2px); } to { transform: translate(0, 0); } }
     .pour { animation: pour 2s steps(1) both; }
     @keyframes pour { from { opacity: 1; } to { opacity: 0; } }
-    .burn { animation-name: burn; animation-timing-function: steps(${BURN}); animation-fill-mode: forwards; }
-    .sink { animation-name: sink; animation-timing-function: steps(${BURN}); animation-fill-mode: forwards; }
-    @keyframes burn { from { transform: translate(0, 0); clip-path: inset(0 0 0 0); } to { transform: translate(0, 0); clip-path: inset(${BURN}px 0 0 0); } }
-    @keyframes sink { from { transform: translate(0, 0); } to { transform: translate(0, ${BURN}px); } }
-    .flame { animation: flicker 0.6s steps(1) infinite; }
-    @keyframes flicker { 0%, 49.9% { transform: translate(0, 0); } 50%, 74.9% { transform: translate(0, 0.5px); } 75%, 100% { transform: translate(0, -0.5px); } }
-    .smoke { animation: steam 2.4s steps(4) infinite; }
-    .star { animation: twinkle 2.2s steps(1) infinite; }
-    @keyframes twinkle { 0%, 69.9% { opacity: 1; } 70%, 84.9% { opacity: 0.2; } 85%, 100% { opacity: 1; } }`,
+    ${EIGHTHS_CSS}`,
     `
   ${shelf()}
   ${mug(f.contextLeft, 0, f.isCompacting)}
-  ${candle(f.cacheLeft, f.cacheTtl, SLOT)}
+  ${clock(f.cacheLeft, f.cacheTtl, SLOT)}
   ${jar(f.fiveHour, SLOT * 2)}
-  ${moonLamp(f.week, SLOT * 3)}`,
+  ${teaBox(f.week, SLOT * 3)}`,
   )
 
 // The scene in the small size, eight pixels tall: the same four objects
@@ -266,24 +251,16 @@ const smallTeatimeSvg = (f: Meters) => {
     <g fill="${STRIPE}">${px(1, 4)}${px(6, 4)}</g>
     ${isWarm ? `<g fill="${CERAMIC}" opacity="0.6"><g class="steam1">${px(3, 1)}</g><g class="steam2">${px(5, 1)}</g></g>` : ''}`
 
-  const left = f.cacheLeft
-  const holder = `<g fill="${BRASS}">${px(14, 5, 5, 1)}</g><g fill="${BRASS_DARK}">${px(13, 6, 7, 1)}</g>`
-  const waxRows = (top: number) => `
-    <g fill="${WAX}">${px(15, top, 3, 5 - top)}</g>
-    <g fill="${WAX_LIGHT}">${px(15, top, 1, 5 - top)}</g>
-    <g fill="${WAX_SHADE}">${px(17, top, 1, 5 - top)}</g>`
-  const timing = left === null ? '' : `animation-duration: ${f.cacheTtl}s; animation-delay: -${f.cacheTtl - left}s`
-  const candle =
-    left === null
-      ? `${holder}${waxRows(2)}<g fill="${WICK}">${px(16, 1)}</g>`
-      : left <= 0
-        ? `${holder}${waxRows(4)}<g fill="${WICK}">${px(16, 3)}</g><g class="smoke" fill="${INK}" opacity="0.5">${px(16, 2)}</g>`
-        : `${holder}
-          <g class="burn" style="${timing}">${waxRows(2)}</g>
-          <g class="sink" style="${timing}">
-            <g fill="${FLAME}">${px(16, 1)}</g>
-            <g class="flame" fill="${FLAME_TIP}">${px(16, 0)}</g>
-          </g>`
+  // The clock: its disc whole before the first answer, then half and a
+  // quarter of it as the cache's life goes by, and a bare face at six once it
+  // expires.
+  const face = `
+    <g fill="${BRASS}">${px(15, 0, 3, 1)}${px(14, 1)}${px(13, 2, 1, 3)}${px(14, 5)}${px(18, 1)}</g>
+    <g fill="${BRASS_DARK}">${px(19, 2, 1, 3)}${px(18, 5)}${px(15, 6, 3, 1)}</g>
+    <g fill="${FACE}">${px(15, 1, 3, 1)}${px(14, 2, 5, 3)}${px(15, 5, 3, 1)}</g>`
+  const timer = (from: number) => `${face}${timeLeft(SMALL_FACE_ROWS, 16, 3, from)}<g fill="${HAND}">${px(16, 3)}</g>`
+  const atSix = `${face}<g fill="${HAND}">${px(16, 1, 1, 5)}</g>`
+  const clock = f.cacheLeft === null ? timer(0) : hourSteps(f, [timer(0), timer(0.5), timer(0.75)], atSix)
 
   const fiveLeft = f.fiveHour === null ? null : 100 - f.fiveHour
   const count = [0, 1, 3, 5][stageOf(fiveLeft)] ?? 0
@@ -298,39 +275,26 @@ const smallTeatimeSvg = (f: Meters) => {
     <g fill="${WOOD_DARK}">${px(24, 2, 6, 1)}</g><g fill="${WOOD}">${px(25, 1, 4, 1)}</g>`
 
   const weekLeft = f.week === null ? null : 100 - f.week
-  const lit = [0, 1, 3, 5][stageOf(weekLeft)] ?? 0
-  const disc: [number, number, number][] = [[1, 35, 37], [2, 34, 38], [3, 34, 38], [4, 34, 38], [5, 35, 37]]
-  const part = (from: number, to: number) =>
-    disc.map(([y, a, b]) => (Math.min(b, to) >= Math.max(a, from) ? px(Math.max(a, from), y, Math.min(b, to) - Math.max(a, from) + 1, 1) : '')).join('')
-  const moon = `
-    <g fill="${MOON_DARK}">${part(34, 38 - lit)}</g>
-    <g fill="${MOON}">${part(39 - lit, 38)}</g>
-    <g fill="${WOOD}">${px(34, 6, 5, 1)}</g>
-    <g class="star" fill="${STAR}">${px(39, 1)}</g>`
+  const bags = [35, 37, 36].slice(0, [0, 1, 2, 3][stageOf(weekLeft)] ?? 0)
+  const box = `
+    <g fill="${INSIDE}">${px(34, 2, 5, 1)}</g>
+    <g fill="${BAG}">${bags.map(x => px(x, x === 36 ? 1 : 2, 1, x === 36 ? 2 : 1)).join('')}</g>
+    <g fill="${BOX}">${px(33, 3, 7, 4)}</g>
+    <g fill="${BOX_DARK}">${px(33, 3, 7, 1)}</g>
+    <g fill="${STRING}">${bags.map(x => px(x, 4)).join('')}</g>
+    <g fill="${TAG}">${bags.map(x => px(x, 5)).join('')}</g>`
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 8" shape-rendering="crispEdges">
-  <style>
-    g { transform-box: view-box; }
+  return smallSceneSvg(
+    `
     .steam1 { animation: steam 2s steps(1) infinite; }
     .steam2 { animation: steam 2s steps(1) -1s infinite; }
     @keyframes steam { 0%, 24.9% { opacity: 0; transform: translate(0, 0); } 25%, 49.9% { opacity: 1; transform: translate(0, 0); } 50%, 74.9% { opacity: 1; transform: translate(0, -1px); } 75%, 100% { opacity: 0; } }
     .refill { animation: refill 2s steps(4) both; }
-    @keyframes refill { from { clip-path: inset(4px 0 0 0); } to { clip-path: inset(0 0 0 0); } }
-    .burn { animation-name: burn; animation-timing-function: steps(1); animation-fill-mode: forwards; }
-    .sink { animation-name: sink; animation-timing-function: steps(1); animation-fill-mode: forwards; }
-    @keyframes burn { 0%, 49.9% { clip-path: inset(0 0 0 0); } 50%, 74.9% { clip-path: inset(1px 0 0 0); } 75%, 100% { clip-path: inset(2px 0 0 0); } }
-    @keyframes sink { 0%, 49.9% { transform: translate(0, 0); } 50%, 74.9% { transform: translate(0, 1px); } 75%, 100% { transform: translate(0, 2px); } }
-    .flame { animation: flicker 0.9s steps(1) infinite; }
-    @keyframes flicker { 0%, 66.9% { opacity: 1; } 67%, 100% { opacity: 0; } }
-    .smoke { animation: smoke 1.8s steps(1) infinite; }
-    @keyframes smoke { 0%, 32.9% { transform: translate(0, 0); } 33%, 65.9% { transform: translate(1px, -1px); } 66%, 100% { transform: translate(0, -2px); } }
-    .star { animation: twinkle 2.2s steps(1) infinite; }
-    @keyframes twinkle { 0%, 69.9% { opacity: 1; } 70%, 100% { opacity: 0; } }
-  </style>
-  <g fill="${WOOD}">${px(0, 7, 40, 1)}</g>
-  <g fill="${GRAIN}">${[3, 12, 17, 26, 33, 38].map(x => px(x, 7)).join('')}</g>
-  ${mug}${candle}${jar}${moon}
-</svg>`
+    @keyframes refill { from { clip-path: inset(4px 0 0 0); } to { clip-path: inset(0 0 0 0); } }`,
+    `<g fill="${WOOD}">${px(0, 7, 40, 1)}</g>
+    <g fill="${GRAIN}">${[3, 12, 17, 26, 33, 38].map(x => px(x, 7)).join('')}</g>
+    ${mug}${clock}${jar}${box}`,
+  )
 }
 
 export const teatimeScene: MeterScene = {

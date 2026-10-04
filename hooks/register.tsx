@@ -936,10 +936,10 @@ async function statsNow($: EngineInterface): Promise<Stats> {
   return { ...NO_STATS, ...(await read($, stats)) }
 }
 
-// The cache's candle and minutes run down by themselves, and the meters of
+// The cache's figure and minutes run down by themselves, and the meters of
 // the usage limits stay as they were read; the band is drawn again only as
 // the cache runs out (when Clawd starts to fret, when it yawns, and when the
-// cache expires, to put the candle out) and as a limit's window starts over.
+// cache expires, to show it gone) and as a limit's window starts over.
 // After a hot reload, which cancels the old module's timers, they are
 // scheduled again from the state, which stays.
 let statTimers: Timer[] = []

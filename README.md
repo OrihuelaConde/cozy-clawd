@@ -135,7 +135,7 @@ Replace `SCENE_NAME` with the name of a scene, such as `balcony`. To see the cur
 
 <table>
   <tr>
-    <td align="center"><a href="docs/scenes.md#teatime"><img src="docs/images/scenes/teatime.gif" width="288" alt="A mug of tea, a candle in a brass holder, a cookie jar, and a moon lamp on a wooden shelf"></a><br><b>Teatime</b> <code>teatime</code> (default)</td>
+    <td align="center"><a href="docs/scenes.md#teatime"><img src="docs/images/scenes/teatime.gif" width="288" alt="A mug of tea, a brass clock with an orange timer disc, a cookie jar, and a box of tea bags on a wooden shelf"></a><br><b>Teatime</b> <code>teatime</code> (default)</td>
     <td align="center"><a href="docs/scenes.md#mate"><img src="docs/images/scenes/mate.gif" width="288" alt="A thermos, a mate, a plate of medialunas, and a pack of yerba on a sky blue and white checked tablecloth"></a><br><b>Mate</b> <code>mate</code></td>
   </tr>
   <tr>

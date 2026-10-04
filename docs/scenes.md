@@ -38,11 +38,11 @@ The scene names stay the same in every language. In a terminal's small size, eac
 
 ## Teatime
 
-<img src="images/scenes/teatime.gif" width="432" alt="A mug of tea, a candle in a brass holder, a cookie jar, and a moon lamp on a wooden shelf">
+<img src="images/scenes/teatime.gif" width="432" alt="A mug of tea, a brass clock with an orange timer disc, a cookie jar, and a box of tea bags on a wooden shelf">
 
 **Name:** `teatime`, the default scene.
 
-A wooden shelf on iron brackets. A mug of tea shows the context left; at 25% or less it stops steaming and a teapot stands beside it, and while the conversation is compacted the teapot pours and the mug fills up again. A candle in a brass holder burns down as the prompt cache runs out, and goes out when the cache expires. A cookie jar holds a cookie for every fifth of the five-hour limit left, and crumbs once only a couple remain. A moon lamp wanes, its glow shrinking, as you use the weekly limit.
+A wooden shelf on iron brackets. A mug of tea shows the context left; at 25% or less it stops steaming and a teapot stands beside it, and while the conversation is compacted the teapot pours and the mug fills up again. A brass clock times the tea hour: an orange disc on its face shrinks clockwise as the prompt cache runs out, and when the cache expires the face is bare, its hands at six. A cookie jar holds a cookie for every fifth of the five-hour limit left, and crumbs once only a couple remain. A box of tea bags empties, a bag at a time, as you use the weekly limit.
 
 ## Mate
 
