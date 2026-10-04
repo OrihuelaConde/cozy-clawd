@@ -1,4 +1,4 @@
-// The shelf scene: one pixel-art object per meter of the session, standing on
+// The teatime scene: one pixel-art object per meter of the session, standing on
 // a wooden shelf, each with its number underneath in a 3x5 pixel font: a mug
 // of tea for the context, a candle for the prompt cache, a cookie jar for the
 // five-hour limit, and a moon lamp for the week. Drawn as one plain SVG image
@@ -217,7 +217,7 @@ const moonLamp = (used: number | null, x: number) => {
     ${percentText(left, x)}`
 }
 
-const shelfSvg = (f: Meters) =>
+const teatimeSvg = (f: Meters) =>
   sceneSvg(
     `${COUNTDOWN_CSS}
     ${REFILL_CSS}
@@ -246,11 +246,11 @@ const shelfSvg = (f: Meters) =>
   ${moonLamp(f.week, SLOT * 3)}`,
   )
 
-// The shelf in the small size, eight pixels tall: the same four objects
+// The scene in the small size, eight pixels tall: the same four objects
 // drawn small, four pixels apart, on the board at the bottom. Each shows
 // four steps of its meter: more than half, down to half, down to a quarter,
 // and nothing. No teapot: the mug alone fills up while compacting.
-const smallShelfSvg = (f: Meters) => {
+const smallTeatimeSvg = (f: Meters) => {
   const tea = [0, 1, 2, 4][stageOf(f.contextLeft)] ?? 0
   const isWarm = f.isCompacting || !runsLow(f.contextLeft)
   const mugTea = f.isCompacting
@@ -333,12 +333,12 @@ const smallShelfSvg = (f: Meters) => {
 </svg>`
 }
 
-export const shelfScene: MeterScene = {
-  name: 'shelf',
-  label: wordsOf(t => t.scenes.shelf),
+export const teatimeScene: MeterScene = {
+  name: 'teatime',
+  label: wordsOf(t => t.scenes.teatime),
   width: WIDTH,
   height: HEIGHT,
   scale: SCALE,
-  svg: shelfSvg,
-  small: { svg: smallShelfSvg, centers: [4.5, 16, 26.5, 36] },
+  svg: teatimeSvg,
+  small: { svg: smallTeatimeSvg, centers: [4.5, 16, 26.5, 36] },
 }

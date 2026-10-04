@@ -32,15 +32,15 @@ To choose a scene, do one of the following:
 
   Replace `SCENE_NAME` with the name of a scene on this page, such as `balcony`. To see the current scene and the names available, run `/cozy-clawd-scene` with no name.
 
-The band switches to the new scene at once, and later sessions start with it. Until you choose a scene, the band shows `shelf`.
+The band switches to the new scene at once, and later sessions start with it. Until you choose a scene, the band shows `teatime`.
 
 The scene names stay the same in every language. In a terminal's small size, each scene has a smaller drawing of its own; for more information, see [Choose the size](terminal.md#choose-the-size).
 
-## Shelf
+## Teatime
 
-<img src="images/scenes/shelf.gif" width="432" alt="A mug of tea, a candle in a brass holder, a cookie jar, and a moon lamp on a wooden shelf">
+<img src="images/scenes/teatime.gif" width="432" alt="A mug of tea, a candle in a brass holder, a cookie jar, and a moon lamp on a wooden shelf">
 
-**Name:** `shelf`, the default scene.
+**Name:** `teatime`, the default scene.
 
 A wooden shelf on iron brackets. A mug of tea shows the context left; at 25% or less it stops steaming and a teapot stands beside it, and while the conversation is compacted the teapot pours and the mug fills up again. A candle in a brass holder burns down as the prompt cache runs out, and goes out when the cache expires. A cookie jar holds a cookie for every fifth of the five-hour limit left, and crumbs once only a couple remain. A moon lamp wanes, its glow shrinking, as you use the weekly limit.
 

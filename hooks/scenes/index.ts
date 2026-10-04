@@ -9,7 +9,7 @@ import { gamerScene } from './gamer'
 import { TEXTS, type Lang, type Words } from '../language'
 import { minutesLeft } from './pixels'
 import { mateScene } from './mate'
-import { shelfScene } from './shelf'
+import { teatimeScene } from './teatime'
 import { steampunkScene } from './steampunk'
 import { windowScene } from './window'
 
@@ -46,9 +46,9 @@ export type MeterScene = {
   small?: { svg: (f: Meters) => string; centers: readonly number[] }
 }
 
-export const METER_SCENES: readonly MeterScene[] = [shelfScene, mateScene, balconyScene, windowScene, adventureScene, gamerScene, cyberpunkScene, steampunkScene]
+export const METER_SCENES: readonly MeterScene[] = [teatimeScene, mateScene, balconyScene, windowScene, adventureScene, gamerScene, cyberpunkScene, steampunkScene]
 
-export const DEFAULT_METER_SCENE = shelfScene
+export const DEFAULT_METER_SCENE = teatimeScene
 
 // The scene a stored name names; the default for one no scene has.
 export const meterSceneNamed = (name: unknown) => METER_SCENES.find(s => s.name === name) ?? DEFAULT_METER_SCENE

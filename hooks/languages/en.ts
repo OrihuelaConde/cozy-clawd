@@ -46,7 +46,7 @@ export const en = {
 
   // The scenes of meters, by the names the picker shows.
   scenes: {
-    shelf: 'Shelf',
+    teatime: 'Teatime',
     mate: 'Mate',
     balcony: 'Balcony',
     window: 'Night window',

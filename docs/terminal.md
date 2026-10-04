@@ -19,7 +19,7 @@ In a terminal, the band comes in two sizes:
 | Small, the default | 5 | 75 | Clawd as Claude Code draws it on its welcome screen, four pixels to a character cell, beside a smaller drawing of the scene, two pixels to a cell, with the meters' numbers in plain text under it. |
 | Large | 9 | 109 | The scenes the desktop app shows, two pixels to a character cell. |
 
-The small drawings are simpler than the large ones. Each meter shows four steps: more than half left, half or less, a quarter or less, and nothing. A few extras of the large drawings don't fit, such as the shelf's teapot and the mate's kettle.
+The small drawings are simpler than the large ones. Each meter shows four steps: more than half left, half or less, a quarter or less, and nothing. A few extras of the large drawings don't fit, such as the teatime scene's teapot and the mate's kettle.
 
 To choose the size, open the `/cozy-clawd` panel in a terminal and select **Small** or **Large** in the **Size** picker. The band switches at once, and later sessions start with the size you chose. The desktop app always shows the large size.
 
@@ -31,7 +31,7 @@ If the terminal is too narrow or too short for Clawd and the meters side by side
 
 ## Get true colors in Windows Terminal
 
-In Windows Terminal, Claude Code can paint the band in fewer colors than the scenes use, so the colors shift: the wood of the shelf turns olive, for example. To have Claude Code paint in 24-bit color, set the `FORCE_COLOR` environment variable to `3` before you start it. In PowerShell, run the following command:
+In Windows Terminal, Claude Code can paint the band in fewer colors than the scenes use, so the colors shift: the wood of the teatime scene's shelf turns olive, for example. To have Claude Code paint in 24-bit color, set the `FORCE_COLOR` environment variable to `3` before you start it. In PowerShell, run the following command:
 
 ```powershell
 $env:FORCE_COLOR = '3'; claude

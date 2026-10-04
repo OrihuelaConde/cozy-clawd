@@ -20,7 +20,7 @@ In the code, the scenes that draw the four meters on the right of the band are *
 | `hooks/languages/` | The mod's texts, one file per language. `en.ts` sets the texts every language has. |
 | `hooks/scenes/index.ts` | The meter scenes, in the order the panel offers them, and the meters in words. |
 | `hooks/scenes/pixels.ts` | What the meter scenes share: their layout, the pixel font of the numbers, the cache's countdown, and the refill while compacting. |
-| `hooks/scenes/NAME.ts` | One file per meter scene, named after it, such as `shelf.ts`. For what each scene draws, see [Scenes](docs/scenes.md). |
+| `hooks/scenes/NAME.ts` | One file per meter scene, named after it, such as `teatime.ts`. For what each scene draws, see [Scenes](docs/scenes.md). |
 | `hooks/*.test.tsx` | Tests that run against the engine: the band and the panel in `cozy-clawd.test.tsx`, what Clawd shows as a session moves on in `clawd.test.tsx`, the meters in `meters.test.tsx`, and how the terminal paints and lays out the band in `terminal.test.tsx`. |
 | `types/index.d.ts` | The contract for the values the mod keeps in the session's state. |
 | `.claude-plugin/plugin.json` | The plugin's manifest. |

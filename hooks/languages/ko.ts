@@ -42,7 +42,7 @@ export const ko: Texts = {
   },
 
   scenes: {
-    shelf: '선반',
+    teatime: '티타임',
     mate: '마테',
     balcony: '발코니',
     window: '밤의 창가',

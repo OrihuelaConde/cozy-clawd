@@ -228,12 +228,14 @@ const windowSvg = (f: Meters) =>
 // context left, a spare one beside it at a quarter or less, growing back
 // while compacting; the window, the moon crossing it over the cache's life
 // and gone once it expires; the cup of cocoa, its steam thinning with the
-// five-hour limit; and the ball of yarn, smaller as the week is used.
+// five-hour limit; and the ball of yarn, two needles stuck in it, smaller as
+// the week is used, the needles lying on the desk once it's gone.
 const CENTERS = [3, 13, 24, 33]
 
-// The ball of yarn at each step, as [row, first column, last column].
+// The ball of yarn at each step, as [row, first column, last column]: once
+// it's gone, the end of the yarn beside the needles.
 const BALLS: readonly (readonly [number, number, number])[][] = [
-  [[6, 31, 35]],
+  [[6, 35, 37]],
   [[4, 32, 34], [5, 32, 34], [6, 32, 34]],
   [[3, 32, 34], [4, 31, 35], [5, 31, 35], [6, 32, 34]],
   [[2, 32, 34], [3, 31, 35], [4, 31, 35], [5, 31, 35], [6, 32, 34]],
@@ -276,11 +278,18 @@ const windowSmall = (f: Meters) => {
 
   const weekLeft = f.week === null ? null : 100 - f.week
   const rows = BALLS[stageOf(weekLeft)] ?? []
-  const [first] = rows
+  const [first, second] = rows
+  // The needles come out of the ball by the ends of its top row, or above it
+  // where the row under that is no wider, and lean out to either side.
+  const needleY = first && second ? (second[2] - second[1] > first[2] - first[1] ? first[0] : first[0] - 1) : 0
+  const needles = first && second
+    ? `<g fill="${NEEDLE}">${px(first[1] - 1, needleY)}${px(first[1] - 2, needleY - 1)}${px(first[2] + 1, needleY)}${px(first[2] + 2, needleY - 1)}</g>
+      <g fill="${KNOB}">${px(first[1] - 3, needleY - 2)}${px(first[2] + 3, needleY - 2)}</g>`
+    : `<g fill="${NEEDLE}">${px(30, 6, 5, 1)}${px(32, 5, 5, 1)}</g><g fill="${KNOB}">${px(29, 6)}${px(37, 5)}</g>`
   const yarn = `
     <g fill="${YARN}">${rows.map(([y, a, b]) => px(a, y, b - a + 1, 1)).join('')}</g>
-    ${rows.length > 1 && first ? `<g fill="${YARN_DARK}">${px(33, 5)}${px(34, 4)}</g><g fill="${YARN_LIGHT}">${px(first[1], first[0])}</g>` : ''}
-    <g fill="${NEEDLE}">${px(35, 2)}${px(36, 1)}</g><g fill="${KNOB}">${px(37, 0)}</g>`
+    ${first && second ? `<g fill="${YARN_DARK}">${px(33, 5)}${px(34, 4)}</g><g fill="${YARN_LIGHT}">${px(first[1], first[0])}</g>` : ''}
+    ${needles}`
 
   return smallSceneSvg(
     `

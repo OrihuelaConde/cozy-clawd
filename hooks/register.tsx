@@ -1819,8 +1819,8 @@ export const register: Register = on => {
       const isSmall = (await read($, sizeName)) === 'small'
       const clawd = isSmall ? pictureOf(smallSvg(smallScene(pick)), 'quadrants') : pictureOf(svgFor(scene))
       const drawing = isSmall ? meterScene.small : undefined
-      const shelf = pictureOf(drawing === undefined ? meterScene.svg(meters) : drawing.svg(meters))
-      const numbers = drawing === undefined ? null : numbersPicture(meters, drawing.centers, shelf.columns)
+      const metersPicture = pictureOf(drawing === undefined ? meterScene.svg(meters) : drawing.svg(meters))
+      const numbers = drawing === undefined ? null : numbersPicture(meters, drawing.centers, metersPicture.columns)
       const controls = isAsking ? (
         <Box flexDirection="row" alignItems="center" gap={1}>
           <Text dimColor>{t.compactAsk}</Text>
@@ -1839,8 +1839,8 @@ export const register: Register = on => {
       const controlsWidth = isAsking ? columnsOf(t.compactAsk) + columnsOf(t.yes) + columnsOf(t.no) + 10 : isLow ? columnsOf(t.compact) + 4 : 0
       const room = e.props.bodyColumns - MARK_COLUMNS
       const minLabel = MIN_LABEL_COLUMNS[lang]
-      const labelRoom = room - clawd.columns - 1 - 2 - (controlsWidth > 0 ? controlsWidth + 1 : 0) - shelf.columns
-      const fitsAll = labelRoom >= minLabel && e.props.maxRows >= shelf.rows + (numbers?.rows ?? 0)
+      const labelRoom = room - clawd.columns - 1 - 2 - (controlsWidth > 0 ? controlsWidth + 1 : 0) - metersPicture.columns
+      const fitsAll = labelRoom >= minLabel && e.props.maxRows >= metersPicture.rows + (numbers?.rows ?? 0)
       const fitsClawd = room - clawd.columns - 1 >= minLabel && e.props.maxRows >= clawd.rows
       forgetOtherSites(e.requestId)
       forgetPictures(e.requestId, fitsAll ? ['clawd', 'meters', ...(numbers === null ? [] : ['numbers'])] : fitsClawd ? ['clawd'] : [])
@@ -1859,7 +1859,7 @@ export const register: Register = on => {
             <Box flexDirection="row" alignItems="center" gap={1}>
               {controls}
               <Box flexDirection="column">
-                <Raster key="meters" columns={shelf.columns} rows={shelf.rows} cells={livePicture($, e.requestId, 'meters', shelf, now, bg)} />
+                <Raster key="meters" columns={metersPicture.columns} rows={metersPicture.rows} cells={livePicture($, e.requestId, 'meters', metersPicture, now, bg)} />
                 {numbers && <Raster key="numbers" columns={numbers.columns} rows={numbers.rows} cells={livePicture($, e.requestId, 'numbers', numbers, now, bg)} />}
               </Box>
             </Box>

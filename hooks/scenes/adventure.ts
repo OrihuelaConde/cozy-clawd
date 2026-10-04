@@ -169,10 +169,10 @@ const adventureSvg = (f: Meters) =>
 
 // The scene in the small size, on the stone floor: the mana potion, as full
 // as the context left, a spare vial beside it at a quarter or less, filling up
-// while compacting; the hourglass, its sand running over the cache's life;
-// the chest, its heap of gold going with the five-hour limit; and the quiver,
+// while compacting; the hourglass, its sand running over the cache's life, a
+// grain falling through the neck now and then while it runs; the chest, its heap of gold going with the five-hour limit; and the quiver,
 // losing its arrows over the week.
-const CENTERS = [4, 15, 25.5, 35]
+const CENTERS = [4, 14, 25.5, 35]
 
 // The potion's inside, row by row from the bottom: [y, first x, last x].
 const SMALL_FLASK: readonly (readonly [number, number, number])[] = [[6, 3, 5], [5, 2, 6], [4, 2, 6], [3, 2, 6], [2, 3, 5]]
@@ -188,18 +188,18 @@ const adventureSmall = (f: Meters) => {
     ${mana > 1 ? `<g fill="${MANA_LIGHT}">${px(3, 7 - mana)}</g><g class="bubble" fill="${SPARK}">${px(4, 5)}</g>` : ''}
     ${isLow ? `<g fill="${CORK}">${px(8, 4)}</g><g fill="${GLASS}">${px(8, 5)}</g><g fill="${MANA}">${px(8, 6)}</g>` : ''}`
 
-  const glass = `<g fill="${GLASS}">${px(14, 1, 3, 2)}${px(15, 3)}${px(14, 4, 3, 2)}</g>`
-  const frame = `<g fill="${WOOD_DARK}">${px(13, 0, 5, 1)}${px(13, 6, 5, 1)}</g><g fill="${WOOD}">${px(13, 1, 1, 5)}${px(17, 1, 1, 5)}</g>`
-  const grain = `<g class="grain" fill="${SAND}">${px(15, 3)}</g>`
-  const hourglass = hourSteps(
+  const glass = `<g fill="${GLASS}">${px(13, 1, 3, 2)}${px(14, 3)}${px(13, 4, 3, 2)}</g>`
+  const frame = `<g fill="${WOOD_DARK}">${px(12, 0, 5, 1)}${px(12, 6, 5, 1)}</g><g fill="${WOOD}">${px(12, 1, 1, 5)}${px(16, 1, 1, 5)}</g>`
+  const isRunning = f.cacheLeft !== null && f.cacheLeft > 0
+  const hourglass = `${hourSteps(
     f,
     [
-      `${glass}<g fill="${SAND}">${px(14, 1, 3, 2)}${px(15, 5)}</g>${grain}${frame}`,
-      `${glass}<g fill="${SAND}">${px(14, 2, 3, 1)}${px(14, 5, 3, 1)}</g>${grain}${frame}`,
-      `${glass}<g fill="${SAND}">${px(15, 2)}${px(14, 5, 3, 1)}${px(15, 4)}</g>${grain}${frame}`,
+      `${glass}<g fill="${SAND}">${px(13, 1, 3, 2)}${px(14, 5)}</g>${frame}`,
+      `${glass}<g fill="${SAND}">${px(13, 2, 3, 1)}${px(13, 5, 3, 1)}</g>${frame}`,
+      `${glass}<g fill="${SAND}">${px(14, 2)}${px(13, 5, 3, 1)}${px(14, 4)}</g>${frame}`,
     ],
-    `${glass}<g fill="${SAND}">${px(14, 4, 3, 2)}</g>${frame}`,
-  )
+    `${glass}<g fill="${SAND}">${px(13, 4, 3, 2)}</g>${frame}`,
+  )}${isRunning ? `<g class="grain" fill="${SAND}">${px(14, 3)}</g>` : ''}`
 
   const fiveLeft = f.fiveHour === null ? null : 100 - f.fiveHour
   const step = stageOf(fiveLeft)
@@ -231,8 +231,8 @@ const adventureSmall = (f: Meters) => {
     @keyframes fill { from { clip-path: inset(5px 0 0 0); } to { clip-path: inset(0 0 0 0); } }
     .bubble { animation: bubble 1.2s steps(1) infinite; }
     @keyframes bubble { 0%, 32.9% { transform: translate(0, 0); } 33%, 65.9% { transform: translate(0, -1px); } 66%, 100% { opacity: 0; } }
-    .grain { animation: grain 0.6s steps(1) infinite; }
-    @keyframes grain { 0%, 49.9% { transform: translate(0, 0); } 50%, 100% { transform: translate(0, 1px); } }`,
+    .grain { animation: grain 3s steps(1) infinite; }
+    @keyframes grain { 0%, 33.2% { transform: translate(0, 0); } 33.3%, 66.5% { transform: translate(0, 1px); } 66.6%, 100% { opacity: 0; } }`,
     `${floor}${potion}${hourglass}${chest}${quiver}`,
   )
 }

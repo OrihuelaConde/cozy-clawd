@@ -42,7 +42,7 @@ export const id: Texts = {
   },
 
   scenes: {
-    shelf: 'Rak',
+    teatime: 'Waktu minum teh',
     mate: 'Mate',
     balcony: 'Balkon',
     window: 'Jendela malam',

@@ -105,7 +105,7 @@ The right side of the band shows four meters of your session, each an object wit
 
 The cache meter counts down the length Claude Code keeps the cache for: an hour when you sign in with a Claude subscription, and five minutes with an API key or once you use up a usage limit. With an API key, Claude Code reports no usage limits, so the two usage-limit meters show `--`. For more information, see [What the meters measure](docs/scenes.md#what-the-meters-measure).
 
-Each scene draws the meters as objects of its own. The images in this README show the `balcony` scene: a watering can, a daisy in a pot, a bird feeder, and a jar of honey. Until you choose a scene, the band shows the `shelf` scene. For all eight, see [Choose a scene](#choose-a-scene).
+Each scene draws the meters as objects of its own. The images in this README show the `balcony` scene: a watering can, a daisy in a pot, a bird feeder, and a jar of honey. Until you choose a scene, the band shows the `teatime` scene. For all eight, see [Choose a scene](#choose-a-scene).
 
 When 25% or less of the context is left, a **Compact** button appears next to the scene. It asks you to confirm, and then compacts the conversation. While Claude compacts, the context meter fills up again: on the balcony, it rains into the watering can.
 
@@ -119,7 +119,7 @@ The `/cozy-clawd` panel holds the mod's settings. A change applies at once, and 
 
 | Setting | Choices | Default | Details |
 | --- | --- | --- | --- |
-| Scene | Eight scenes | `shelf` | [Scenes](docs/scenes.md) |
+| Scene | Eight scenes | `teatime` | [Scenes](docs/scenes.md) |
 | Size, in a terminal only | **Small** or **Large** | **Small** | [The band in a terminal](docs/terminal.md) |
 | Language | Ten languages, or **Automatic** | **Automatic** | [Languages](docs/languages.md) |
 
@@ -135,7 +135,7 @@ Replace `SCENE_NAME` with the name of a scene, such as `balcony`. To see the cur
 
 <table>
   <tr>
-    <td align="center"><a href="docs/scenes.md#shelf"><img src="docs/images/scenes/shelf.gif" width="288" alt="A mug of tea, a candle in a brass holder, a cookie jar, and a moon lamp on a wooden shelf"></a><br><b>Shelf</b> <code>shelf</code> (default)</td>
+    <td align="center"><a href="docs/scenes.md#teatime"><img src="docs/images/scenes/teatime.gif" width="288" alt="A mug of tea, a candle in a brass holder, a cookie jar, and a moon lamp on a wooden shelf"></a><br><b>Teatime</b> <code>teatime</code> (default)</td>
     <td align="center"><a href="docs/scenes.md#mate"><img src="docs/images/scenes/mate.gif" width="288" alt="A thermos, a mate, a plate of medialunas, and a pack of yerba on a sky blue and white checked tablecloth"></a><br><b>Mate</b> <code>mate</code></td>
   </tr>
   <tr>

@@ -42,7 +42,7 @@ export const ja: Texts = {
   },
 
   scenes: {
-    shelf: '棚',
+    teatime: 'ティータイム',
     mate: 'マテ茶',
     balcony: 'バルコニー',
     window: '夜の窓',

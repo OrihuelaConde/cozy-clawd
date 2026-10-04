@@ -42,7 +42,7 @@ export const it: Texts = {
   },
 
   scenes: {
-    shelf: 'Mensola',
+    teatime: 'L’ora del tè',
     mate: 'Mate',
     balcony: 'Balcone',
     window: 'Finestra di notte',

@@ -42,7 +42,7 @@ export const es: Texts = {
   },
 
   scenes: {
-    shelf: 'Estante',
+    teatime: 'Hora del té',
     mate: 'Mateada',
     balcony: 'Balcón',
     window: 'Ventana de noche',

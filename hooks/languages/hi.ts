@@ -42,7 +42,7 @@ export const hi: Texts = {
   },
 
   scenes: {
-    shelf: 'शेल्फ़',
+    teatime: 'चाय का समय',
     mate: 'माते',
     balcony: 'बालकनी',
     window: 'रात की खिड़की',

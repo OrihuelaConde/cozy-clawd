@@ -43,7 +43,7 @@ export const fr: Texts = {
   },
 
   scenes: {
-    shelf: 'Étagère',
+    teatime: 'L’heure du thé',
     mate: 'Maté',
     balcony: 'Balcon',
     window: 'Fenêtre de nuit',
