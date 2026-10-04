@@ -46,9 +46,9 @@ export type MeterScene = {
   small?: { svg: (f: Meters) => string; centers: readonly number[] }
 }
 
-export const METER_SCENES: readonly MeterScene[] = [teatimeScene, mateScene, balconyScene, windowScene, adventureScene, gamerScene, cyberpunkScene, steampunkScene]
+export const METER_SCENES: readonly MeterScene[] = [balconyScene, mateScene, teatimeScene, windowScene, adventureScene, gamerScene, cyberpunkScene, steampunkScene]
 
-export const DEFAULT_METER_SCENE = teatimeScene
+export const DEFAULT_METER_SCENE = balconyScene
 
 // The scene a stored name names; the default for one no scene has.
 export const meterSceneNamed = (name: unknown) => METER_SCENES.find(s => s.name === name) ?? DEFAULT_METER_SCENE

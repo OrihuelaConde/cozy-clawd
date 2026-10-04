@@ -20,8 +20,8 @@ test('the panel shows every scene on the desktop, the one in use marked', async 
   const panel = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANEL_PROPS })
   expect(await panel.findAll({ type: 'Svg' })).toHaveLength(8)
   expect(await panel.find({ type: 'Text', text: 'en uso' })).toBeDefined()
-  expect(await panel.find({ key: 'use-teatime' })).toBeUndefined()
-  for (const name of ['mate', 'balcony', 'window', 'adventure', 'gamer', 'cyberpunk', 'steampunk']) {
+  expect(await panel.find({ key: 'use-balcony' })).toBeUndefined()
+  for (const name of ['mate', 'teatime', 'window', 'adventure', 'gamer', 'cyberpunk', 'steampunk']) {
     expect(await panel.find({ key: `use-${name}` })).toBeDefined()
   }
   await panel.unmount()
@@ -181,7 +181,7 @@ test('every scene has a small drawing, its numbers under it', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.store(on)
   mock.env(on, SPANISH)
-  for (const name of ['teatime', 'mate', 'balcony', 'window', 'adventure', 'gamer', 'cyberpunk', 'steampunk']) {
+  for (const name of ['balcony', 'mate', 'teatime', 'window', 'adventure', 'gamer', 'cyberpunk', 'steampunk']) {
     const panel = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'Pane', requestId: 'clawd', props: PANEL_PROPS })
     await panel.select({ key: 'scene', value: name })
     await panel.unmount()
@@ -357,13 +357,13 @@ test('/cozy-clawd-scene names the scenes and turns down one that does not exist'
   mock.env(on, SPANISH)
 
   const listed = await $.command.run(typed(''))
-  expect(listed.text).toMatch(/Escena: teatime\. Hay: teatime, mate, balcony, window, adventure, gamer, cyberpunk, steampunk/)
+  expect(listed.text).toMatch(/Escena: balcony\. Hay: balcony, mate, teatime, window, adventure, gamer, cyberpunk, steampunk/)
 
   const unknown = await $.command.run(typed('Beach'))
   expect(unknown.text).toMatch(/No hay una escena "beach"/)
 
-  const same = await $.command.run(typed('teatime'))
-  expect(same.text).toMatch(/ya es teatime/)
+  const same = await $.command.run(typed('balcony'))
+  expect(same.text).toMatch(/ya es balcony/)
 })
 
 test('the panel\'s Use button switches the band to that scene', async ($, on) => {
@@ -373,7 +373,7 @@ test('the panel\'s Use button switches the band to that scene', async ($, on) =>
   const panel = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANEL_PROPS })
   await panel.press({ key: 'use-mate' })
   expect(await panel.find({ key: 'use-mate' })).toBeUndefined()
-  expect(await panel.find({ key: 'use-teatime' })).toBeDefined()
+  expect(await panel.find({ key: 'use-balcony' })).toBeDefined()
   await panel.unmount()
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
@@ -393,7 +393,7 @@ test('a new session starts with the scene picked last', async ($, on) => {
   await $.session.start({ cwd: '/', surface: null, isInteractive: false })
 
   const listed = await $.command.run(typed(''))
-  expect(listed.text).toMatch(/Escena: mate\. Hay: teatime, mate, balcony, window, adventure, gamer, cyberpunk, steampunk/)
+  expect(listed.text).toMatch(/Escena: mate\. Hay: balcony, mate, teatime, window, adventure, gamer, cyberpunk, steampunk/)
 })
 
 // `/cozy-clawd-scene` as typed in the composer, with what follows it.
@@ -407,13 +407,6 @@ const clawdOf = async (band: { findAll: (q: { type: 'Svg' }) => Promise<{ props:
 // What the band's scene of meters says it shows.
 const metersOf = async (band: { findAll: (q: { type: 'Svg' }) => Promise<{ props: { alt?: unknown } }[]> }) =>
   (await band.findAll({ type: 'Svg' })).map(svg => String(svg.props.alt)).find(alt => !alt.startsWith('Clawd: '))
-
-// Picks a scene the way the person does: with its Use button in the panel.
-const useScene = async ($: Parameters<TestBody>[0], name: string) => {
-  const panel = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'Pane', requestId: 'clawd', props: PANEL_PROPS })
-  await panel.press({ key: `use-${name}` })
-  await panel.unmount()
-}
 
 // The model beneath the plugins: it answers each request with nothing.
 const answering = async function* (_$: unknown, e: { turnId: string; index: number }) {
@@ -446,8 +439,8 @@ test('as the prompt cache runs out Clawd frets at ten minutes, yawns at two and 
   mock.env(on, SPANISH)
   on('session.usage', usageAt(80))
   on('turn.step', answering)
-  // The scene no longer calls for anything of its own, low as the context is.
-  await useScene($, 'balcony')
+  // The balcony, the default scene, no longer calls for anything of its own,
+  // low as the context is.
   await answer($)
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
@@ -520,7 +513,7 @@ test('where the locale is English, the band and the commands speak English', asy
   await band.unmount()
 
   const listed = await $.command.run(typed(''))
-  expect(listed.text).toMatch(/^Scene: teatime\. Available: teatime, mate/)
+  expect(listed.text).toMatch(/^Scene: balcony\. Available: balcony, mate/)
 })
 
 test('the Language row of /config wins over the locale', async ($, on) => {
@@ -622,7 +615,7 @@ test('a new session speaks the language picked last', async ($, on) => {
   on('session.start', ($, e) => ({ cwd: e.cwd }))
   await $.session.start({ cwd: '/', surface: null, isInteractive: false })
 
-  expect((await $.command.run(typed(''))).text).toMatch(/^Scene: teatime/)
+  expect((await $.command.run(typed(''))).text).toMatch(/^Scene: balcony/)
 })
 
 test('a text takes a column a character, two for a wide one, none for a mark', () => {

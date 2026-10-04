@@ -243,7 +243,7 @@ test('a frame of the old scene, still on its way when the person picks another, 
   while (isSlow) {
     await clock.advance(33)
   }
-  // A frame of the teatime scene is on its way: the person picks the mate scene.
+  // A frame of the balcony scene is on its way: the person picks the mate scene.
   const panel = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'terminal', component: 'Pane', requestId: 'clawd', props: PANEL_PROPS })
   await panel.select({ key: 'scene', value: 'mate' })
   await panel.unmount()
@@ -333,7 +333,7 @@ for (const [surfaces, speaks] of [[['terminal'], 'English'], [['desktop'], 'Hind
     await $.session.start({ cwd: '/', surface: null, isInteractive: false })
     const t = speaks === 'English' ? TEXTS.en : TEXTS.hi
     expect(declared).toContain(t.panelCommand)
-    expect((await $.command.run(typed(''))).text).toMatch(new RegExp(`^${t.sceneIs('teatime').replace(/[.]/g, '\\.')}`))
+    expect((await $.command.run(typed(''))).text).toMatch(new RegExp(`^${t.sceneIs('balcony').replace(/[.]/g, '\\.')}`))
   })
 }
 

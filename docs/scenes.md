@@ -30,19 +30,19 @@ To choose a scene, do one of the following:
   /cozy-clawd-scene SCENE_NAME
   ```
 
-  Replace `SCENE_NAME` with the name of a scene on this page, such as `balcony`. To see the current scene and the names available, run `/cozy-clawd-scene` with no name.
+  Replace `SCENE_NAME` with the name of a scene on this page, such as `mate`. To see the current scene and the names available, run `/cozy-clawd-scene` with no name.
 
-The band switches to the new scene at once, and later sessions start with it. Until you choose a scene, the band shows `teatime`.
+The band switches to the new scene at once, and later sessions start with it. Until you choose a scene, the band shows `balcony`.
 
 The scene names stay the same in every language. In a terminal's small size, each scene has a smaller drawing of its own; for more information, see [Choose the size](terminal.md#choose-the-size).
 
-## Teatime
+## Balcony
 
-<img src="images/scenes/teatime.gif" width="432" alt="A mug of tea, a brass clock with an orange timer disc, a cookie jar, and a box of tea bags on a wooden shelf">
+<img src="images/scenes/balcony.gif" width="432" alt="A watering can, a daisy, a bird feeder, and a jar of honey on a balcony">
 
-**Name:** `teatime`, the default scene.
+**Name:** `balcony`, the default scene.
 
-A wooden shelf on iron brackets. A mug of tea shows the context left; at 25% or less it stops steaming and a teapot stands beside it, and while the conversation is compacted the teapot pours and the mug fills up again. A brass clock times the tea hour: an orange disc on its face shrinks clockwise as the prompt cache runs out, and when the cache expires the face is bare, its hands at six. A cookie jar holds a cookie for every fifth of the five-hour limit left, and crumbs once only a couple remain. A box of tea bags empties, a bag at a time, as you use the weekly limit.
+A sunny balcony. A watering can's water shows the context left; at 25% or less a rain cloud gathers over it, and while the conversation is compacted it rains into the can. A daisy in a pot wilts as the prompt cache runs out. A bluebird pecks at a feeder whose seeds are what's left of the five-hour limit, and a jar of honey, a bee buzzing around it, empties as you use the weekly limit.
 
 ## Mate
 
@@ -52,13 +52,13 @@ A wooden shelf on iron brackets. A mug of tea shows the context left; at 25% or 
 
 A tablecloth checked sky blue and white, like the Argentine flag, set for mate. A thermos's strip of water shows the context left, and at 25% or less a steaming kettle waits beside it; while the conversation is compacted, the kettle boils and the thermos fills up. The mate's steam fades as the prompt cache runs out, and the yerba washes out when the cache expires. A plate holds a medialuna for every quarter of the five-hour limit left, and a pack of yerba flattens as you use the weekly limit.
 
-## Balcony
+## Teatime
 
-<img src="images/scenes/balcony.gif" width="432" alt="A watering can, a daisy, a bird feeder, and a jar of honey on a balcony">
+<img src="images/scenes/teatime.gif" width="432" alt="A mug of tea, a brass clock with an orange timer disc, a cookie jar, and a box of tea bags on a wooden shelf">
 
-**Name:** `balcony`
+**Name:** `teatime`
 
-A sunny balcony. A watering can's water shows the context left; at 25% or less a rain cloud gathers over it, and while the conversation is compacted it rains into the can. A daisy in a pot wilts as the prompt cache runs out. A bluebird pecks at a feeder whose seeds are what's left of the five-hour limit, and a jar of honey, a bee buzzing around it, empties as you use the weekly limit.
+A wooden shelf on iron brackets. A mug of tea shows the context left; at 25% or less it stops steaming and a teapot stands beside it, and while the conversation is compacted the teapot pours and the mug fills up again. A brass clock times the tea hour: an orange disc on its face shrinks clockwise as the prompt cache runs out, and when the cache expires the face is bare, its hands at six. A cookie jar holds a cookie for every fifth of the five-hour limit left, and crumbs once only a couple remain. A box of tea bags empties, a bag at a time, as you use the weekly limit.
 
 ## Night window
 

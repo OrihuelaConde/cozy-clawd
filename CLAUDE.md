@@ -1,6 +1,6 @@
 # cozy-clawd
 
-A Claude Code mod (a plugin of function hooks) that draws a pixel-art band above the prompt in the desktop app and the terminal: Clawd's scenes on the left, a scene of session meters on the right (the teatime scene, or another the person picks). See `README.md` for what it shows and how it's laid out.
+A Claude Code mod (a plugin of function hooks) that draws a pixel-art band above the prompt in the desktop app and the terminal: Clawd's scenes on the left, a scene of session meters on the right (the balcony scene, or another the person picks). See `README.md` for what it shows and how it's laid out.
 
 ## Working on the mod
 
