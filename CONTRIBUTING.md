@@ -154,4 +154,28 @@ The labels and buttons in the GIFs are set in the sans-serif and monospace fonts
 
 ## Release a version
 
-The `orihuelaconde` marketplace, in the [claude-plugins](https://github.com/OrihuelaConde/claude-plugins) repository, installs the mod from this repository's default branch. Users who installed it get an update only when its version changes. To publish a release, increment `version` in `.claude-plugin/plugin.json` and push.
+The `orihuelaconde` marketplace, in the [claude-plugins](https://github.com/OrihuelaConde/claude-plugins) repository, installs the mod from this repository's default branch. Users who installed it get an update only when its version changes. Each version also gets a release on GitHub, with notes on what changed.
+
+To release a version, do the following:
+
+1. In `.claude-plugin/plugin.json`, increment `version` following [semantic versioning](https://semver.org/): the patch number for fixes, the minor number for new features, and the major number for changes that break how people use the mod. Commit the change and push it to `main`.
+2. Write the release notes in a file outside the repository, such as `notes.md`. Write them for the people who use the mod: what's new, what's fixed, and anything they need to do.
+3. Tag the commit with the version and the notes, and push the tag:
+
+   ```bash
+   git tag -a v1.1.0 --cleanup=verbatim -F notes.md
+   ```
+
+   ```bash
+   git push origin v1.1.0
+   ```
+
+   The `--cleanup=verbatim` option keeps the notes' Markdown headings, which Git otherwise drops as comments.
+
+4. Create the release from the tag:
+
+   ```bash
+   gh release create v1.1.0 --verify-tag --notes-from-tag --title "Cozy Clawd 1.1.0"
+   ```
+
+Replace `1.1.0` with the version you release.

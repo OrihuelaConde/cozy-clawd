@@ -8,7 +8,7 @@ A Claude Code mod (a plugin of function hooks) that draws a pixel-art band above
 - The mod hot-reloads in every session that loads it from this folder (`CLAUDE_CODE_PLUGIN_DIRS` in the user settings). A change is visible in the band when the turn that made it ends.
 - Verify each change with `claude plugin validate .` and `claude plugin test .`, then look at it with `node tools/preview.mjs` and the `preview` launch config. The preview renders scenes the way the desktop does (plain images on the dark background), so a drawing reviewed there matches the band, and beside each the way the terminal paints it. To see the terminal's band itself, run `claude --plugin-dir .` from this folder.
 - When a drawing changes, render the documentation's GIFs again with `tools/readme-images.mjs` (see "Render the documentation's images" in `CONTRIBUTING.md`).
-- The `orihuelaconde` marketplace (the `OrihuelaConde/claude-plugins` repo) lists the mod and installs it from this repo's default branch: people who installed it get an update only when `version` in `.claude-plugin/plugin.json` changes.
+- The `orihuelaconde` marketplace (the `OrihuelaConde/claude-plugins` repo) lists the mod and installs it from this repo's default branch: people who installed it get an update only when `version` in `.claude-plugin/plugin.json` changes. Each version also gets an annotated tag with its notes and a GitHub release ("Release a version" in `CONTRIBUTING.md`).
 - Docs and code comments are in English.
 
 ## Gotchas the code doesn't confess

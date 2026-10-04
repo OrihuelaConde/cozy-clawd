@@ -1,7 +1,7 @@
 {
   "name": "cozy-clawd",
   "displayName": "Cozy Clawd",
-  "version": "0.7.0",
+  "version": "1.0.0",
   "description": "An unofficial fan mod: a cozy pixel-art band above the prompt where Clawd acts out what Claude is doing, beside a scene of session meters",
   "author": { "name": "OrihuelaConde", "url": "https://github.com/OrihuelaConde" },
   "homepage": "https://github.com/OrihuelaConde/cozy-clawd",
