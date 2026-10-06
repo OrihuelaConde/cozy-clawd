@@ -27,7 +27,11 @@ Cozy Clawd needs the following:
 
 > **Note:** A mod is code that runs inside Claude Code with your permissions. For what Cozy Clawd reads, keeps, and runs, see [What the mod does on your machine](#what-the-mod-does-on-your-machine). To list what it hooks and calls, clone the repository and run `claude plugin validate .` from its root; it passes with a warning about `CLAUDE.md` at the plugin root, which is expected. For more information, see [Decide whether to trust a mod](https://code.claude.com/docs/en/plugins/mods/overview#decide-whether-to-trust-a-mod).
 
-To install the mod for your user account, run the following commands in a terminal:
+Installing takes two steps: add `orihuelaconde`, the plugin marketplace that lists OrihuelaConde's plugins, and then install the `cozy-clawd` plugin from it. You install the mod once for your user account: the terminal and the desktop app on one computer share installed plugins, so the band appears in both. Follow the steps for where you use Claude Code.
+
+### Install from a terminal
+
+To install the mod, run the following commands in a terminal, such as PowerShell on Windows or Terminal on macOS:
 
 ```bash
 claude plugin marketplace add OrihuelaConde/claude-plugins
@@ -37,12 +41,21 @@ claude plugin marketplace add OrihuelaConde/claude-plugins
 claude plugin install cozy-clawd@orihuelaconde
 ```
 
-The first command adds `orihuelaconde`, the plugin marketplace that lists OrihuelaConde's plugins, and the second installs the `cozy-clawd` plugin from it. The band appears in the next session you start, in the terminal or in the desktop app. To load the mod in a terminal session that's already open, run `/reload-plugins`.
+The first command prints `Successfully added marketplace: orihuelaconde`, and the second prints `Successfully installed plugin: cozy-clawd@orihuelaconde (scope: user)`. The band appears in the next session you start. To load the mod in a session that's already open, run `/reload-plugins` in it.
 
-You can also install the mod in the following ways:
+To install from inside a Claude Code session instead, run `/plugin install cozy-clawd --marketplace OrihuelaConde/claude-plugins`, press **y** to add the marketplace, and then select **Install for you (user scope)**.
 
-- **From a terminal session.** Run `/plugin install cozy-clawd --marketplace OrihuelaConde/claude-plugins`, confirm the marketplace, and then select **Install for you (user scope)**.
-- **From the desktop app.** After you add the marketplace with the first command, click **+** next to the prompt box in the Code tab, select **Plugins** > **Add plugin**, select **cozy-clawd**, and then choose your user account as the scope.
+If the install fails with `Host key verification failed`, see [The install fails with "Host key verification failed"](#the-install-fails-with-host-key-verification-failed).
+
+### Install from the desktop app
+
+In the Claude desktop app, you add the marketplace and install the mod from the **Plugins** page. To install the mod, do the following:
+
+1. Open **Customize** > **Plugins**.
+2. Select **Add** > **Add marketplace**, and then choose to add it from a repository.
+3. In **URL**, enter `OrihuelaConde/claude-plugins`, and then select **Sync**.
+4. On the **Discover** tab, search for `cozy`. Next to **Cozy clawd**, open the arrow beside **Add**, and then select the option that installs to `~/.claude/`, which makes the mod available in all your projects.
+5. Start a new session in the Code tab, or send `/reload-plugins` in the session that's open. The band appears above the prompt.
 
 ### Update or uninstall the mod
 
@@ -52,7 +65,7 @@ By default, Claude Code doesn't update the mod. To update it, run the following 
 claude plugin update cozy-clawd@orihuelaconde
 ```
 
-Then start a new session, or run `/reload-plugins` in an open terminal session.
+Then start a new session, or run `/reload-plugins` in a session that's already open.
 
 To install updates automatically, run `/plugin` in a terminal session, go to the **Marketplaces** tab, select `orihuelaconde`, and then select **Enable auto-update**.
 
@@ -168,12 +181,26 @@ For what each size shows, how the band fits a narrow terminal, and how to get tr
 
 ## Troubleshoot
 
+### The install fails with "Host key verification failed"
+
+Until October 6, 2026, the `orihuelaconde` marketplace listed the mod in a form that Claude Code on Windows clones over SSH, so the install failed for anyone without an SSH key for GitHub, with an error that ends in `Host key verification failed`. Since then, the marketplace lists the mod by its HTTPS address. If you added the marketplace before that date, refresh its listing, and then install the mod again. To do it in a terminal, run the following commands:
+
+```bash
+claude plugin marketplace update orihuelaconde
+```
+
+```bash
+claude plugin install cozy-clawd@orihuelaconde
+```
+
+In the desktop app, refresh the marketplace from **Customize** > **Plugins** > **Add** > **Manage marketplaces**, and then install the mod again from the **Discover** tab.
+
 ### The band doesn't appear
 
 Check the following:
 
 - Claude Code is version 2.1.287 or later. To see the version, run `claude --version`.
-- The session started after you installed the mod. To load the mod in a terminal session that was already open, run `/reload-plugins`.
+- The session started after you installed the mod. To load the mod in a session that was already open, run `/reload-plugins` in it.
 - The mod is turned on. To turn it back on, run `claude plugin enable cozy-clawd@orihuelaconde`.
 
 ### The colors look off in a terminal
