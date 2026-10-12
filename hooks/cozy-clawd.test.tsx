@@ -554,6 +554,29 @@ test('the Language row of /config can name a language in its own words', async (
   await band.unmount()
 })
 
+test('a change of the Language row in /config switches the band and goes on as it came', async ($, on) => {
+  mock.clock(on, { now: 1_000_000 })
+  mock.env(on, ENGLISH)
+  let language = 'español'
+  on('config.list', () => ({ value: [{ key: 'language', label: 'Language', kind: 'text', value: language }] as never }))
+  // Beneath the plugins, the engine writes the row once the change reaches it.
+  on('config.set', (_$, e) => {
+    language = String(e.value)
+    return { value: e.value }
+  })
+  on('command.register', ($, e) => ({ value: { command: e.name } }))
+
+  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
+  expect(await clawdOf(band)).toBe('Clawd: Esperando')
+  await band.unmount()
+  // As the person picks it in /config.
+  const result = await $.config.set({ key: 'language', value: 'Deutsch', previous: 'español', provider: { plugin: 'engine', tier: 'core' }, origin: { kind: 'composer' } } as never)
+  expect([result.value, language]).toEqual(['Deutsch', 'Deutsch'])
+  const after = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
+  expect(await clawdOf(after)).toBe('Clawd: Wartet')
+  await after.unmount()
+})
+
 test('on Windows with no locale variables, the registry\'s display language counts', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
   mock.env(on, { OS: 'Windows_NT', SystemRoot: 'D:\\WINDOWS' })

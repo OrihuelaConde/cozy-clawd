@@ -24,7 +24,6 @@ In the code, the scenes that draw the four meters on the right of the band are *
 | `hooks/*.test.tsx` | Tests that run against the engine: the band and the panel in `cozy-clawd.test.tsx`, what Clawd shows as a session moves on in `clawd.test.tsx`, the meters in `meters.test.tsx`, and how the terminal paints and lays out the band in `terminal.test.tsx`. |
 | `types/index.d.ts` | The contract for the values the mod keeps in the session's state. |
 | `.claude-plugin/plugin.json` | The plugin's manifest. |
-| `.claude-plugin/icon.png` | The plugin's icon in Anthropic's plugin directory. |
 | `tools/preview.mjs` | A script that renders Clawd's scenes and a few states of each meter scene to an HTML page, as images and as the terminal paints them in both sizes. |
 | `tools/serve.mjs` | A script that serves the preview page to your own machine. |
 | `tools/readme-images.mjs` | A script that renders the documentation's GIFs to `docs/images/`. |

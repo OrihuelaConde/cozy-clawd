@@ -1168,11 +1168,13 @@ let detected: Lang | null = null
 // it when the person set one; then the locale variables, in the order a
 // program reads them; then the operating system's own setting, as a desktop
 // app starts without those variables; English when none names a language
-// the mod speaks. A read the host does not answer counts as unset.
-async function detectLang($: EngineInterface): Promise<Lang> {
-  const rows = await $.config.list().catch(() => [])
+// the mod speaks. A read the host does not answer counts as unset. A change
+// of the row hands over the value it is being set to (`language`), which the
+// row holds only once the change is written.
+async function detectLang($: EngineInterface, language?: { value: unknown }): Promise<Lang> {
+  const setting = language ?? (await $.config.list().catch(() => [])).find(row => row.key === 'language')
   const locales = [
-    rows.find(row => row.key === 'language')?.value,
+    setting?.value,
     await $.env.get('LC_ALL').catch(() => undefined),
     await $.env.get('LC_MESSAGES').catch(() => undefined),
     await $.env.get('LANG').catch(() => undefined),
@@ -1413,14 +1415,18 @@ const isLightTerminal = (colors: string | undefined) => {
   return Number.isInteger(n) && n >= 0 && n <= 15 && n > 6 && n !== 8
 }
 
+// The background a Theme row's value paints the terminal with.
+async function backgroundOf($: EngineInterface, theme: unknown) {
+  const isLight =
+    typeof theme === 'string' &&
+    (theme.startsWith('light') || (theme === 'auto' && isLightTerminal(await $.env.get('COLORFGBG').catch(() => undefined))))
+  return isLight ? LIGHT_BACKGROUND : DARK_BACKGROUND
+}
+
 async function terminalBackground($: EngineInterface) {
   if (background === null) {
     const rows = await $.config.list().catch(() => [])
-    const theme = rows.find(row => row.key === 'theme')?.value
-    const isLight =
-      typeof theme === 'string' &&
-      (theme.startsWith('light') || (theme === 'auto' && isLightTerminal(await $.env.get('COLORFGBG').catch(() => undefined))))
-    background = isLight ? LIGHT_BACKGROUND : DARK_BACKGROUND
+    background = await backgroundOf($, rows.find(row => row.key === 'theme')?.value)
   }
   return background
 }
@@ -1634,28 +1640,24 @@ export const register: Register = on => {
     return { text: t.sceneIs(name) }
   })
 
-  // The Language row of /config changed: the language detected may have too.
+  // The Language row of /config changes: the language detected may too. The
+  // change goes on as it came, after the band and the commands take up the
+  // value it sets.
   on('config.set', { key: 'language' }, async ($, e, next) => {
-    const result = await next(e)
-    if (result.deny === undefined) {
-      detected = null
-      await redrawBand($)
-      await registerCommands($)
-    }
+    detected = await detectLang($, { value: e.value })
+    await redrawBand($)
+    await registerCommands($)
 
-    return result
+    return next(e)
   })
 
-  // The Theme row changed: the terminal's pictures lay their translucent
+  // The Theme row changes: the terminal's pictures lay their translucent
   // pixels over its background.
   on('config.set', { key: 'theme' }, async ($, e, next) => {
-    const result = await next(e)
-    if (result.deny === undefined) {
-      background = null
-      await redrawBand($)
-    }
+    background = await backgroundOf($, e.value)
+    await redrawBand($)
 
-    return result
+    return next(e)
   })
 
   // Each model request of the main turn: working until pieces arrive, then
@@ -1698,25 +1700,23 @@ export const register: Register = on => {
 
   // The engine is about to ask the person to allow a tool: Clawd waits with a
   // pastime until the next thing happens (the tool runs, or the turn moves on).
-  // A hook beneath that answers for the person (the settings' own, another
-  // plugin's) leaves nothing to ask.
+  // The request goes on as it came: the mod never answers it.
   on('classic.PermissionRequest', async ($, e, next) => {
-    const result = await next(e)
-    if (result.decision === undefined) {
-      await show($, 'waiting', e.tool_name)
-    }
+    await show($, 'waiting', e.tool_name)
 
-    return result
+    return next(e)
   })
 
-  // The person allowed the tool Clawd waits on: it runs now. No event says
-  // so but the decision the engine records for the operator's collector,
-  // `tool_decision` (`source` `user_temporary` or `user_permanent`), which
-  // it raises with no collector set up and with telemetry off, on every
-  // surface. A decision of the rules or the mode comes with no ask.
+  // The tool Clawd waits on was allowed: it runs now. No event says so but
+  // the decision the engine records for the operator's collector,
+  // `tool_decision`, which it raises with no collector set up and with
+  // telemetry off, on every surface: `source` `user_temporary` or
+  // `user_permanent` when the person allowed it, `hook` when a hook beneath
+  // answered the request for them (the settings' own, another plugin's). A
+  // decision of the rules or the mode comes with no ask.
   on('telemetry.log', { to: 'collector' }, async ($, e, next) => {
     const { decision, source } = e.attributes
-    if (e.event === 'tool_decision' && decision === 'accept' && String(source).startsWith('user_')) {
+    if (e.event === 'tool_decision' && decision === 'accept' && (String(source).startsWith('user_') || source === 'hook')) {
       // What Clawd shows next: the wait may still be on its way to the band.
       const asked = pending ?? current
       if (asked.mode === 'waiting' && asked.tool !== 'answer') {

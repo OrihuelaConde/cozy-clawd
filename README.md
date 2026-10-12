@@ -273,13 +273,13 @@ While a session runs, the mod keeps what the band shows in the session's state, 
 
 The mod draws the band and the `/cozy-clawd` panel, and answers its own two commands. Every other hook passes its event on unchanged and returns Claude Code's result unchanged: the mod watches these events only to know what to draw, and decides nothing in them.
 
-- **Permission requests** (`classic.PermissionRequest`). The mod never answers a request. From the result, it reads only whether a hook beneath it already decided, in which case Claude Code doesn't ask you. Otherwise, Clawd waits with a pastime while you decide.
-- **Approvals** (`telemetry.log`, the records that Claude Code keeps for an operator's collector). Claude Code raises no other event when you approve a tool, so this is how Clawd knows to stop waiting. From each record, the mod reads only the event name and the `decision` and `source` fields, and acts only on a `tool_decision` record. It keeps nothing from these records and sends nothing.
+- **Permission requests** (`classic.PermissionRequest`). The mod never answers a request: Clawd waits with a pastime, and the request goes on unchanged for you, or your own hooks, to decide.
+- **Approvals** (`telemetry.log`, the records that Claude Code keeps for an operator's collector). Claude Code raises no other event when a tool that Clawd waits on is allowed, by you or by a hook of yours, so this is how Clawd knows to stop waiting. From each record, the mod reads only the event name and the `decision` and `source` fields, and acts only on a `tool_decision` record. It keeps nothing from these records and sends nothing.
 - **Forms that ask you something** (`classic.Elicitation` and `classic.ElicitationResult`), so Clawd waits while you answer.
 - **The start of a session** (`session.start` and `classic.SessionStart`), to load your choices, and to restart the cache meter after `/clear`, a resume, or a fork.
 - **The steps of each turn and each tool call** (`turn.step`, `tool.call`, and `turn.complete`), to show what Claude is doing.
 - **Compaction** (`session.compact`), to show it and refill the context meter.
-- **Changes to the Language and Theme settings** (`config.set`), so the band follows a change once Claude Code applies it.
+- **Changes to the Language and Theme settings** (`config.set`), so the band takes up the value that a change sets.
 - **Focus in its own panel** (`ui.focus`). In the desktop app, the first click on a button in a panel that doesn't have the keyboard focus arrives only as a focus move, so the mod picks the scene or the language that the click landed on.
 
 ### What it changes

@@ -273,7 +273,11 @@ test('with the Auto theme the pictures take the terminal\'s own background', asy
   mock.env(on, { ...ENGLISH, COLORFGBG: '0;15' })
   let theme = 'dark'
   on('config.list', () => ({ value: [{ key: 'theme', label: 'Theme', kind: 'choice', value: theme }] as never }))
-  on('config.set', (_$, e) => ({ value: e.value }))
+  // Beneath the plugins, the engine writes the row once the change reaches it.
+  on('config.set', (_$, e) => {
+    theme = String(e.value)
+    return { value: e.value }
+  })
   on('session.start', (_$, e) => ({ cwd: e.cwd }))
   on('command.register', (_$, e) => ({ value: { command: e.name } }))
   on('session.usage', usage)
@@ -281,10 +285,8 @@ test('with the Auto theme the pictures take the terminal\'s own background', asy
   await $.session.start({ cwd: '/', surface: null, isInteractive: false })
   await answer($)
   const scene = async (picked: string) => {
-    const previous = theme
-    theme = picked
     // As the person picks it in /config.
-    await $.config.set({ key: 'theme', value: picked, previous, provider: { plugin: 'engine', tier: 'core' }, origin: { kind: 'composer' } } as never)
+    await $.config.set({ key: 'theme', value: picked, previous: theme, provider: { plugin: 'engine', tier: 'core' }, origin: { kind: 'composer' } } as never)
     const band = await terminalBand($, { isWorking: false })
     const cells = String((await band.find({ type: 'Raster', key: 'meters' }))?.props.cells)
     await band.unmount()
