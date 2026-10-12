@@ -3,9 +3,12 @@
   "displayName": "Cozy Clawd",
   "version": "1.0.0",
   "description": "An unofficial fan mod: a cozy pixel-art band above the prompt where Clawd acts out what Claude is doing, beside a scene of session meters",
-  "author": { "name": "OrihuelaConde", "url": "https://github.com/OrihuelaConde" },
+  "author": { "name": "José Luis Orihuela Conde", "url": "https://github.com/OrihuelaConde" },
   "homepage": "https://github.com/OrihuelaConde/cozy-clawd",
   "repository": "https://github.com/OrihuelaConde/cozy-clawd",
+  "documentationUrl": "https://github.com/OrihuelaConde/cozy-clawd#readme",
+  "supportUrl": "https://github.com/OrihuelaConde/cozy-clawd/issues",
+  "privacyPolicyUrl": "https://github.com/OrihuelaConde/cozy-clawd#what-the-mod-does-on-your-machine",
   "license": "MIT",
   "keywords": ["mod", "pixel-art", "clawd", "desktop", "status"],
   "types": "./types/index.d.ts"
