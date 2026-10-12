@@ -4,7 +4,7 @@ Cozy Clawd is a Claude Code plugin of function hooks: a module that Claude Code 
 
 > **Note:** The plugin API for function hooks can change between Claude Code releases.
 
-The engine has quirks the code relies on: for example, a redraw restarts every animation, and a terminal can't draw SVG. They're listed in [Gotchas the code doesn't confess](CLAUDE.md#gotchas-the-code-doesnt-confess) in `CLAUDE.md`, which Claude Code reads when you work on the mod with it. Read them before you change how the band draws or follows a turn.
+The engine has quirks the code relies on: for example, a redraw restarts every animation, and a terminal can't draw SVG. They're listed in [Gotchas the code doesn't confess](.claude/CLAUDE.md#gotchas-the-code-doesnt-confess) in `.claude/CLAUDE.md`, which Claude Code reads when you work on the mod with it. Read them before you change how the band draws or follows a turn.
 
 In the code, the scenes that draw the four meters on the right of the band are *meter scenes*.
 
@@ -24,6 +24,7 @@ In the code, the scenes that draw the four meters on the right of the band are *
 | `hooks/*.test.tsx` | Tests that run against the engine: the band and the panel in `cozy-clawd.test.tsx`, what Clawd shows as a session moves on in `clawd.test.tsx`, the meters in `meters.test.tsx`, and how the terminal paints and lays out the band in `terminal.test.tsx`. |
 | `types/index.d.ts` | The contract for the values the mod keeps in the session's state. |
 | `.claude-plugin/plugin.json` | The plugin's manifest. |
+| `.claude-plugin/icon.png` | The plugin's icon in Anthropic's plugin directory. |
 | `tools/preview.mjs` | A script that renders Clawd's scenes and a few states of each meter scene to an HTML page, as images and as the terminal paints them in both sizes. |
 | `tools/serve.mjs` | A script that serves the preview page to your own machine. |
 | `tools/readme-images.mjs` | A script that renders the documentation's GIFs to `docs/images/`. |

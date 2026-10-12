@@ -896,16 +896,19 @@ const paintNode = (canvas: Canvas, node: Node, t: number, m: Affine, alpha: numb
   }
 }
 
+const BASE64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+
+// Bytes as base64, three bytes to four characters, padded with `=`: written
+// out here, so the module calls on nothing of its environment's for it.
 const toBase64 = (bytes: Uint8Array) => {
-  const own = (bytes as unknown as { toBase64?: () => string }).toBase64
-  if (typeof own === 'function') {
-    return own.call(bytes)
-  }
   let text = ''
-  for (let i = 0; i < bytes.length; i += 0x8000) {
-    text += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+  for (let i = 0; i < bytes.length; i += 3) {
+    const n = ((bytes[i] ?? 0) << 16) | ((bytes[i + 1] ?? 0) << 8) | (bytes[i + 2] ?? 0)
+    text += BASE64.charAt((n >> 18) & 63) + BASE64.charAt((n >> 12) & 63)
+    text += i + 1 < bytes.length ? BASE64.charAt((n >> 6) & 63) : '='
+    text += i + 2 < bytes.length ? BASE64.charAt(n & 63) : '='
   }
-  return (globalThis as unknown as { btoa: (s: string) => string }).btoa(text)
+  return text
 }
 
 // The character and colors of a cell of quadrants, from its four pixels: the
@@ -1065,8 +1068,8 @@ export const pictureOf = (svg: string, layout: Layout = 'halves'): Picture => {
 // How many columns a text takes in a terminal: two for a wide character
 // (Chinese, Japanese and Korean script, fullwidth forms, most emoji), none for
 // a mark that sits on the character before it, one for the rest.
-const WIDE = /[ᄀ-ᅟ⺀-〾ぁ-㏿㐀-䶿一-鿿ꀀ-꓏가-힣豈-﫿︰-﹏＀-｠￠-￦\u{1f300}-\u{1f64f}\u{1f900}-\u{1f9ff}\u{20000}-\u{3fffd}]/u
-const ZERO_WIDTH = /[\p{Mn}\p{Me}​-‏]/u
+const WIDE = /[\u1100-\u115f\u2e80-\u303e\u3041-\u33ff\u3400-\u4dbf\u4e00-\u9fff\ua000-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6\u{1f300}-\u{1f64f}\u{1f900}-\u{1f9ff}\u{20000}-\u{3fffd}]/u
+const ZERO_WIDTH = /[\p{Mn}\p{Me}\u200b-\u200f]/u
 
 export const columnsOf = (text: string) => {
   let columns = 0

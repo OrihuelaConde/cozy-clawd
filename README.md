@@ -25,7 +25,7 @@ Cozy Clawd needs the following:
 - Claude Code 2.1.287 or later, where mods are on by default.
 - The Code tab of the Claude desktop app, or a terminal. For the scenes' true colors, use a terminal with 24-bit color (truecolor), such as Windows Terminal or iTerm2; other terminals show approximate colors.
 
-> **Note:** A mod is code that runs inside Claude Code with your permissions. For what Cozy Clawd reads, keeps, and runs, see [What the mod does on your machine](#what-the-mod-does-on-your-machine). To list what it hooks and calls, clone the repository and run `claude plugin validate .` from its root; it passes with a warning about `CLAUDE.md` at the plugin root, which is expected. For more information, see [Decide whether to trust a mod](https://code.claude.com/docs/en/plugins/mods/overview#decide-whether-to-trust-a-mod).
+> **Note:** A mod is code that runs inside Claude Code with your permissions. For what Cozy Clawd reads, keeps, and runs, see [What the mod does on your machine](#what-the-mod-does-on-your-machine). To list what it hooks and calls, clone the repository and run `claude plugin validate .` from its root. For more information, see [Decide whether to trust a mod](https://code.claude.com/docs/en/plugins/mods/overview#decide-whether-to-trust-a-mod).
 
 Installing takes two steps: add `orihuelaconde`, the plugin marketplace that lists OrihuelaConde's plugins, and then install the `cozy-clawd` plugin from it. You install the mod once for your user account: the terminal and the desktop app on one computer share installed plugins, so the band appears in both. Follow the steps for where you use Claude Code.
 
@@ -213,7 +213,91 @@ The terminal is too narrow, or too short, for the drawings. The small size needs
 
 ## What the mod does on your machine
 
-Cozy Clawd makes no network requests, reads and writes no files, and sets no environment variables. It keeps three choices in Claude Code's plugin store: the scene, the language, and the size. It watches each turn's events only to know what to draw, and passes them on unchanged. To find your language, it can run `reg.exe query` on Windows or `defaults read` elsewhere. For the full list, see [What Cozy Clawd does on your machine](docs/on-your-machine.md).
+Cozy Clawd is a mod: code that runs inside Claude Code with your permissions. It sends nothing off your machine: it makes no network requests, writes no files, sets no environment variables, and uses no credentials, such as an API key or a token. It keeps three choices in Claude Code's plugin store: the scene, the language, and the size. To find your language, it can run `reg.exe query` on Windows or `defaults read` on macOS. It watches each turn's events only to know what to draw, passes them on unchanged, and never answers a permission request for you.
+
+<details>
+<summary>Everything the mod reads, runs, keeps, and hooks</summary>
+
+The address `http://www.w3.org/2000/svg` in the mod's code is the SVG namespace, which names the format of the band's drawings. Nothing connects to it.
+
+### What it reads
+
+The mod reads only what it needs to draw the band:
+
+- **Each turn's progress.** From each response, the mod reads the kind of each piece (thinking, text, or a tool call), a tool's name, and whether the response finished. It doesn't read the text of the conversation.
+- **The session's usage.** The context left and your usage limits, which the meters show, and whether the session is drawn in a terminal or in the desktop app.
+- **Claude Code's settings.** Claude Code hands the mod all its settings, and the mod uses only `promptCacheTtl`, to time the cache meter. It also reads the **Language** and **Theme** rows of `/config`.
+- **Environment variables.** The mod reads the following variables and no others:
+  - `FORCE_PROMPT_CACHING_5M`, `CLAUDE_CODE_PROMPT_CACHE_TTL`, `ENABLE_PROMPT_CACHING_1H`, `ENABLE_PROMPT_CACHING_1H_BEDROCK`, `CLAUDE_CODE_USE_BEDROCK`, and `DISABLE_PROMPT_CACHING`, to know how long Claude Code keeps the prompt cache.
+  - `LC_ALL`, `LC_MESSAGES`, and `LANG`, to find your language.
+  - `OS` and `SystemRoot`, to know whether it runs on Windows and where Windows keeps `reg.exe`.
+  - `COLORFGBG`, to know whether a terminal has a light background.
+
+### What it runs
+
+If neither the **Language** setting in `/config` nor the locale variables name a language the mod speaks, the mod asks the system for your language. It does so once a session, and again when the **Language** setting changes.
+
+On Windows, the mod runs the following command, which answers with your preferred languages:
+
+```text
+%SystemRoot%\System32\reg.exe query "HKCU\Control Panel\International\User Profile" /v Languages
+```
+
+If that names no language, it runs the following command, which answers with your regional format:
+
+```text
+%SystemRoot%\System32\reg.exe query "HKCU\Control Panel\International" /v LocaleName
+```
+
+On other systems, the mod runs the following command, which macOS answers with your preferred languages. Where the program doesn't exist, the call fails at once.
+
+```text
+/usr/bin/defaults read -g AppleLanguages
+```
+
+Every argument is fixed text except the folder of `reg.exe`, which comes from the `SystemRoot` variable, or is `C:\Windows` when the variable isn't set. The mod runs each program by its full path and from the program's own folder, so that a program with the same name in your project can't run in its place. It passes nothing of yours to these commands, waits for each one 3 seconds at most, and reads only a language code from its output. These are the only programs the mod runs.
+
+### What it keeps
+
+The mod keeps three choices in Claude Code's plugin store, so later sessions start with them:
+
+| Key | Value |
+| --- | --- |
+| `scene` | The scene you chose. |
+| `language` | Your language choice in the `/cozy-clawd` panel. |
+| `size` | The band's size in a terminal. |
+
+While a session runs, the mod keeps what the band shows in the session's state, which ends with the session.
+
+### What it hooks
+
+The mod draws the band and the `/cozy-clawd` panel, and answers its own two commands. Every other hook passes its event on unchanged and returns Claude Code's result unchanged: the mod watches these events only to know what to draw, and decides nothing in them.
+
+- **Permission requests** (`classic.PermissionRequest`). The mod never answers a request. From the result, it reads only whether a hook beneath it already decided, in which case Claude Code doesn't ask you. Otherwise, Clawd waits with a pastime while you decide.
+- **Approvals** (`telemetry.log`, the records that Claude Code keeps for an operator's collector). Claude Code raises no other event when you approve a tool, so this is how Clawd knows to stop waiting. From each record, the mod reads only the event name and the `decision` and `source` fields, and acts only on a `tool_decision` record. It keeps nothing from these records and sends nothing.
+- **Forms that ask you something** (`classic.Elicitation` and `classic.ElicitationResult`), so Clawd waits while you answer.
+- **The start of a session** (`session.start` and `classic.SessionStart`), to load your choices, and to restart the cache meter after `/clear`, a resume, or a fork.
+- **The steps of each turn and each tool call** (`turn.step`, `tool.call`, and `turn.complete`), to show what Claude is doing.
+- **Compaction** (`session.compact`), to show it and refill the context meter.
+- **Changes to the Language and Theme settings** (`config.set`), so the band follows a change once Claude Code applies it.
+- **Focus in its own panel** (`ui.focus`). In the desktop app, the first click on a button in a panel that doesn't have the keyboard focus arrives only as a focus move, so the mod picks the scene or the language that the click landed on.
+
+### What it changes
+
+- It adds two commands, `/cozy-clawd` and `/cozy-clawd-scene`.
+- The **Compact** button compacts the conversation only after you select **Yes**.
+
+</details>
+
+### Check it yourself
+
+To list what the mod hooks and calls, clone the repository and run the following command from its root:
+
+```bash
+claude plugin validate .
+```
+
+The command ends with **Validation passed**.
 
 ## Contribute
 

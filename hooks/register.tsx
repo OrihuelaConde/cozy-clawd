@@ -52,8 +52,8 @@ const HEADROOM = 3
 // Clawd as drawn on the terminal's welcome screen: 18 x 5 pixels, each twice
 // as tall as wide like a terminal's quarter-block cell. Coordinates are in
 // sprite pixels with Clawd's head at y 0; a prop's square pixel is 1 x 0.5.
-const px = (x: number, y: number, w = 1, h = 1) =>
-  `<rect x="${x}" y="${y}" width="${w}" height="${h}"/>`
+const px = (x: number, y: number, width = 1, height = 1) =>
+  `<rect x="${x}" y="${y}" width="${width}" height="${height}"/>`
 
 const sprite = (eyes: string) => `
   <g class="body" fill="${BODY}">${px(3, 0, 12, 4)}</g>
@@ -881,48 +881,48 @@ let isTurnRunning = false
 
 const same = (a: Shown, b: Shown) => a.mode === b.mode && a.tool === b.tool
 
-async function apply($: EngineInterface, next: Shown) {
-  current = next
+async function apply($: EngineInterface, shown: Shown) {
+  current = shown
   shownAt = await $.clock.now()
-  await update($, tool, () => next.tool)
-  await update($, mode, () => next.mode)
+  await update($, tool, () => shown.tool)
+  await update($, mode, () => shown.mode)
 }
 
 // Applies what the last call asked for once the current one has had its time.
 async function settle($: EngineInterface) {
   timer = null
-  const next = pending
+  const queued = pending
   pending = null
-  if (next !== null && !same(next, current)) {
-    await apply($, next)
+  if (queued !== null && !same(queued, current)) {
+    await apply($, queued)
   }
 }
 
 async function show($: EngineInterface, nextMode: ClawdMode, nextTool: string | null = null) {
-  const next: Shown = { mode: nextMode, tool: nextTool }
+  const asked: Shown = { mode: nextMode, tool: nextTool }
   if (nextMode === 'idle') {
     timer?.cancel()
     timer = null
     pending = null
     if (current.mode !== 'idle') {
-      await apply($, next)
+      await apply($, asked)
     }
     return
   }
   if (timer !== null) {
-    pending = next
+    pending = asked
     return
   }
-  if (same(next, current)) {
+  if (same(asked, current)) {
     return
   }
   const wait = shownAt + MIN_MS - (await $.clock.now())
   if (wait > 0) {
-    pending = next
+    pending = asked
     timer = $.clock.after(wait, () => settle($))
     return
   }
-  await apply($, next)
+  await apply($, asked)
 }
 
 // With this share of the prompt cache's life left Clawd frets, ten minutes
