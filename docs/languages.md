@@ -10,10 +10,9 @@ Claude Code doesn't tell a mod which language the app shows, so by default the m
 
 1. The **Language** setting in `/config`, the language Claude answers in, when you've set it.
 2. Your system's locale variables, `LC_ALL`, `LC_MESSAGES`, and `LANG`, where they're set.
-3. Your system's language. On Windows, that's the first of your preferred languages, then your regional format, which the mod reads from two values under `HKCU\Control Panel\International` with `reg.exe query`. On other systems, the mod runs `defaults read -g AppleLanguages`, which macOS answers with your preferred languages.
-4. English.
+3. English.
 
-The desktop app usually starts without the locale variables, so there the mod goes by your system's language unless you've set the **Language** setting in `/config`.
+The desktop app usually starts without the locale variables, so there the mod speaks English unless you've set the **Language** setting in `/config`. To have it speak another language, [choose the language](#choose-the-language) in the `/cozy-clawd` panel.
 
 ## Choose the language
 

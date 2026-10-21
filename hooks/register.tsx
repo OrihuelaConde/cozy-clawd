@@ -966,10 +966,10 @@ const ttlNamed = (value: unknown) => (value === '1h' ? HOUR_S : value === '5m' ?
 
 // How long the prompt cache keeps the main conversation, in seconds, as
 // Claude Code picks it: five minutes when FORCE_PROMPT_CACHING_5M is on;
-// the one CLAUDE_CODE_PROMPT_CACHE_TTL, or else the promptCacheTtl setting,
-// names; an hour when ENABLE_PROMPT_CACHING_1H is on (on Bedrock,
-// ENABLE_PROMPT_CACHING_1H_BEDROCK). Otherwise an hour on a Claude
-// subscription within its usage limits and five minutes on anything else.
+// the one CLAUDE_CODE_PROMPT_CACHE_TTL names; an hour when the variable
+// ENABLE_PROMPT_CACHING_1H is on (on Bedrock, the one with _BEDROCK).
+// Otherwise an hour on a Claude subscription within its usage limits and
+// five minutes on anything else.
 // No event names the length itself (only a model switch's), so the mod
 // tells a subscription by its usage limits, which only a subscription
 // reports, and a request past them by a limit used up. Before any answer
@@ -978,9 +978,9 @@ async function cacheTtlOf($: EngineInterface, usage: SessionUsage | null, isAnsw
   if (isOn(await $.env.get('FORCE_PROMPT_CACHING_5M').catch(() => undefined))) {
     return FIVE_MINUTES_S
   }
-  const named =
-    ttlNamed(await $.env.get('CLAUDE_CODE_PROMPT_CACHE_TTL').catch(() => undefined)) ??
-    ttlNamed((await $.settings.read().catch(() => ({}) as Record<string, unknown>)).promptCacheTtl)
+  // The promptCacheTtl setting names it too, but the settings hold the
+  // person's keys and helper commands as well: the mod reads none of them.
+  const named = ttlNamed(await $.env.get('CLAUDE_CODE_PROMPT_CACHE_TTL').catch(() => undefined))
   if (named !== null) {
     return named
   }
@@ -1099,7 +1099,11 @@ async function endCelebration($: EngineInterface) {
 let isCompactPressed = false
 
 // Compacting in the middle of a turn would cut it short: the button only
-// says so, in the language of the band pressed.
+// says so, in the language of the band pressed. Otherwise it runs /compact,
+// as the person would type it: the desktop app hosts its session as an SDK
+// does, where $.session.compact is refused, and the command compacts on
+// every surface. Its compaction passes through this plugin's own
+// session.compact hook, which shows it.
 async function compactNow($: EngineInterface, isWorking: boolean, lang: Lang) {
   if (isCompactPressed) {
     return
@@ -1111,9 +1115,7 @@ async function compactNow($: EngineInterface, isWorking: boolean, lang: Lang) {
       $.ui.toast(TEXTS[lang].waitToCompact)
       return
     }
-    // The call runs every session.compact hook but this plugin's own, so the
-    // band shows the compaction from here.
-    await whileCompacting($, () => $.session.compact())
+    await $.command.run({ command: 'compact' })
   } finally {
     isCompactPressed = false
   }
@@ -1166,11 +1168,11 @@ let detected: Lang | null = null
 // Claude Code hands a plugin neither the app's language nor its translated
 // texts. The Language row of /config (the language Claude answers in) says
 // it when the person set one; then the locale variables, in the order a
-// program reads them; then the operating system's own setting, as a desktop
-// app starts without those variables; English when none names a language
-// the mod speaks. A read the host does not answer counts as unset. A change
-// of the row hands over the value it is being set to (`language`), which the
-// row holds only once the change is written.
+// program reads them; English when none names a language the mod speaks,
+// as in a desktop app, which starts without those variables: there the
+// person picks one in the panel. A read the host does not answer counts as
+// unset. A change of the row hands over the value it is being set to
+// (`language`), which the row holds only once the change is written.
 async function detectLang($: EngineInterface, language?: { value: unknown }): Promise<Lang> {
   const setting = language ?? (await $.config.list().catch(() => [])).find(row => row.key === 'language')
   const locales = [
@@ -1180,43 +1182,7 @@ async function detectLang($: EngineInterface, language?: { value: unknown }): Pr
     await $.env.get('LANG').catch(() => undefined),
   ]
 
-  return locales.map(langOf).find(lang => lang !== null) ?? langOf(await systemLocale($)) ?? DEFAULT_LANG
-}
-
-// Where Windows keeps the person's languages: the list in the order they set
-// it, its first the display language, then the regional format.
-const WINDOWS_LOCALES = [
-  ['HKCU\\Control Panel\\International\\User Profile', 'Languages'],
-  ['HKCU\\Control Panel\\International', 'LocaleName'],
-] as const
-
-// How long the session's start waits on a system command for the language.
-const LOCALE_TIMEOUT_MS = 3000
-
-// The language the operating system shows the person, as a code (`es-AR`):
-// on Windows read from the registry, on macOS the first of AppleLanguages;
-// null where neither answers. Each command is run by its full path, from its
-// own folder, never looked up in the project's: a project could hold a
-// program by that name.
-async function systemLocale($: EngineInterface): Promise<string | null> {
-  if ((await $.env.get('OS').catch(() => undefined)) === 'Windows_NT') {
-    const root = (await $.env.get('SystemRoot').catch(() => undefined)) ?? 'C:\\Windows'
-    const system32 = `${root}\\System32`
-    for (const [key, value] of WINDOWS_LOCALES) {
-      const found = await $.process
-        .run([`${system32}\\reg.exe`, 'query', key, '/v', value], { cwd: system32, timeoutMs: LOCALE_TIMEOUT_MS })
-        .catch(() => null)
-      const code = found?.exitCode === 0 ? /REG_\w+\s+([a-z]{2,3}\b[-\w]*)/i.exec(found.stdout)?.[1] : undefined
-      if (code) {
-        return code
-      }
-    }
-    return null
-  }
-  // Anywhere but macOS there is no such program, and the call fails at once.
-  const found = await $.process.run(['/usr/bin/defaults', 'read', '-g', 'AppleLanguages'], { cwd: '/', timeoutMs: LOCALE_TIMEOUT_MS }).catch(() => null)
-
-  return found?.exitCode === 0 ? /[a-z]{2,3}\b[-\w]*/i.exec(found.stdout)?.[0] ?? null : null
+  return locales.map(langOf).find(lang => lang !== null) ?? DEFAULT_LANG
 }
 
 async function detectedLang($: EngineInterface) {

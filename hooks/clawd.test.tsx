@@ -146,6 +146,10 @@ test('two quick presses of Yes compact once', async ($, on) => {
   mock.env(on, SPANISH)
   on('session.usage', usageAt(80))
   let compactions = 0
+  on('command.run', { command: 'compact' }, async () => {
+    await $.session.compact({ trigger: 'manual', messages: [{ role: 'user', text: 'hello', toolUses: [] }] } as never)
+    return { text: '' }
+  })
   on('session.compact', async () => {
     compactions++
     await clock.sleep(3_000)

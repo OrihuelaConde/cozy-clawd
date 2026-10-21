@@ -335,10 +335,17 @@ test('the compact button shows at 25% free, not at 26%, asks before compacting, 
   await band.unmount()
 })
 
-test('Sí in the band compacts, and the band shows the compaction its own call raised', async ($, on) => {
+test('Sí in the band runs /compact, and the band shows the compaction', async ($, on) => {
   const clock = mock.clock(on, { now: 1_000_000 })
   mock.env(on, SPANISH)
   on('session.usage', usageAt(80))
+  // Beneath the plugin, /compact compacts, as the engine's own command does.
+  const ran: string[] = []
+  on('command.run', { command: 'compact' }, async (_$, e) => {
+    ran.push(e.command)
+    await $.session.compact({ trigger: 'manual', messages: [{ role: 'user', text: 'hello', toolUses: [] }] } as never)
+    return { text: '' }
+  })
   on('session.compact', () => ({ messages: [{ role: 'user', text: 'Summary', toolUses: [] }] }))
   on('classic.SessionStart', () => ({}))
   await $.classic.SessionStart({ source: 'resume' })
@@ -346,6 +353,7 @@ test('Sí in the band compacts, and the band shows the compaction its own call r
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
   await band.press({ key: 'compact' })
   await band.press({ key: 'compact-yes' })
+  expect(ran).toEqual(['compact'])
   expect(await clawdOf(band)).toBe('Clawd: Compactando la conversación')
   expect(await band.find({ key: 'compact' })).toBeUndefined()
   await clock.advance(1_500)
@@ -577,36 +585,20 @@ test('a change of the Language row in /config switches the band and goes on as i
   await after.unmount()
 })
 
-test('on Windows with no locale variables, the registry\'s display language counts', async ($, on) => {
+test('with no Language row and no locale variables, the band speaks English and runs nothing', async ($, on) => {
   mock.clock(on, { now: 1_000_000 })
-  mock.env(on, { OS: 'Windows_NT', SystemRoot: 'D:\\WINDOWS' })
+  mock.env(on, { OS: 'Windows_NT', SystemRoot: 'C:\\Windows' })
+  // As a desktop app starts: nothing names a language, so nothing is asked of
+  // the system either.
   const asked: string[][] = []
-  const cwds: (string | undefined)[] = []
-  // reg.exe's answer, as Windows prints the person's language list.
   on('process.run', (_$, e) => {
     asked.push([...e.argv])
-    cwds.push(e.init?.cwd)
-    const stdout = '\r\nHKEY_CURRENT_USER\\Control Panel\\International\\User Profile\r\n    Languages    REG_MULTI_SZ    es-AR\\0en-US\r\n\r\n'
-    return { value: { exitCode: 0, stdout, stderr: '' } as never }
+    return { value: { exitCode: 1, stdout: '', stderr: '' } as never }
   })
 
   const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
-  expect(await clawdOf(band)).toBe('Clawd: Esperando')
-  // Windows' own reg.exe, by its full path, run from its own folder: never one
-  // the project's folder holds.
-  expect(asked[0]).toEqual(['D:\\WINDOWS\\System32\\reg.exe', 'query', 'HKCU\\Control Panel\\International\\User Profile', '/v', 'Languages'])
-  expect(cwds[0]).toBe('D:\\WINDOWS\\System32')
-  await band.unmount()
-})
-
-test('on macOS with no locale variables, the first of AppleLanguages counts', async ($, on) => {
-  mock.clock(on, { now: 1_000_000 })
-  mock.env(on, {})
-  // What `defaults read -g AppleLanguages` prints.
-  on('process.run', () => ({ value: { exitCode: 0, stdout: '(\n    "es-419",\n    "en-US"\n)\n', stderr: '' } as never }))
-
-  const band = await $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
-  expect(await clawdOf(band)).toBe('Clawd: Esperando')
+  expect(await clawdOf(band)).toBe('Clawd: Waiting')
+  expect(asked).toEqual([])
   await band.unmount()
 })
 

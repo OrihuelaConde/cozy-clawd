@@ -120,7 +120,7 @@ The cache meter counts down the length Claude Code keeps the cache for: an hour 
 
 Each scene draws the meters as objects of its own. The images in this README show the `balcony` scene, which the band shows until you choose another: a watering can, a daisy in a pot, a bird feeder, and a jar of honey. For all eight, see [Choose a scene](#choose-a-scene).
 
-When 25% or less of the context is left, a **Compact** button appears next to the scene. It asks you to confirm, and then compacts the conversation. While Claude compacts, the context meter fills up again: on the balcony, it rains into the watering can.
+When 25% or less of the context is left, a **Compact** button appears next to the scene. It asks you to confirm, and then runs `/compact`. While Claude compacts, the context meter fills up again: on the balcony, it rains into the watering can.
 
 <p align="center">
   <img src="docs/images/compact.gif" alt="With 18% of the context left, the Compact button asks for confirmation; while the conversation is compacted, it rains into the watering can, and Clawd hops for joy">
@@ -213,10 +213,10 @@ The terminal is too narrow, or too short, for the drawings. The small size needs
 
 ## What the mod does on your machine
 
-Cozy Clawd is a mod: code that runs inside Claude Code with your permissions. It sends nothing off your machine: it makes no network requests, writes no files, sets no environment variables, and uses no credentials, such as an API key or a token. It keeps three choices in Claude Code's plugin store: the scene, the language, and the size. To find your language, it can run `reg.exe query` on Windows or `defaults read` on macOS. It watches each turn's events only to know what to draw, passes them on unchanged, and never answers a permission request for you.
+Cozy Clawd is a mod: code that runs inside Claude Code with your permissions. It sends nothing off your machine: it makes no network requests, runs no programs, writes no files, sets no environment variables, and uses no credentials, such as an API key or a token. It keeps three choices in Claude Code's plugin store: the scene, the language, and the size. It watches each turn's events only to know what to draw, passes them on unchanged, and never answers a permission request for you.
 
 <details>
-<summary>Everything the mod reads, runs, keeps, and hooks</summary>
+<summary>Everything the mod reads, keeps, and hooks</summary>
 
 The address `http://www.w3.org/2000/svg` in the mod's code is the SVG namespace, which names the format of the band's drawings. Nothing connects to it.
 
@@ -226,36 +226,11 @@ The mod reads only what it needs to draw the band:
 
 - **Each turn's progress.** From each response, the mod reads the kind of each piece (thinking, text, or a tool call), a tool's name, and whether the response finished. It doesn't read the text of the conversation.
 - **The session's usage.** The context left and your usage limits, which the meters show, and whether the session is drawn in a terminal or in the desktop app.
-- **Claude Code's settings.** Claude Code hands the mod all its settings, and the mod uses only `promptCacheTtl`, to time the cache meter. It also reads the **Language** and **Theme** rows of `/config`.
+- **Two rows of `/config`.** The mod reads the **Language** and **Theme** rows. It doesn't read Claude Code's settings files, which can hold your keys and helper commands.
 - **Environment variables.** The mod reads the following variables and no others:
   - `FORCE_PROMPT_CACHING_5M`, `CLAUDE_CODE_PROMPT_CACHE_TTL`, `ENABLE_PROMPT_CACHING_1H`, `ENABLE_PROMPT_CACHING_1H_BEDROCK`, `CLAUDE_CODE_USE_BEDROCK`, and `DISABLE_PROMPT_CACHING`, to know how long Claude Code keeps the prompt cache.
   - `LC_ALL`, `LC_MESSAGES`, and `LANG`, to find your language.
-  - `OS` and `SystemRoot`, to know whether it runs on Windows and where Windows keeps `reg.exe`.
   - `COLORFGBG`, to know whether a terminal has a light background.
-
-### What it runs
-
-If neither the **Language** setting in `/config` nor the locale variables name a language the mod speaks, the mod asks the system for your language. It does so once a session, and again when the **Language** setting changes.
-
-On Windows, the mod runs the following command, which answers with your preferred languages:
-
-```text
-%SystemRoot%\System32\reg.exe query "HKCU\Control Panel\International\User Profile" /v Languages
-```
-
-If that names no language, it runs the following command, which answers with your regional format:
-
-```text
-%SystemRoot%\System32\reg.exe query "HKCU\Control Panel\International" /v LocaleName
-```
-
-On other systems, the mod runs the following command, which macOS answers with your preferred languages. Where the program doesn't exist, the call fails at once.
-
-```text
-/usr/bin/defaults read -g AppleLanguages
-```
-
-Every argument is fixed text except the folder of `reg.exe`, which comes from the `SystemRoot` variable, or is `C:\Windows` when the variable isn't set. The mod runs each program by its full path and from the program's own folder, so that a program with the same name in your project can't run in its place. It passes nothing of yours to these commands, waits for each one 3 seconds at most, and reads only a language code from its output. These are the only programs the mod runs.
 
 ### What it keeps
 
@@ -285,7 +260,7 @@ The mod draws the band and the `/cozy-clawd` panel, and answers its own two comm
 ### What it changes
 
 - It adds two commands, `/cozy-clawd` and `/cozy-clawd-scene`.
-- The **Compact** button compacts the conversation only after you select **Yes**.
+- The **Compact** button compacts the conversation only after you select **Yes**. It runs `/compact`, as if you typed it, so the command shows in the conversation.
 
 </details>
 

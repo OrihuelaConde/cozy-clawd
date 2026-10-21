@@ -10,7 +10,7 @@ When 25% or less of the context is left, each scene shows it in its own way, and
 - **Prompt cache.** The minutes left on the prompt cache, counted down from Claude's last answer. The mod doesn't read the cache itself; it counts down the length Claude Code keeps the cache for, by the same rules:
   - An hour when you sign in with a Claude subscription and stay within its usage limits.
   - Five minutes with an API key, or once you use up a usage limit.
-  - The length you set with the `CLAUDE_CODE_PROMPT_CACHE_TTL` environment variable or the `promptCacheTtl` setting, `1h` or `5m`.
+  - The length you set with the `CLAUDE_CODE_PROMPT_CACHE_TTL` environment variable, `1h` or `5m`. The mod doesn't read the `promptCacheTtl` setting, so if you set the length there, set the variable to the same value for the meter to follow it.
   - An hour with the `ENABLE_PROMPT_CACHING_1H` environment variable, or on Amazon Bedrock with `ENABLE_PROMPT_CACHING_1H_BEDROCK`.
   - Five minutes with `FORCE_PROMPT_CACHING_5M`, whatever else is set.
 

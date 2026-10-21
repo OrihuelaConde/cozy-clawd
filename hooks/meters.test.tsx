@@ -44,16 +44,15 @@ const desktopBand = ($: Parameters<TestBody>[0]) =>
   $.ui.mount({ plugin: 'cozy-clawd', surface: 'desktop', component: 'AbovePrompt', props: { ...BAND, isWorking: false } })
 
 // How long the cache lasts after an answer, by what Claude Code reads: the
-// variables, the setting, and whether the usage limits say a subscription.
-const LENGTHS: { name: string; env?: Record<string, string>; settings?: Record<string, unknown>; limits: Limit[]; cache: RegExp }[] = [
+// variables, and whether the usage limits say a subscription.
+const LENGTHS: { name: string; env?: Record<string, string>; limits: Limit[]; cache: RegExp }[] = [
   { name: 'on a subscription within its limits the cache lasts an hour', limits: PLAN, cache: /caché 60\smin/ },
   { name: 'with an API key the cache lasts five minutes', limits: [], cache: /caché 5\smin/ },
   { name: 'past a usage limit the cache lasts five minutes', limits: [{ kind: 'five_hour', percentUsed: 100 }, { kind: 'seven_day', percentUsed: 50 }], cache: /caché 5\smin/ },
   { name: 'FORCE_PROMPT_CACHING_5M makes it five minutes', env: { FORCE_PROMPT_CACHING_5M: '1' }, limits: PLAN, cache: /caché 5\smin/ },
   { name: 'ENABLE_PROMPT_CACHING_1H makes it an hour', env: { ENABLE_PROMPT_CACHING_1H: 'true' }, limits: [], cache: /caché 60\smin/ },
   { name: 'on Bedrock ENABLE_PROMPT_CACHING_1H_BEDROCK makes it an hour', env: { CLAUDE_CODE_USE_BEDROCK: '1', ENABLE_PROMPT_CACHING_1H_BEDROCK: '1' }, limits: [], cache: /caché 60\smin/ },
-  { name: 'the promptCacheTtl setting names it', settings: { promptCacheTtl: '5m' }, limits: PLAN, cache: /caché 5\smin/ },
-  { name: 'CLAUDE_CODE_PROMPT_CACHE_TTL names it, over the setting', env: { CLAUDE_CODE_PROMPT_CACHE_TTL: '1h' }, settings: { promptCacheTtl: '5m' }, limits: [], cache: /caché 60\smin/ },
+  { name: 'CLAUDE_CODE_PROMPT_CACHE_TTL names it', env: { CLAUDE_CODE_PROMPT_CACHE_TTL: '1h' }, limits: [], cache: /caché 60\smin/ },
   { name: 'with prompt caching off there is no cache to count', env: { DISABLE_PROMPT_CACHING: '1' }, limits: PLAN, cache: /caché sin datos/ },
 ]
 
@@ -62,7 +61,6 @@ for (const length of LENGTHS) {
     mock.clock(on, { now: 1_000_000 })
     mock.env(on, { ...SPANISH, ...length.env })
     on('session.usage', usageAt(30, length.limits))
-    on('settings.read', () => ({ value: (length.settings ?? {}) as never }))
     on('turn.step', answering)
     await answer($)
     const band = await desktopBand($)
